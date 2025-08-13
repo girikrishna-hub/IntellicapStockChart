@@ -52,14 +52,15 @@ def calculate_moving_average(data, window=50):
     """
     return data['Close'].rolling(window=window).mean()
 
-def create_chart(data, symbol, ma_50):
+def create_chart(data, symbol, ma_50, ma_200):
     """
-    Create an interactive Plotly chart with stock price and 50-day moving average
+    Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
     
     Args:
         data (pd.DataFrame): Stock price data
         symbol (str): Stock symbol for chart title
         ma_50 (pd.Series): 50-day moving average data
+        ma_200 (pd.Series): 200-day moving average data
     
     Returns:
         plotly.graph_objects.Figure: Interactive chart
@@ -92,9 +93,22 @@ def create_chart(data, symbol, ma_50):
                       '<extra></extra>'
     ))
     
+    # Add 200-day moving average line
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=ma_200,
+        mode='lines',
+        name='200-Day Moving Average',
+        line=dict(color='#d62728', width=2, dash='dot'),
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'MA(200): $%{y:.2f}<br>' +
+                      '<extra></extra>'
+    ))
+    
     # Update layout
     fig.update_layout(
-        title=f'{symbol.upper()} Stock Price with 50-Day Moving Average (1 Year)',
+        title=f'{symbol.upper()} Stock Price with 50-Day & 200-Day Moving Averages (1 Year)',
         xaxis_title='Date',
         yaxis_title='Price ($)',
         hovermode='x unified',
@@ -127,49 +141,59 @@ def create_chart(data, symbol, ma_50):
     
     return fig
 
-def display_key_metrics(data, symbol, ma_50):
+def display_key_metrics(data, symbol, ma_50, ma_200):
     """
-    Display key metrics about the stock and moving average
+    Display key metrics about the stock and moving averages
     
     Args:
         data (pd.DataFrame): Stock price data
         symbol (str): Stock symbol
         ma_50 (pd.Series): 50-day moving average data
+        ma_200 (pd.Series): 200-day moving average data
     """
     # Get latest values
     latest_price = data['Close'].iloc[-1]
-    latest_ma = ma_50.iloc[-1]
+    latest_ma_50 = ma_50.iloc[-1]
+    latest_ma_200 = ma_200.iloc[-1]
     
     # Calculate some metrics
     year_high = data['Close'].max()
     year_low = data['Close'].min()
     
     # Price vs MA comparison
-    price_vs_ma = ((latest_price - latest_ma) / latest_ma) * 100
+    price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if not pd.isna(latest_ma_50) else 0
+    price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if not pd.isna(latest_ma_200) else 0
     
     # Create columns for metrics
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         st.metric(
             label="Current Price",
             value=f"${latest_price:.2f}",
-            delta=f"{price_vs_ma:.1f}% vs MA(50)"
+            delta=f"{price_vs_ma_50:.1f}% vs MA(50)" if not pd.isna(latest_ma_50) else None
         )
     
     with col2:
         st.metric(
             label="50-Day MA",
-            value=f"${latest_ma:.2f}" if not pd.isna(latest_ma) else "N/A"
+            value=f"${latest_ma_50:.2f}" if not pd.isna(latest_ma_50) else "N/A"
         )
     
     with col3:
+        st.metric(
+            label="200-Day MA",
+            value=f"${latest_ma_200:.2f}" if not pd.isna(latest_ma_200) else "N/A",
+            delta=f"{price_vs_ma_200:.1f}% vs Price" if not pd.isna(latest_ma_200) else None
+        )
+    
+    with col4:
         st.metric(
             label="52-Week High",
             value=f"${year_high:.2f}"
         )
     
-    with col4:
+    with col5:
         st.metric(
             label="52-Week Low",
             value=f"${year_low:.2f}"
@@ -180,8 +204,8 @@ def main():
     Main application function
     """
     # App header
-    st.title("📈 Stock 50-Day Moving Average Chart")
-    st.markdown("Enter a stock symbol to view its price chart with 50-day moving average over the past year.")
+    st.title("📈 Stock Moving Average Chart")
+    st.markdown("Enter a stock symbol to view its price chart with 50-day and 200-day moving averages over the past year.")
     
     # Create input section
     col1, col2 = st.columns([3, 1])
@@ -209,16 +233,17 @@ def main():
                 data = fetch_stock_data(symbol)
             
             if data is not None and not data.empty:
-                # Calculate 50-day moving average
+                # Calculate moving averages
                 ma_50 = calculate_moving_average(data, window=50)
+                ma_200 = calculate_moving_average(data, window=200)
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
-                display_key_metrics(data, symbol, ma_50)
+                display_key_metrics(data, symbol, ma_50, ma_200)
                 
                 # Create and display chart
-                st.subheader(f"Price Chart with 50-Day Moving Average")
-                fig = create_chart(data, symbol, ma_50)
+                st.subheader(f"Price Chart with Moving Averages")
+                fig = create_chart(data, symbol, ma_50, ma_200)
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Additional information
@@ -226,7 +251,8 @@ def main():
                 
                 # Calculate statistics
                 total_days = len(data)
-                ma_days = len(ma_50.dropna())
+                ma_50_days = len(ma_50.dropna()) if hasattr(ma_50, 'dropna') else len([x for x in ma_50 if not pd.isna(x)])
+                ma_200_days = len(ma_200.dropna()) if hasattr(ma_200, 'dropna') else len([x for x in ma_200 if not pd.isna(x)])
                 
                 info_col1, info_col2 = st.columns(2)
                 
@@ -236,27 +262,40 @@ def main():
                     
                     **Total Trading Days:** {total_days}
                     
-                    **Moving Average Days:** {ma_days} (50-day window requires 50+ days)
+                    **50-Day MA Points:** {ma_50_days}
+                    
+                    **200-Day MA Points:** {ma_200_days}
                     """)
                 
                 with info_col2:
                     # Trend analysis
-                    if not pd.isna(ma_50.iloc[-1]):
-                        current_price = data['Close'].iloc[-1]
-                        current_ma = ma_50.iloc[-1]
-                        
-                        if current_price > current_ma:
-                            trend = "🟢 Above MA (Potentially Bullish)"
+                    current_price = data['Close'].iloc[-1]
+                    current_ma_50 = ma_50.iloc[-1] if hasattr(ma_50, 'iloc') else ma_50[-1]
+                    current_ma_200 = ma_200.iloc[-1] if hasattr(ma_200, 'iloc') else ma_200[-1]
+                    
+                    trend_50 = ""
+                    trend_200 = ""
+                    
+                    if not pd.isna(current_ma_50):
+                        if current_price > current_ma_50:
+                            trend_50 = "Above 50-day MA (Short-term Bullish)"
                         else:
-                            trend = "🔴 Below MA (Potentially Bearish)"
-                        
-                        st.success(f"""
-                        **Current Trend Analysis:**
-                        
-                        {trend}
-                        
-                        **Note:** This is for informational purposes only and should not be considered as investment advice.
-                        """)
+                            trend_50 = "Below 50-day MA (Short-term Bearish)"
+                    
+                    if not pd.isna(current_ma_200):
+                        if current_price > current_ma_200:
+                            trend_200 = "Above 200-day MA (Long-term Bullish)"
+                        else:
+                            trend_200 = "Below 200-day MA (Long-term Bearish)"
+                    
+                    trend_text = "**Current Trend Analysis:**\n\n"
+                    if trend_50:
+                        trend_text += f"• {trend_50}\n"
+                    if trend_200:
+                        trend_text += f"• {trend_200}\n"
+                    trend_text += "\n**Note:** This is for informational purposes only and should not be considered as investment advice."
+                    
+                    st.success(trend_text)
                 
             else:
                 st.error(f"""
@@ -277,7 +316,8 @@ def main():
     st.markdown("""
     **About this application:**
     - Data is sourced from Yahoo Finance via the yfinance library
-    - The 50-day moving average is calculated using the closing prices over the last 50 trading days
+    - The 50-day moving average shows short-term trends (last 50 trading days)
+    - The 200-day moving average shows long-term trends (last 200 trading days)
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
     

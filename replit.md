@@ -1,8 +1,8 @@
-# Stock 50-Day Moving Average Chart
+# Stock Moving Average Chart
 
 ## Overview
 
-This is a Streamlit-based web application for visualizing stock price data with 50-day moving averages. The application allows users to input stock ticker symbols and view interactive charts displaying historical stock prices alongside calculated moving averages. It leverages financial data APIs to provide real-time stock market analysis capabilities through an intuitive web interface.
+This is a Streamlit-based web application for visualizing stock price data with both 50-day and 200-day moving averages. The application allows users to input stock ticker symbols and view interactive charts displaying historical stock prices alongside calculated short-term (50-day) and long-term (200-day) moving averages. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
 
 ## User Preferences
 
@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
-- **Default Parameters**: 50-day moving average window as the primary analytical tool
+- **Default Parameters**: 50-day and 200-day moving average windows for comprehensive trend analysis
 - **Symbol Input**: Dynamic stock ticker symbol processing
 
 ## External Dependencies
