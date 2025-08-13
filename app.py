@@ -52,7 +52,7 @@ def calculate_moving_average(data, window=50):
     """
     return data['Close'].rolling(window=window).mean()
 
-def create_chart(data, symbol, ma_50, ma_200):
+def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
     Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
     
@@ -61,6 +61,7 @@ def create_chart(data, symbol, ma_50, ma_200):
         symbol (str): Stock symbol for chart title
         ma_50 (pd.Series): 50-day moving average data
         ma_200 (pd.Series): 200-day moving average data
+        period_label (str): Time period label for chart title
     
     Returns:
         plotly.graph_objects.Figure: Interactive chart
@@ -108,7 +109,7 @@ def create_chart(data, symbol, ma_50, ma_200):
     
     # Update layout
     fig.update_layout(
-        title=f'{symbol.upper()} Stock Price with 50-Day & 200-Day Moving Averages (1 Year)',
+        title=f'{symbol.upper()} Stock Price with 50-Day & 200-Day Moving Averages ({period_label})',
         xaxis_title='Date',
         yaxis_title='Price ($)',
         hovermode='x unified',
@@ -205,10 +206,10 @@ def main():
     """
     # App header
     st.title("📈 Stock Moving Average Chart")
-    st.markdown("Enter a stock symbol to view its price chart with 50-day and 200-day moving averages over the past year.")
+    st.markdown("Enter a stock symbol and select a time period to view its price chart with 50-day and 200-day moving averages.")
     
     # Create input section
-    col1, col2 = st.columns([3, 1])
+    col1, col2, col3 = st.columns([3, 2, 1])
     
     with col1:
         symbol = st.text_input(
@@ -219,6 +220,27 @@ def main():
         )
     
     with col2:
+        period_options = {
+            "1 Month": "1mo",
+            "3 Months": "3mo", 
+            "6 Months": "6mo",
+            "1 Year": "1y",
+            "2 Years": "2y",
+            "5 Years": "5y",
+            "10 Years": "10y",
+            "Maximum": "max"
+        }
+        
+        selected_period = st.selectbox(
+            "Select Time Period:",
+            options=list(period_options.keys()),
+            index=3,  # Default to "1 Year"
+            help="Choose the time period for historical data analysis"
+        )
+        
+        period_code = period_options[selected_period]
+    
+    with col3:
         st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
         analyze_button = st.button("Generate Chart", type="primary")
     
@@ -228,9 +250,9 @@ def main():
             symbol = symbol.strip().upper()
             
             # Show loading spinner
-            with st.spinner(f'Fetching data for {symbol}...'):
+            with st.spinner(f'Fetching {selected_period.lower()} data for {symbol}...'):
                 # Fetch stock data
-                data = fetch_stock_data(symbol)
+                data = fetch_stock_data(symbol, period=period_code)
             
             if data is not None and not data.empty:
                 # Calculate moving averages
@@ -243,7 +265,7 @@ def main():
                 
                 # Create and display chart
                 st.subheader(f"Price Chart with Moving Averages")
-                fig = create_chart(data, symbol, ma_50, ma_200)
+                fig = create_chart(data, symbol, ma_50, ma_200, selected_period)
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Additional information
@@ -266,6 +288,10 @@ def main():
                     
                     **200-Day MA Points:** {ma_200_days}
                     """)
+                    
+                    # Add period-specific note
+                    if selected_period in ["1 Month", "3 Months"]:
+                        st.warning("⚠️ **Note:** Short time periods may not provide enough data for reliable 200-day moving average analysis. Consider using longer periods for better trend identification.")
                 
                 with info_col2:
                     # Trend analysis
@@ -316,10 +342,13 @@ def main():
     st.markdown("""
     **About this application:**
     - Data is sourced from Yahoo Finance via the yfinance library
+    - Choose from multiple time periods: 1 month to maximum available history
     - The 50-day moving average shows short-term trends (last 50 trading days)
     - The 200-day moving average shows long-term trends (last 200 trading days)
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
+    
+    **Note:** For reliable moving average analysis, longer time periods (1 year or more) are recommended.
     
     **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as financial advice.
     """)

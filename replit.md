@@ -26,7 +26,7 @@ Preferred communication style: Simple, everyday language.
 - **Modular Design**: Separate functions for data fetching and moving average calculations
 - **Error Handling**: Try-catch blocks for robust API interaction
 - **Data Validation**: Empty data checks to ensure data quality
-- **Period Configuration**: Flexible time period selection (default 1-year lookback)
+- **Period Configuration**: User-selectable time periods from 1 month to maximum available history (default 1-year)
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
