@@ -1,8 +1,8 @@
-# Stock Moving Average Chart
+# Stock Technical Analysis Application
 
 ## Overview
 
-This is a Streamlit-based web application for visualizing stock price data with both 50-day and 200-day moving averages. The application allows users to input stock ticker symbols and view interactive charts displaying historical stock prices alongside calculated short-term (50-day) and long-term (200-day) moving averages. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
+This is a comprehensive Streamlit-based web application for technical analysis of stock price data. The application provides multiple technical indicators including 50-day and 200-day moving averages, plus MACD (Moving Average Convergence Divergence) momentum indicator. Users can input stock ticker symbols, select flexible time periods, and view interactive charts displaying historical stock prices alongside calculated technical indicators. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
 
 ## User Preferences
 
@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
-- **Default Parameters**: 50-day and 200-day moving average windows for comprehensive trend analysis
+- **Default Parameters**: 50-day and 200-day moving average windows plus MACD (12,26,9) for comprehensive technical analysis
 - **Symbol Input**: Dynamic stock ticker symbol processing
 
 ## External Dependencies

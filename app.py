@@ -52,6 +52,34 @@ def calculate_moving_average(data, window=50):
     """
     return data['Close'].rolling(window=window).mean()
 
+def calculate_macd(data, fast_period=12, slow_period=26, signal_period=9):
+    """
+    Calculate MACD (Moving Average Convergence Divergence) indicator
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        fast_period (int): Fast EMA period (default 12)
+        slow_period (int): Slow EMA period (default 26)
+        signal_period (int): Signal EMA period (default 9)
+    
+    Returns:
+        tuple: (macd_line, signal_line, histogram)
+    """
+    # Calculate exponential moving averages
+    ema_fast = data['Close'].ewm(span=fast_period).mean()
+    ema_slow = data['Close'].ewm(span=slow_period).mean()
+    
+    # MACD line = Fast EMA - Slow EMA
+    macd_line = ema_fast - ema_slow
+    
+    # Signal line = EMA of MACD line
+    signal_line = macd_line.ewm(span=signal_period).mean()
+    
+    # Histogram = MACD line - Signal line
+    histogram = macd_line - signal_line
+    
+    return macd_line, signal_line, histogram
+
 def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
     Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
@@ -142,6 +170,103 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     
     return fig
 
+def create_macd_chart(data, symbol, macd_line, signal_line, histogram, period_label="1 Year"):
+    """
+    Create MACD indicator chart
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        symbol (str): Stock symbol for chart title
+        macd_line (pd.Series): MACD line data
+        signal_line (pd.Series): Signal line data
+        histogram (pd.Series): MACD histogram data
+        period_label (str): Time period label for chart title
+    
+    Returns:
+        plotly.graph_objects.Figure: MACD chart
+    """
+    fig = go.Figure()
+    
+    # Add MACD line
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=macd_line,
+        mode='lines',
+        name='MACD Line',
+        line=dict(color='#1f77b4', width=2),
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'MACD: %{y:.4f}<br>' +
+                      '<extra></extra>'
+    ))
+    
+    # Add Signal line
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=signal_line,
+        mode='lines',
+        name='Signal Line',
+        line=dict(color='#ff7f0e', width=2),
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'Signal: %{y:.4f}<br>' +
+                      '<extra></extra>'
+    ))
+    
+    # Add histogram bars
+    # Create colors for bars (green for positive, red for negative)
+    colors = ['green' if val >= 0 else 'red' for val in histogram]
+    
+    fig.add_trace(go.Bar(
+        x=data.index,
+        y=histogram,
+        name='MACD Histogram',
+        marker_color=colors,
+        opacity=0.6,
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'Histogram: %{y:.4f}<br>' +
+                      '<extra></extra>'
+    ))
+    
+    # Add zero line
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    # Update layout
+    fig.update_layout(
+        title=f'{symbol.upper()} MACD Indicator ({period_label})',
+        xaxis_title='Date',
+        yaxis_title='MACD Value',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        template='plotly_white',
+        height=400
+    )
+    
+    # Update x-axis
+    fig.update_xaxes(
+        rangeslider_visible=False,
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray'
+    )
+    
+    # Update y-axis
+    fig.update_yaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray',
+        tickformat='.4f'
+    )
+    
+    return fig
+
 def display_key_metrics(data, symbol, ma_50, ma_200):
     """
     Display key metrics about the stock and moving averages
@@ -205,8 +330,8 @@ def main():
     Main application function
     """
     # App header
-    st.title("📈 Stock Moving Average Chart")
-    st.markdown("Enter a stock symbol and select a time period to view its price chart with 50-day and 200-day moving averages.")
+    st.title("📈 Stock Technical Analysis")
+    st.markdown("Enter a stock symbol and select a time period to view comprehensive technical analysis with moving averages and MACD indicator.")
     
     # Create input section
     col1, col2, col3 = st.columns([3, 2, 1])
@@ -259,14 +384,28 @@ def main():
                 ma_50 = calculate_moving_average(data, window=50)
                 ma_200 = calculate_moving_average(data, window=200)
                 
+                # Calculate MACD indicator
+                macd_line, signal_line, histogram = calculate_macd(data)
+                
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
                 display_key_metrics(data, symbol, ma_50, ma_200)
                 
-                # Create and display chart
+                # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")
                 fig = create_chart(data, symbol, ma_50, ma_200, selected_period)
                 st.plotly_chart(fig, use_container_width=True)
+                
+                # Create and display MACD chart
+                st.subheader(f"MACD Indicator")
+                st.markdown("""
+                **MACD (Moving Average Convergence Divergence)** is a trend-following momentum indicator that shows the relationship between two moving averages:
+                - **MACD Line** (blue): 12-day EMA minus 26-day EMA
+                - **Signal Line** (orange): 9-day EMA of the MACD line  
+                - **Histogram** (bars): MACD line minus Signal line
+                """)
+                macd_fig = create_macd_chart(data, symbol, macd_line, signal_line, histogram, selected_period)
+                st.plotly_chart(macd_fig, use_container_width=True)
                 
                 # Additional information
                 st.subheader("Chart Information")
@@ -314,11 +453,25 @@ def main():
                         else:
                             trend_200 = "Below 200-day MA (Long-term Bearish)"
                     
-                    trend_text = "**Current Trend Analysis:**\n\n"
+                    # MACD analysis
+                    latest_macd = macd_line.iloc[-1] if hasattr(macd_line, 'iloc') else macd_line[-1]
+                    latest_signal = signal_line.iloc[-1] if hasattr(signal_line, 'iloc') else signal_line[-1]
+                    latest_histogram = histogram.iloc[-1] if hasattr(histogram, 'iloc') else histogram[-1]
+                    
+                    macd_trend = ""
+                    if not pd.isna(latest_macd) and not pd.isna(latest_signal):
+                        if latest_macd > latest_signal:
+                            macd_trend = "MACD above Signal (Bullish momentum)"
+                        else:
+                            macd_trend = "MACD below Signal (Bearish momentum)"
+                    
+                    trend_text = "**Current Analysis:**\n\n"
                     if trend_50:
                         trend_text += f"• {trend_50}\n"
                     if trend_200:
                         trend_text += f"• {trend_200}\n"
+                    if macd_trend:
+                        trend_text += f"• {macd_trend}\n"
                     trend_text += "\n**Note:** This is for informational purposes only and should not be considered as investment advice."
                     
                     st.success(trend_text)
@@ -345,10 +498,15 @@ def main():
     - Choose from multiple time periods: 1 month to maximum available history
     - The 50-day moving average shows short-term trends (last 50 trading days)
     - The 200-day moving average shows long-term trends (last 200 trading days)
+    - MACD indicator shows momentum and trend changes using exponential moving averages
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
     
-    **Note:** For reliable moving average analysis, longer time periods (1 year or more) are recommended.
+    **Technical Indicators:**
+    - **MACD Signals:** When MACD line crosses above/below signal line, it may indicate buy/sell opportunities
+    - **Histogram:** Shows the strength of momentum - larger bars indicate stronger momentum
+    
+    **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
     
     **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as financial advice.
     """)
