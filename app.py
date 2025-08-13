@@ -80,6 +80,57 @@ def calculate_macd(data, fast_period=12, slow_period=26, signal_period=9):
     
     return macd_line, signal_line, histogram
 
+def calculate_rsi(data, period=14):
+    """
+    Calculate RSI (Relative Strength Index) indicator
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        period (int): RSI period (default 14)
+    
+    Returns:
+        pd.Series: RSI values
+    """
+    # Calculate price changes
+    delta = data['Close'].diff()
+    
+    # Separate gains and losses
+    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
+    
+    # Calculate relative strength
+    rs = gain / loss
+    
+    # Calculate RSI
+    rsi = 100 - (100 / (1 + rs))
+    
+    return rsi
+
+def calculate_chaikin_money_flow(data, period=20):
+    """
+    Calculate Chaikin Money Flow (CMF) indicator
+    
+    Args:
+        data (pd.DataFrame): Stock price data with OHLCV
+        period (int): CMF period (default 20)
+    
+    Returns:
+        pd.Series: CMF values
+    """
+    # Money Flow Multiplier = [(Close - Low) - (High - Close)] / (High - Low)
+    mf_multiplier = ((data['Close'] - data['Low']) - (data['High'] - data['Close'])) / (data['High'] - data['Low'])
+    
+    # Handle division by zero (when High = Low)
+    mf_multiplier = mf_multiplier.fillna(0)
+    
+    # Money Flow Volume = Money Flow Multiplier * Volume
+    mf_volume = mf_multiplier * data['Volume']
+    
+    # Chaikin Money Flow = Sum of Money Flow Volume over period / Sum of Volume over period
+    cmf = mf_volume.rolling(window=period).sum() / data['Volume'].rolling(window=period).sum()
+    
+    return cmf
+
 def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
     Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
@@ -267,6 +318,144 @@ def create_macd_chart(data, symbol, macd_line, signal_line, histogram, period_la
     
     return fig
 
+def create_rsi_chart(data, symbol, rsi, period_label="1 Year"):
+    """
+    Create RSI indicator chart
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        symbol (str): Stock symbol for chart title
+        rsi (pd.Series): RSI data
+        period_label (str): Time period label for chart title
+    
+    Returns:
+        plotly.graph_objects.Figure: RSI chart
+    """
+    fig = go.Figure()
+    
+    # Add RSI line
+    fig.add_trace(go.Scatter(
+        x=data.index,
+        y=rsi,
+        mode='lines',
+        name='RSI',
+        line=dict(color='#9467bd', width=2),
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'RSI: %{y:.2f}<br>' +
+                      '<extra></extra>'
+    ))
+    
+    # Add overbought and oversold lines
+    fig.add_hline(y=70, line_dash="dash", line_color="red", opacity=0.7, annotation_text="Overbought (70)")
+    fig.add_hline(y=30, line_dash="dash", line_color="green", opacity=0.7, annotation_text="Oversold (30)")
+    fig.add_hline(y=50, line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Neutral (50)")
+    
+    # Update layout
+    fig.update_layout(
+        title=f'{symbol.upper()} RSI Indicator ({period_label})',
+        xaxis_title='Date',
+        yaxis_title='RSI Value',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        template='plotly_white',
+        height=350
+    )
+    
+    # Update x-axis
+    fig.update_xaxes(
+        rangeslider_visible=False,
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray'
+    )
+    
+    # Update y-axis
+    fig.update_yaxes(
+        range=[0, 100],
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray',
+        tickformat='.0f'
+    )
+    
+    return fig
+
+def create_chaikin_chart(data, symbol, cmf, period_label="1 Year"):
+    """
+    Create Chaikin Money Flow chart
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        symbol (str): Stock symbol for chart title
+        cmf (pd.Series): Chaikin Money Flow data
+        period_label (str): Time period label for chart title
+    
+    Returns:
+        plotly.graph_objects.Figure: Chaikin Money Flow chart
+    """
+    fig = go.Figure()
+    
+    # Create colors for bars (green for positive, red for negative)
+    colors = ['green' if val >= 0 else 'red' for val in cmf]
+    
+    # Add CMF bars
+    fig.add_trace(go.Bar(
+        x=data.index,
+        y=cmf,
+        name='Chaikin Money Flow',
+        marker_color=colors,
+        opacity=0.7,
+        hovertemplate='<b>%{fullData.name}</b><br>' +
+                      'Date: %{x}<br>' +
+                      'CMF: %{y:.4f}<br>' +
+                      '<extra></extra>'
+    ))
+    
+    # Add zero line
+    fig.add_hline(y=0, line_dash="dash", line_color="gray", opacity=0.5)
+    
+    # Update layout
+    fig.update_layout(
+        title=f'{symbol.upper()} Chaikin Money Flow ({period_label})',
+        xaxis_title='Date',
+        yaxis_title='CMF Value',
+        hovermode='x unified',
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="left",
+            x=0.01
+        ),
+        template='plotly_white',
+        height=350
+    )
+    
+    # Update x-axis
+    fig.update_xaxes(
+        rangeslider_visible=False,
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray'
+    )
+    
+    # Update y-axis
+    fig.update_yaxes(
+        showgrid=True,
+        gridwidth=1,
+        gridcolor='lightgray',
+        tickformat='.4f'
+    )
+    
+    return fig
+
 def display_key_metrics(data, symbol, ma_50, ma_200):
     """
     Display key metrics about the stock and moving averages
@@ -384,8 +573,10 @@ def main():
                 ma_50 = calculate_moving_average(data, window=50)
                 ma_200 = calculate_moving_average(data, window=200)
                 
-                # Calculate MACD indicator
+                # Calculate technical indicators
                 macd_line, signal_line, histogram = calculate_macd(data)
+                rsi = calculate_rsi(data)
+                cmf = calculate_chaikin_money_flow(data)
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
@@ -406,6 +597,28 @@ def main():
                 """)
                 macd_fig = create_macd_chart(data, symbol, macd_line, signal_line, histogram, selected_period)
                 st.plotly_chart(macd_fig, use_container_width=True)
+                
+                # Create and display RSI chart
+                st.subheader(f"RSI Indicator")
+                st.markdown("""
+                **RSI (Relative Strength Index)** measures the speed and change of price movements:
+                - **Above 70**: Potentially overbought (selling pressure may increase)
+                - **Below 30**: Potentially oversold (buying opportunity may exist)
+                - **Around 50**: Neutral momentum
+                """)
+                rsi_fig = create_rsi_chart(data, symbol, rsi, selected_period)
+                st.plotly_chart(rsi_fig, use_container_width=True)
+                
+                # Create and display Chaikin Money Flow chart
+                st.subheader(f"Chaikin Money Flow")
+                st.markdown("""
+                **Chaikin Money Flow (CMF)** measures the amount of Money Flow Volume over a period:
+                - **Positive values**: Buying pressure (accumulation)
+                - **Negative values**: Selling pressure (distribution)
+                - **Values near zero**: Balanced buying/selling pressure
+                """)
+                cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period)
+                st.plotly_chart(cmf_fig, use_container_width=True)
                 
                 # Additional information
                 st.subheader("Chart Information")
@@ -453,26 +666,50 @@ def main():
                         else:
                             trend_200 = "Below 200-day MA (Long-term Bearish)"
                     
-                    # MACD analysis
+                    # Technical indicators analysis
                     latest_macd = macd_line.iloc[-1] if hasattr(macd_line, 'iloc') else macd_line[-1]
                     latest_signal = signal_line.iloc[-1] if hasattr(signal_line, 'iloc') else signal_line[-1]
-                    latest_histogram = histogram.iloc[-1] if hasattr(histogram, 'iloc') else histogram[-1]
+                    latest_rsi = rsi.iloc[-1] if hasattr(rsi, 'iloc') else rsi[-1]
+                    latest_cmf = cmf.iloc[-1] if hasattr(cmf, 'iloc') else cmf[-1]
                     
                     macd_trend = ""
+                    rsi_trend = ""
+                    cmf_trend = ""
+                    
                     if not pd.isna(latest_macd) and not pd.isna(latest_signal):
                         if latest_macd > latest_signal:
                             macd_trend = "MACD above Signal (Bullish momentum)"
                         else:
                             macd_trend = "MACD below Signal (Bearish momentum)"
                     
-                    trend_text = "**Current Analysis:**\n\n"
+                    if not pd.isna(latest_rsi):
+                        if latest_rsi > 70:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Overbought)"
+                        elif latest_rsi < 30:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Oversold)"
+                        else:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Neutral)"
+                    
+                    if not pd.isna(latest_cmf):
+                        if latest_cmf > 0.1:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Strong Buying Pressure)"
+                        elif latest_cmf < -0.1:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Strong Selling Pressure)"
+                        else:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Balanced)"
+                    
+                    trend_text = "**Current Technical Analysis:**\n\n"
                     if trend_50:
                         trend_text += f"• {trend_50}\n"
                     if trend_200:
                         trend_text += f"• {trend_200}\n"
                     if macd_trend:
                         trend_text += f"• {macd_trend}\n"
-                    trend_text += "\n**Note:** This is for informational purposes only and should not be considered as investment advice."
+                    if rsi_trend:
+                        trend_text += f"• {rsi_trend}\n"
+                    if cmf_trend:
+                        trend_text += f"• {cmf_trend}\n"
+                    trend_text += "\n**Note:** This is for educational purposes only and should not be considered as investment advice."
                     
                     st.success(trend_text)
                 
@@ -499,16 +736,19 @@ def main():
     - The 50-day moving average shows short-term trends (last 50 trading days)
     - The 200-day moving average shows long-term trends (last 200 trading days)
     - MACD indicator shows momentum and trend changes using exponential moving averages
+    - RSI measures momentum and identifies overbought/oversold conditions
+    - Chaikin Money Flow analyzes buying/selling pressure using price and volume
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
     
-    **Technical Indicators:**
-    - **MACD Signals:** When MACD line crosses above/below signal line, it may indicate buy/sell opportunities
-    - **Histogram:** Shows the strength of momentum - larger bars indicate stronger momentum
+    **Technical Indicators Guide:**
+    - **MACD:** Crossovers may signal trend changes and momentum shifts
+    - **RSI:** Values above 70 suggest overbought, below 30 suggest oversold conditions
+    - **Chaikin Money Flow:** Positive values indicate accumulation, negative indicate distribution
     
     **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
     
-    **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as financial advice.
+    **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as investment advice.
     """)
 
 if __name__ == "__main__":

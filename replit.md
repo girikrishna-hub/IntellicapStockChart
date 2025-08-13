@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a comprehensive Streamlit-based web application for technical analysis of stock price data. The application provides multiple technical indicators including 50-day and 200-day moving averages, plus MACD (Moving Average Convergence Divergence) momentum indicator. Users can input stock ticker symbols, select flexible time periods, and view interactive charts displaying historical stock prices alongside calculated technical indicators. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
+This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides multiple technical indicators including 50-day and 200-day moving averages, MACD (Moving Average Convergence Divergence), RSI (Relative Strength Index), and Chaikin Money Flow indicators. Users can input stock ticker symbols, select flexible time periods, and view interactive charts displaying historical stock prices alongside calculated technical indicators. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
 
 ## User Preferences
 
@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
-- **Default Parameters**: 50-day and 200-day moving average windows plus MACD (12,26,9) for comprehensive technical analysis
+- **Default Parameters**: 50-day and 200-day moving averages, MACD (12,26,9), RSI (14-period), and Chaikin Money Flow (20-period) for comprehensive technical analysis
 - **Symbol Input**: Dynamic stock ticker symbol processing
 
 ## External Dependencies
