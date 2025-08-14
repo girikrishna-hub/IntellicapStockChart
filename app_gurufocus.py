@@ -409,8 +409,8 @@ def display_dividend_info(dividend_data, symbol):
                     # Format cash amount
                     if 'cash_amount' in df_display.columns:
                         df_display = df_display.copy()
-                        df_display['cash_amount'] = df_display['cash_amount'].apply(
-                            lambda x: f"${x:.4f}" if pd.notnull(x) else "N/A"
+                        df_display['cash_amount'] = df_display['cash_amount'].astype(str).apply(
+                            lambda x: f"${float(x):.4f}" if x != 'N/A' and pd.notnull(x) and str(x).replace('.','',1).isdigit() else "N/A"
                         )
                     
                     # Rename columns for display
@@ -421,8 +421,9 @@ def display_dividend_info(dividend_data, symbol):
                         'dividend_type': 'Type'
                     }
                     
-                    df_display.rename(columns=column_names, inplace=True)
-                    df_display = df_display.sort_values('Announce Date', ascending=False)
+                    df_display = df_display.rename(columns=column_names)
+                    if 'Announce Date' in df_display.columns:
+                        df_display = df_display.sort_values('Announce Date', ascending=False)
                     
                     st.dataframe(df_display, use_container_width=True)
         else:
@@ -542,7 +543,7 @@ def create_excel_report_gurufocus(df, filename="gurufocus_stock_analysis.xlsx"):
     try:
         output = io.BytesIO()
         
-        with pd.ExcelWriter(output, engine='openpyxl', mode='w') as writer:
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
             # Write main data
             df.to_excel(writer, sheet_name='Stock Analysis', index=False)
             
