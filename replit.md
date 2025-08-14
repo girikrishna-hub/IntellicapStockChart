@@ -4,7 +4,7 @@
 
 This project includes two comprehensive Streamlit-based web applications for advanced stock analysis:
 
-**1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
+**1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
 **2. GuruFocus Version (app_gurufocus_minimal.py):** Streamlined stock analysis using GuruFocus API for institutional-quality data. Provides basic company profiles and fundamental metrics. Designed for investors who need access to professional financial data.
 
@@ -13,6 +13,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 ## Recent Changes (August 2025)
 
 - **Fixed Dividend Display Bug:** Corrected dividend yield calculations that were showing inflated percentages (e.g., 45.00% instead of 0.45%)
+- **Added Fibonacci Analysis:** Integrated comprehensive Fibonacci retracement analysis for both uptrends and downtrends with visual chart overlays and detailed metrics display
 - **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
 - **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
 - **Streamlined GuruFocus:** Created minimal working version to avoid DataFrame processing hangs

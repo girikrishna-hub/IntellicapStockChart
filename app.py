@@ -170,6 +170,69 @@ def calculate_support_resistance(data, window=20):
     
     return recent_support, recent_resistance
 
+def calculate_fibonacci_retracements(data, period=50):
+    """
+    Calculate Fibonacci retracement levels for uptrends and downtrends
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        period (int): Period to look back for swing high/low (default 50)
+    
+    Returns:
+        dict: Dictionary containing Fibonacci levels and trend direction
+    """
+    fibonacci_ratios = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0]
+    
+    try:
+        # Get recent data for analysis
+        recent_data = data.tail(period)
+        
+        # Find swing high and low within the period
+        swing_high = recent_data['High'].max()
+        swing_low = recent_data['Low'].min()
+        
+        # Get the dates for swing high and low
+        swing_high_date = recent_data['High'].idxmax()
+        swing_low_date = recent_data['Low'].idxmin()
+        
+        # Determine trend direction based on which came first
+        if swing_low_date < swing_high_date:
+            # Uptrend: swing low came before swing high
+            trend_direction = "uptrend"
+            base_level = swing_low
+            target_level = swing_high
+        else:
+            # Downtrend: swing high came before swing low
+            trend_direction = "downtrend"
+            base_level = swing_high
+            target_level = swing_low
+        
+        # Calculate Fibonacci levels
+        price_range = abs(target_level - base_level)
+        fib_levels = {}
+        
+        if trend_direction == "uptrend":
+            # For uptrend, retracements go down from the high
+            for ratio in fibonacci_ratios:
+                fib_levels[f"{ratio*100:.1f}%"] = swing_high - (price_range * ratio)
+        else:
+            # For downtrend, retracements go up from the low
+            for ratio in fibonacci_ratios:
+                fib_levels[f"{ratio*100:.1f}%"] = swing_low + (price_range * ratio)
+        
+        return {
+            'trend_direction': trend_direction,
+            'swing_high': swing_high,
+            'swing_low': swing_low,
+            'swing_high_date': swing_high_date,
+            'swing_low_date': swing_low_date,
+            'fib_levels': fib_levels,
+            'price_range': price_range
+        }
+        
+    except Exception as e:
+        return None
+
 def get_earnings_info(ticker_obj, ticker_info):
     """
     Extract earnings information from ticker object and info with improved accuracy
@@ -576,9 +639,9 @@ def create_excel_report(stock_metrics_list, period_label="1 Year"):
     output.seek(0)
     return output
 
-def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"):
+def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US", show_fibonacci=True):
     """
-    Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
+    Create an interactive Plotly chart with stock price, moving averages, and Fibonacci retracements
     
     Args:
         data (pd.DataFrame): Stock price data
@@ -587,6 +650,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"
         ma_200 (pd.Series): 200-day moving average data
         period_label (str): Time period label for chart title
         market (str): Market type ("US" or "India")
+        show_fibonacci (bool): Whether to show Fibonacci retracement levels
     
     Returns:
         plotly.graph_objects.Figure: Interactive chart
@@ -634,6 +698,30 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"
                       f'MA(200): {currency_symbol}%{{y:,.2f}}<br>' +
                       '<extra></extra>'
     ))
+    
+    # Add Fibonacci retracement levels
+    if show_fibonacci:
+        fib_data = calculate_fibonacci_retracements(data)
+        if fib_data:
+            fib_colors = ['rgba(255, 215, 0, 0.3)', 'rgba(255, 165, 0, 0.3)', 'rgba(255, 140, 0, 0.3)', 
+                         'rgba(255, 69, 0, 0.3)', 'rgba(255, 0, 0, 0.3)', 'rgba(139, 0, 0, 0.3)', 'rgba(75, 0, 130, 0.3)']
+            
+            # Add horizontal lines for each Fibonacci level
+            for i, (level_name, level_price) in enumerate(fib_data['fib_levels'].items()):
+                fig.add_hline(
+                    y=level_price,
+                    line=dict(
+                        color=fib_colors[i % len(fib_colors)].replace('0.3', '0.8'),
+                        width=1,
+                        dash='dash'
+                    ),
+                    annotation=dict(
+                        text=f"Fib {level_name}: {currency_symbol}{level_price:.2f}",
+                        bgcolor=fib_colors[i % len(fib_colors)],
+                        bordercolor=fib_colors[i % len(fib_colors)].replace('0.3', '0.8'),
+                        font=dict(size=10)
+                    )
+                )
     
     # Update layout
     fig.update_layout(
@@ -1083,6 +1171,116 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
             value=next_dividend_estimate,
             help="Estimated next dividend date (90 days from last)"
         )
+    
+    # Fourth row of metrics - Fibonacci Analysis
+    fib_data = calculate_fibonacci_retracements(data)
+    if fib_data:
+        st.markdown("---")
+        st.markdown("**🔢 Fibonacci Analysis**")
+        
+        # Display trend information
+        trend_direction = fib_data['trend_direction']
+        trend_emoji = "📈" if trend_direction == "uptrend" else "📉"
+        swing_high = fib_data['swing_high']
+        swing_low = fib_data['swing_low']
+        
+        col_trend1, col_trend2, col_trend3, col_trend4 = st.columns(4)
+        
+        with col_trend1:
+            st.metric(
+                label=f"{trend_emoji} Current Trend",
+                value=trend_direction.title(),
+                help=f"Based on recent swing high/low pattern"
+            )
+        
+        with col_trend2:
+            st.metric(
+                label="Swing High",
+                value=format_currency(swing_high, market),
+                help=f"Recent high on {fib_data['swing_high_date'].strftime('%Y-%m-%d')}"
+            )
+        
+        with col_trend3:
+            st.metric(
+                label="Swing Low", 
+                value=format_currency(swing_low, market),
+                help=f"Recent low on {fib_data['swing_low_date'].strftime('%Y-%m-%d')}"
+            )
+        
+        with col_trend4:
+            price_range = fib_data['price_range']
+            st.metric(
+                label="Price Range",
+                value=format_currency(price_range, market),
+                help="Difference between swing high and low"
+            )
+        
+        # Display key Fibonacci levels
+        st.markdown("**Key Fibonacci Levels:**")
+        fib_levels = fib_data['fib_levels']
+        col_fib1, col_fib2, col_fib3, col_fib4, col_fib5 = st.columns(5)
+        
+        level_names = list(fib_levels.keys())
+        
+        with col_fib1:
+            if len(level_names) > 1:  # 23.6%
+                level = level_names[1]
+                price = fib_levels[level]
+                distance = ((latest_price - price) / price * 100)
+                st.metric(
+                    label=f"Fib {level}",
+                    value=format_currency(price, market),
+                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                    help="23.6% Fibonacci retracement level"
+                )
+        
+        with col_fib2:
+            if len(level_names) > 2:  # 38.2%
+                level = level_names[2]
+                price = fib_levels[level]
+                distance = ((latest_price - price) / price * 100)
+                st.metric(
+                    label=f"Fib {level}",
+                    value=format_currency(price, market),
+                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                    help="38.2% Fibonacci retracement level"
+                )
+        
+        with col_fib3:
+            if len(level_names) > 3:  # 50.0%
+                level = level_names[3]
+                price = fib_levels[level]
+                distance = ((latest_price - price) / price * 100)
+                st.metric(
+                    label=f"Fib {level}",
+                    value=format_currency(price, market),
+                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                    help="50% Fibonacci retracement level"
+                )
+        
+        with col_fib4:
+            if len(level_names) > 4:  # 61.8%
+                level = level_names[4]
+                price = fib_levels[level]
+                distance = ((latest_price - price) / price * 100)
+                st.metric(
+                    label=f"Fib {level}",
+                    value=format_currency(price, market),
+                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                    help="61.8% Fibonacci retracement level (Golden Ratio)"
+                )
+        
+        with col_fib5:
+            if len(level_names) > 5:  # 78.6%
+                level = level_names[5]
+                price = fib_levels[level]
+                distance = ((latest_price - price) / price * 100)
+                st.metric(
+                    label=f"Fib {level}",
+                    value=format_currency(price, market),
+                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                    help="78.6% Fibonacci retracement level"
+                )
 
 def main():
     """
