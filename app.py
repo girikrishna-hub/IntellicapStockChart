@@ -288,9 +288,15 @@ def get_dividend_info(ticker_obj, ticker_info, market="US"):
         
         # Get dividend yield from ticker info
         if 'dividendYield' in ticker_info and ticker_info['dividendYield']:
-            dividend_info['dividend_yield'] = f"{ticker_info['dividendYield']*100:.2f}%"
+            # dividendYield is already in percentage format (0.45 = 0.45%, not 45%)
+            dividend_info['dividend_yield'] = f"{ticker_info['dividendYield']:.2f}%"
         elif 'trailingAnnualDividendYield' in ticker_info and ticker_info['trailingAnnualDividendYield']:
-            dividend_info['dividend_yield'] = f"{ticker_info['trailingAnnualDividendYield']*100:.2f}%"
+            # Check if this value needs multiplication based on its scale
+            trailing_yield = ticker_info['trailingAnnualDividendYield']
+            if trailing_yield < 1:  # Likely a decimal (0.05 = 5%)
+                dividend_info['dividend_yield'] = f"{trailing_yield*100:.2f}%"
+            else:  # Already in percentage format
+                dividend_info['dividend_yield'] = f"{trailing_yield:.2f}%"
         
         # Get forward dividend rate
         currency_symbol = get_currency_symbol(market)
@@ -301,7 +307,12 @@ def get_dividend_info(ticker_obj, ticker_info, market="US"):
         
         # Get payout ratio
         if 'payoutRatio' in ticker_info and ticker_info['payoutRatio']:
-            dividend_info['payout_ratio'] = f"{ticker_info['payoutRatio']*100:.1f}%"
+            payout = ticker_info['payoutRatio']
+            # Check if payout ratio needs multiplication (usually it's a decimal like 0.3 = 30%)
+            if payout <= 1:
+                dividend_info['payout_ratio'] = f"{payout*100:.1f}%"
+            else:  # Already in percentage format
+                dividend_info['payout_ratio'] = f"{payout:.1f}%"
             
     except Exception as e:
         pass
