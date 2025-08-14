@@ -30,7 +30,7 @@ args = "GuruFocus Stock Analysis App"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Main Landing Page"
+args = "Static Landing Page"
 
 [[workflows.workflow]]
 name = "Streamlit Stock Chart App"
@@ -65,12 +65,12 @@ waitForPort = 5001
 outputType = "webview"
 
 [[workflows.workflow]]
-name = "Main Landing Page"
+name = "Static Landing Page"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "streamlit run index.py --server.port 3000"
+args = "python -m http.server 3000 --directory . --bind 0.0.0.0"
 waitForPort = 3000
 
 [workflows.workflow.metadata]

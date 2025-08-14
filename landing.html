@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .platforms {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .platform-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .platform-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .platform-card h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+        
+        .features li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .launch-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .launch-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .comparison-table {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .comparison-table h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .quick-start {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .quick-start h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .guide-section {
+            margin-bottom: 25px;
+        }
+        
+        .guide-section h3 {
+            color: #34495e;
+            margin-bottom: 10px;
+        }
+        
+        .guide-section ol {
+            padding-left: 20px;
+        }
+        
+        .guide-section ol li {
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .platforms {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Stock Analysis Hub</h1>
+            <p>Choose your preferred analysis platform below</p>
+        </div>
+        
+        <div class="platforms">
+            <div class="platform-card">
+                <h2>🆓 Yahoo Finance Version</h2>
+                <ul class="features">
+                    <li>Free real-time data</li>
+                    <li>Technical indicators (MA, MACD, RSI)</li>
+                    <li>Support/resistance levels</li>
+                    <li>Bulk analysis with Excel export</li>
+                    <li>US and Indian markets</li>
+                </ul>
+                <a href="javascript:void(0)" onclick="openYahooFinance()" class="launch-btn">Open Yahoo Finance Version</a>
+            </div>
+            
+            <div class="platform-card">
+                <h2>💼 GuruFocus Version</h2>
+                <ul class="features">
+                    <li>Professional-grade data</li>
+                    <li>Company fundamentals</li>
+                    <li>Institutional analytics</li>
+                    <li>Dividend analysis</li>
+                    <li>Valuation metrics</li>
+                </ul>
+                <a href="javascript:void(0)" onclick="openGuruFocus()" class="launch-btn">Open GuruFocus Version</a>
+            </div>
+        </div>
+        
+        <div class="comparison-table">
+            <h2>📊 Feature Comparison</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Yahoo Finance</th>
+                        <th>GuruFocus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Data Source</td>
+                        <td>Yahoo Finance API</td>
+                        <td>GuruFocus API</td>
+                    </tr>
+                    <tr>
+                        <td>Cost</td>
+                        <td>Free</td>
+                        <td>Requires subscription</td>
+                    </tr>
+                    <tr>
+                        <td>Technical Analysis</td>
+                        <td>✅ Advanced</td>
+                        <td>✅ Basic</td>
+                    </tr>
+                    <tr>
+                        <td>Fundamental Data</td>
+                        <td>✅ Basic</td>
+                        <td>✅ Professional</td>
+                    </tr>
+                    <tr>
+                        <td>Real-time Updates</td>
+                        <td>✅ Yes</td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td>Bulk Analysis</td>
+                        <td>✅ Yes</td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td>Excel Export</td>
+                        <td>✅ Yes</td>
+                        <td>✅ Yes</td>
+                    </tr>
+                    <tr>
+                        <td>Market Coverage</td>
+                        <td>✅ Global</td>
+                        <td>✅ Global</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="quick-start">
+            <h2>🚀 Quick Start Guide</h2>
+            
+            <div class="guide-section">
+                <h3>For Yahoo Finance Version:</h3>
+                <ol>
+                    <li>Click "Open Yahoo Finance Version" above</li>
+                    <li>Enter any stock symbol (e.g., AAPL, TSLA)</li>
+                    <li>Analyze charts and technical indicators</li>
+                    <li>Use bulk analysis for multiple stocks</li>
+                </ol>
+            </div>
+            
+            <div class="guide-section">
+                <h3>For GuruFocus Version:</h3>
+                <ol>
+                    <li>Get your API key from GuruFocus.com</li>
+                    <li>Click "Open GuruFocus Version" above</li>
+                    <li>Enter your API key in the sidebar</li>
+                    <li>Analyze professional fundamental data</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function openYahooFinance() {
+            // Get current URL and replace port
+            const currentUrl = window.location.href;
+            let targetUrl;
+            
+            if (currentUrl.includes('.replit.dev')) {
+                // Replace :3001 with :80 or just remove port for default
+                targetUrl = currentUrl.replace(':3001', '');
+                if (targetUrl.endsWith('/')) {
+                    targetUrl = targetUrl.slice(0, -1);
+                }
+            } else {
+                targetUrl = 'http://localhost:5000';
+            }
+            
+            window.open(targetUrl, '_blank');
+        }
+        
+        function openGuruFocus() {
+            // Get current URL and replace port
+            const currentUrl = window.location.href;
+            let targetUrl;
+            
+            if (currentUrl.includes('.replit.dev')) {
+                // Replace :3001 with :3000
+                targetUrl = currentUrl.replace(':3001', ':3000');
+            } else {
+                targetUrl = 'http://localhost:5001';
+            }
+            
+            window.open(targetUrl, '_blank');
+        }
+    </script>
+</body>
+</html>
