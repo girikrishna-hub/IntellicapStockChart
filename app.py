@@ -21,7 +21,7 @@ def fetch_stock_data(symbol, period="1y"):
         period (str): Time period for data retrieval
     
     Returns:
-        tuple: (historical_data, ticker_info) or (None, None) if error
+        tuple: (historical_data, ticker_info, ticker_object) or (None, None, None) if error
     """
     try:
         # Create ticker object
@@ -31,7 +31,7 @@ def fetch_stock_data(symbol, period="1y"):
         data = ticker.history(period=period)
         
         if data.empty:
-            return None, None
+            return None, None, None
         
         # Fetch additional company info
         try:
@@ -39,11 +39,11 @@ def fetch_stock_data(symbol, period="1y"):
         except:
             info = {}
             
-        return data, info
+        return data, info, ticker
     
     except Exception as e:
         st.error(f"Error fetching data for {symbol}: {str(e)}")
-        return None, None
+        return None, None, None
 
 def calculate_moving_average(data, window=50):
     """
@@ -197,6 +197,59 @@ def get_earnings_info(ticker_info):
         pass
     
     return earnings_info
+
+def get_dividend_info(ticker_obj, ticker_info):
+    """
+    Extract dividend information from ticker object and info
+    
+    Args:
+        ticker_obj: yfinance Ticker object
+        ticker_info (dict): Company information from yfinance
+    
+    Returns:
+        dict: Dividend information
+    """
+    dividend_info = {
+        'last_dividend_date': None,
+        'last_dividend_amount': 0,
+        'last_dividend_formatted': 'N/A',
+        'dividend_yield': 'N/A',
+        'forward_dividend': 'N/A',
+        'payout_ratio': 'N/A'
+    }
+    
+    try:
+        # Get dividend history
+        dividends = ticker_obj.dividends
+        if not dividends.empty:
+            # Get most recent dividend
+            last_dividend_date = dividends.index[-1]
+            last_dividend_amount = dividends.iloc[-1]
+            
+            dividend_info['last_dividend_date'] = last_dividend_date
+            dividend_info['last_dividend_amount'] = last_dividend_amount
+            dividend_info['last_dividend_formatted'] = f"${last_dividend_amount:.2f} on {last_dividend_date.strftime('%Y-%m-%d')}"
+        
+        # Get dividend yield from ticker info
+        if 'dividendYield' in ticker_info and ticker_info['dividendYield']:
+            dividend_info['dividend_yield'] = f"{ticker_info['dividendYield']*100:.2f}%"
+        elif 'trailingAnnualDividendYield' in ticker_info and ticker_info['trailingAnnualDividendYield']:
+            dividend_info['dividend_yield'] = f"{ticker_info['trailingAnnualDividendYield']*100:.2f}%"
+        
+        # Get forward dividend rate
+        if 'dividendRate' in ticker_info and ticker_info['dividendRate']:
+            dividend_info['forward_dividend'] = f"${ticker_info['dividendRate']:.2f}"
+        elif 'trailingAnnualDividendRate' in ticker_info and ticker_info['trailingAnnualDividendRate']:
+            dividend_info['forward_dividend'] = f"${ticker_info['trailingAnnualDividendRate']:.2f}"
+        
+        # Get payout ratio
+        if 'payoutRatio' in ticker_info and ticker_info['payoutRatio']:
+            dividend_info['payout_ratio'] = f"{ticker_info['payoutRatio']*100:.1f}%"
+            
+    except Exception as e:
+        pass
+    
+    return dividend_info
 
 def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
@@ -523,7 +576,7 @@ def create_chaikin_chart(data, symbol, cmf, period_label="1 Year"):
     
     return fig
 
-def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level, resistance_level):
+def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level):
     """
     Display comprehensive key metrics about the stock
     
@@ -533,6 +586,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level,
         ma_50 (pd.Series): 50-day moving average data
         ma_200 (pd.Series): 200-day moving average data
         ticker_info (dict): Company information from yfinance
+        ticker_obj: yfinance Ticker object for dividend data
         support_level (float): Calculated support level
         resistance_level (float): Calculated resistance level
     """
@@ -553,8 +607,9 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level,
     price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if not pd.isna(latest_ma_50) else 0
     price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if not pd.isna(latest_ma_200) else 0
     
-    # Get earnings information
+    # Get earnings and dividend information
     earnings_info = get_earnings_info(ticker_info)
+    dividend_info = get_dividend_info(ticker_obj, ticker_info)
     
     # Calculate performance since last earnings (if available)
     earnings_performance = "N/A"
@@ -645,6 +700,55 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level,
             value=earnings_performance,
             help="Price change since last earnings"
         )
+    
+    # Third row of metrics - Dividend Information
+    st.markdown("**💰 Dividend Information**")
+    col11, col12, col13, col14, col15 = st.columns(5)
+    
+    with col11:
+        st.metric(
+            label="Last Dividend",
+            value=dividend_info['last_dividend_formatted'],
+            help="Most recent dividend payment"
+        )
+    
+    with col12:
+        st.metric(
+            label="Dividend Yield",
+            value=dividend_info['dividend_yield'],
+            help="Annual dividend yield percentage"
+        )
+    
+    with col13:
+        st.metric(
+            label="Forward Dividend",
+            value=dividend_info['forward_dividend'],
+            help="Expected annual dividend per share"
+        )
+    
+    with col14:
+        st.metric(
+            label="Payout Ratio",
+            value=dividend_info['payout_ratio'],
+            help="Percentage of earnings paid as dividends"
+        )
+    
+    with col15:
+        # Calculate estimated next dividend date if we have dividend history
+        next_dividend_estimate = "N/A"
+        if dividend_info['last_dividend_date'] is not None:
+            try:
+                # Estimate next dividend (typically quarterly, so add ~90 days)
+                estimated_next = dividend_info['last_dividend_date'] + pd.DateOffset(days=90)
+                next_dividend_estimate = estimated_next.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        st.metric(
+            label="Est. Next Dividend",
+            value=next_dividend_estimate,
+            help="Estimated next dividend date (90 days from last)"
+        )
 
 def main():
     """
@@ -698,9 +802,9 @@ def main():
             # Show loading spinner
             with st.spinner(f'Fetching {selected_period.lower()} data for {symbol}...'):
                 # Fetch stock data and company info
-                data, ticker_info = fetch_stock_data(symbol, period=period_code)
+                data, ticker_info, ticker_obj = fetch_stock_data(symbol, period=period_code)
             
-            if data is not None and not data.empty:
+            if data is not None and ticker_info is not None and ticker_obj is not None and not data.empty:
                 # Calculate moving averages
                 ma_50 = calculate_moving_average(data, window=50)
                 ma_200 = calculate_moving_average(data, window=200)
@@ -715,7 +819,7 @@ def main():
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
-                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level, resistance_level)
+                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level)
                 
                 # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")
@@ -872,6 +976,7 @@ def main():
     - Moving averages (50 & 200-day) show short and long-term trends
     - Support/resistance levels calculated from recent 20-day price action
     - Earnings data and performance tracking since last earnings announcement
+    - Comprehensive dividend information including yield, payment dates, and projections
     - Multiple technical indicators: MACD, RSI, and Chaikin Money Flow
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
@@ -880,6 +985,7 @@ def main():
     - **52-Week Position:** Shows how close the stock is trading to yearly highs/lows
     - **Support/Resistance:** Recent price levels that may act as floors/ceilings
     - **Earnings Performance:** Price movement since last earnings announcement
+    - **Dividend Metrics:** Yield, payment dates, forward dividends, and payout ratios
     - **Technical Indicators:** MACD (momentum), RSI (overbought/oversold), CMF (money flow)
     
     **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
