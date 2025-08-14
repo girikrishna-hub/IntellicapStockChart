@@ -4,6 +4,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import numpy as np
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
 
 # Set page configuration
 st.set_page_config(
@@ -250,6 +253,233 @@ def get_dividend_info(ticker_obj, ticker_info):
         pass
     
     return dividend_info
+
+def get_stock_metrics(symbol, period="1y"):
+    """
+    Get comprehensive metrics for a single stock
+    
+    Args:
+        symbol (str): Stock ticker symbol
+        period (str): Time period for analysis
+    
+    Returns:
+        dict: Dictionary containing all key metrics
+    """
+    try:
+        # Fetch data
+        data, ticker_info, ticker_obj = fetch_stock_data(symbol, period)
+        
+        if data is None or data.empty:
+            return {
+                'Symbol': symbol,
+                'Error': 'No data available',
+                'Current Price': 'N/A',
+                '52-Week High': 'N/A',
+                '52-Week Low': 'N/A',
+                'Distance from High (%)': 'N/A',
+                'Distance from Low (%)': 'N/A',
+                '50-Day MA': 'N/A',
+                '200-Day MA': 'N/A',
+                'Price vs 50-Day MA (%)': 'N/A',
+                'Price vs 200-Day MA (%)': 'N/A',
+                'Support Level': 'N/A',
+                'Resistance Level': 'N/A',
+                'RSI': 'N/A',
+                'MACD Signal': 'N/A',
+                'Chaikin Money Flow': 'N/A',
+                'Last Earnings Date': 'N/A',
+                'Next Earnings Date': 'N/A',
+                'Earnings Performance (%)': 'N/A',
+                'Last Dividend Date': 'N/A',
+                'Last Dividend Amount': 'N/A',
+                'Dividend Yield (%)': 'N/A',
+                'Forward Dividend': 'N/A',
+                'Payout Ratio (%)': 'N/A',
+                'Est. Next Dividend Date': 'N/A'
+            }
+        
+        # Calculate all metrics
+        latest_price = data['Close'].iloc[-1]
+        year_high = data['Close'].max()
+        year_low = data['Close'].min()
+        
+        # Moving averages
+        ma_50 = calculate_moving_average(data, window=50)
+        ma_200 = calculate_moving_average(data, window=200)
+        latest_ma_50 = ma_50.iloc[-1] if not ma_50.empty else None
+        latest_ma_200 = ma_200.iloc[-1] if not ma_200.empty else None
+        
+        # Technical indicators
+        macd_line, signal_line, histogram = calculate_macd(data)
+        rsi = calculate_rsi(data)
+        cmf = calculate_chaikin_money_flow(data)
+        
+        # Support and resistance
+        support_level, resistance_level = calculate_support_resistance(data)
+        
+        # Earnings and dividend info
+        earnings_info = get_earnings_info(ticker_info)
+        dividend_info = get_dividend_info(ticker_obj, ticker_info)
+        
+        # Calculate performance metrics
+        distance_from_high = ((year_high - latest_price) / year_high) * 100
+        distance_from_low = ((latest_price - year_low) / year_low) * 100
+        
+        price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if latest_ma_50 and not pd.isna(latest_ma_50) else None
+        price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if latest_ma_200 and not pd.isna(latest_ma_200) else None
+        
+        # Earnings performance
+        earnings_performance = None
+        if earnings_info['last_earnings'] is not None:
+            try:
+                earnings_date = earnings_info['last_earnings']
+                mask = data.index >= earnings_date
+                if mask.any():
+                    earnings_day_price = data[mask]['Close'].iloc[0]
+                    earnings_performance = ((latest_price - earnings_day_price) / earnings_day_price) * 100
+            except:
+                pass
+        
+        # Latest indicator values
+        latest_rsi = rsi.iloc[-1] if not rsi.empty else None
+        latest_macd = macd_line.iloc[-1] if not macd_line.empty else None
+        latest_signal = signal_line.iloc[-1] if not signal_line.empty else None
+        latest_cmf = cmf.iloc[-1] if not cmf.empty else None
+        
+        # MACD signal
+        macd_signal = "N/A"
+        if latest_macd is not None and latest_signal is not None:
+            if latest_macd > latest_signal:
+                macd_signal = "Bullish"
+            else:
+                macd_signal = "Bearish"
+        
+        # Estimated next dividend
+        next_dividend_estimate = "N/A"
+        if dividend_info['last_dividend_date'] is not None:
+            try:
+                estimated_next = dividend_info['last_dividend_date'] + pd.DateOffset(days=90)
+                next_dividend_estimate = estimated_next.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        # Return comprehensive metrics
+        return {
+            'Symbol': symbol,
+            'Current Price': f"${latest_price:.2f}",
+            '52-Week High': f"${year_high:.2f}",
+            '52-Week Low': f"${year_low:.2f}",
+            'Distance from High (%)': f"{distance_from_high:.1f}%",
+            'Distance from Low (%)': f"{distance_from_low:.1f}%",
+            '50-Day MA': f"${latest_ma_50:.2f}" if latest_ma_50 and not pd.isna(latest_ma_50) else "N/A",
+            '200-Day MA': f"${latest_ma_200:.2f}" if latest_ma_200 and not pd.isna(latest_ma_200) else "N/A",
+            'Price vs 50-Day MA (%)': f"{price_vs_ma_50:.1f}%" if price_vs_ma_50 is not None else "N/A",
+            'Price vs 200-Day MA (%)': f"{price_vs_ma_200:.1f}%" if price_vs_ma_200 is not None else "N/A",
+            'Support Level': f"${support_level:.2f}",
+            'Resistance Level': f"${resistance_level:.2f}",
+            'RSI': f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
+            'MACD Signal': macd_signal,
+            'Chaikin Money Flow': f"{latest_cmf:.3f}" if latest_cmf and not pd.isna(latest_cmf) else "N/A",
+            'Last Earnings Date': earnings_info['last_earnings_formatted'],
+            'Next Earnings Date': earnings_info['next_earnings_formatted'],
+            'Earnings Performance (%)': f"{earnings_performance:.1f}%" if earnings_performance is not None else "N/A",
+            'Last Dividend Date': dividend_info['last_dividend_formatted'],
+            'Last Dividend Amount': f"${dividend_info['last_dividend_amount']:.2f}" if dividend_info['last_dividend_amount'] > 0 else "N/A",
+            'Dividend Yield (%)': dividend_info['dividend_yield'],
+            'Forward Dividend': dividend_info['forward_dividend'],
+            'Payout Ratio (%)': dividend_info['payout_ratio'],
+            'Est. Next Dividend Date': next_dividend_estimate
+        }
+        
+    except Exception as e:
+        return {
+            'Symbol': symbol,
+            'Error': str(e),
+            'Current Price': 'Error',
+            '52-Week High': 'Error',
+            '52-Week Low': 'Error',
+            'Distance from High (%)': 'Error',
+            'Distance from Low (%)': 'Error',
+            '50-Day MA': 'Error',
+            '200-Day MA': 'Error',
+            'Price vs 50-Day MA (%)': 'Error',
+            'Price vs 200-Day MA (%)': 'Error',
+            'Support Level': 'Error',
+            'Resistance Level': 'Error',
+            'RSI': 'Error',
+            'MACD Signal': 'Error',
+            'Chaikin Money Flow': 'Error',
+            'Last Earnings Date': 'Error',
+            'Next Earnings Date': 'Error',
+            'Earnings Performance (%)': 'Error',
+            'Last Dividend Date': 'Error',
+            'Last Dividend Amount': 'Error',
+            'Dividend Yield (%)': 'Error',
+            'Forward Dividend': 'Error',
+            'Payout Ratio (%)': 'Error',
+            'Est. Next Dividend Date': 'Error'
+        }
+
+def create_excel_report(stock_metrics_list, period_label="1 Year"):
+    """
+    Create an Excel report with stock metrics
+    
+    Args:
+        stock_metrics_list (list): List of stock metrics dictionaries
+        period_label (str): Time period label for the report
+    
+    Returns:
+        io.BytesIO: Excel file as bytes
+    """
+    # Create DataFrame
+    df = pd.DataFrame(stock_metrics_list)
+    
+    # Create Excel file in memory
+    output = io.BytesIO()
+    
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        # Write main data
+        df.to_excel(writer, sheet_name='Stock Analysis', index=False)
+        
+        # Get workbook and worksheet
+        workbook = writer.book
+        worksheet = writer.sheets['Stock Analysis']
+        
+        # Add formats
+        header_format = workbook.add_format({
+            'bold': True,
+            'text_wrap': True,
+            'valign': 'top',
+            'fg_color': '#D7E4BC',
+            'border': 1
+        })
+        
+        # Write headers with formatting
+        for col_num, value in enumerate(df.columns.values):
+            worksheet.write(0, col_num, value, header_format)
+        
+        # Auto-adjust column widths
+        for i, col in enumerate(df.columns):
+            max_len = max(
+                df[col].astype(str).map(len).max(),
+                len(str(col))
+            ) + 2
+            worksheet.set_column(i, i, min(max_len, 20))
+        
+        # Add summary sheet
+        summary_data = {
+            'Report Generated': [datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            'Analysis Period': [period_label],
+            'Total Stocks': [len(stock_metrics_list)],
+            'Successful Analysis': [len([s for s in stock_metrics_list if 'Error' not in s or s.get('Error') == ''])],
+            'Failed Analysis': [len([s for s in stock_metrics_list if 'Error' in s and s.get('Error') != ''])]
+        }
+        
+        summary_df = pd.DataFrame(summary_data)
+        summary_df.to_excel(writer, sheet_name='Summary', index=False)
+    
+    output.seek(0)
+    return output
 
 def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
@@ -755,44 +985,166 @@ def main():
     Main application function
     """
     # App header
-    st.title("📈 Stock Technical Analysis")
-    st.markdown("Enter a stock symbol and select a time period to view comprehensive technical analysis with moving averages and MACD indicator.")
+    st.title("📈 Stock Technical Analysis Tool")
+    st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
     
-    # Create input section
-    col1, col2, col3 = st.columns([3, 2, 1])
+    # Analysis mode selection
+    analysis_mode = st.radio(
+        "Analysis Mode:",
+        ["Single Stock Analysis", "Bulk Stock Analysis (Excel Export)"],
+        horizontal=True
+    )
     
-    with col1:
-        symbol = st.text_input(
-            "Enter Stock Symbol (e.g., AAPL, GOOGL, TSLA):",
-            value="AAPL",
-            placeholder="Enter a valid stock ticker symbol",
-            help="Enter any valid stock ticker symbol (e.g., AAPL for Apple, GOOGL for Google, TSLA for Tesla)"
-        )
-    
-    with col2:
-        period_options = {
-            "1 Month": "1mo",
-            "3 Months": "3mo", 
-            "6 Months": "6mo",
-            "1 Year": "1y",
-            "2 Years": "2y",
-            "5 Years": "5y",
-            "10 Years": "10y",
-            "Maximum": "max"
-        }
+    if analysis_mode == "Single Stock Analysis":
+        # Create input section for single stock
+        col1, col2, col3 = st.columns([3, 2, 1])
         
-        selected_period = st.selectbox(
-            "Select Time Period:",
-            options=list(period_options.keys()),
-            index=3,  # Default to "1 Year"
-            help="Choose the time period for historical data analysis"
-        )
+        with col1:
+            symbol = st.text_input(
+                "Enter Stock Symbol (e.g., AAPL, GOOGL, TSLA):",
+                value="AAPL",
+                placeholder="Enter a valid stock ticker symbol",
+                help="Enter any valid stock ticker symbol (e.g., AAPL for Apple, GOOGL for Google, TSLA for Tesla)"
+            )
         
-        period_code = period_options[selected_period]
+        with col2:
+            period_options = {
+                "1 Month": "1mo",
+                "3 Months": "3mo", 
+                "6 Months": "6mo",
+                "1 Year": "1y",
+                "2 Years": "2y",
+                "5 Years": "5y",
+                "10 Years": "10y",
+                "Maximum": "max"
+            }
+            
+            selected_period = st.selectbox(
+                "Select Time Period:",
+                options=list(period_options.keys()),
+                index=3,  # Default to "1 Year"
+                help="Choose the time period for historical data analysis"
+            )
+            
+            period_code = period_options[selected_period]
+        
+        with col3:
+            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
+            analyze_button = st.button("Generate Chart", type="primary")
     
-    with col3:
-        st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
-        analyze_button = st.button("Generate Chart", type="primary")
+    else:
+        # Bulk analysis interface
+        st.markdown("### 📊 Bulk Stock Analysis")
+        st.markdown("Enter multiple stock symbols to generate a comprehensive Excel report with key metrics for all stocks.")
+        
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            stock_list = st.text_area(
+                "Enter Stock Symbols (one per line or comma-separated)",
+                placeholder="AAPL\nMSFT\nGOOGL\nTSLA\nAMZN\n\nOr: AAPL, MSFT, GOOGL, TSLA, AMZN",
+                height=150,
+                help="Enter stock symbols separated by commas or new lines"
+            )
+        
+        with col2:
+            # Period selection for bulk
+            period_options = {
+                "1 Month": "1mo",
+                "3 Months": "3mo", 
+                "6 Months": "6mo",
+                "1 Year": "1y",
+                "2 Years": "2y",
+                "5 Years": "5y",
+                "10 Years": "10y",
+                "Maximum": "max"
+            }
+            
+            bulk_selected_period = st.selectbox(
+                "Analysis Period",
+                options=list(period_options.keys()),
+                index=3,  # Default to 1 Year
+                help="Select the time period for technical analysis",
+                key="bulk_period"
+            )
+            
+            bulk_period_code = period_options[bulk_selected_period]
+            
+            generate_excel_button = st.button("📋 Generate Excel Report", type="primary")
+        
+        # Process bulk analysis
+        if generate_excel_button and stock_list.strip():
+            # Parse stock symbols
+            symbols = []
+            if ',' in stock_list:
+                symbols = [s.strip().upper() for s in stock_list.split(',') if s.strip()]
+            else:
+                symbols = [s.strip().upper() for s in stock_list.split('\n') if s.strip()]
+            
+            if symbols:
+                st.info(f"Analyzing {len(symbols)} stocks: {', '.join(symbols)}")
+                
+                # Progress tracking
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                
+                all_metrics = []
+                
+                for i, symbol in enumerate(symbols):
+                    status_text.text(f"Analyzing {symbol}... ({i+1}/{len(symbols)})")
+                    
+                    metrics = get_stock_metrics(symbol, bulk_period_code)
+                    all_metrics.append(metrics)
+                    
+                    # Update progress
+                    progress_bar.progress((i + 1) / len(symbols))
+                
+                status_text.text("Generating Excel report...")
+                
+                # Create Excel report
+                excel_file = create_excel_report(all_metrics, bulk_selected_period)
+                
+                # Success message and download
+                st.success(f"Analysis complete! Generated report for {len(symbols)} stocks.")
+                
+                # Display summary
+                successful = len([m for m in all_metrics if 'Error' not in m or m.get('Error') == ''])
+                failed = len(all_metrics) - successful
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Stocks", len(symbols))
+                with col2:
+                    st.metric("Successful", successful)
+                with col3:
+                    st.metric("Failed", failed)
+                
+                # Download button
+                st.download_button(
+                    label="📥 Download Excel Report",
+                    data=excel_file,
+                    file_name=f"stock_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+                
+                # Show preview of data
+                if all_metrics:
+                    st.markdown("### Preview of Generated Data")
+                    preview_df = pd.DataFrame(all_metrics)
+                    st.dataframe(preview_df, use_container_width=True)
+                
+                # Clear progress indicators
+                progress_bar.empty()
+                status_text.empty()
+            
+            else:
+                st.error("Please enter at least one valid stock symbol.")
+        
+        # Set default values for single stock mode (when in bulk mode)
+        symbol = ""
+        analyze_button = False
+        selected_period = "1 Year"
+        period_code = "1y"
     
     # Process the request when button is clicked or symbol is entered
     if analyze_button or symbol:
@@ -971,6 +1323,7 @@ def main():
     st.markdown("""
     **About this application:**
     - Data is sourced from Yahoo Finance via the yfinance library
+    - Two analysis modes: Single stock with charts or bulk analysis with Excel export
     - Choose from multiple time periods: 1 month to maximum available history
     - Comprehensive metrics include price position relative to 52-week range
     - Moving averages (50 & 200-day) show short and long-term trends
@@ -978,6 +1331,7 @@ def main():
     - Earnings data and performance tracking since last earnings announcement
     - Comprehensive dividend information including yield, payment dates, and projections
     - Multiple technical indicators: MACD, RSI, and Chaikin Money Flow
+    - Bulk analysis generates downloadable Excel reports for multiple stocks
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
     
