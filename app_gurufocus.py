@@ -620,6 +620,19 @@ def create_excel_report_gurufocus(df, filename="gurufocus_stock_analysis.xlsx"):
 
 # Main application
 def main():
+    # Navigation bar
+    col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 1])
+    with col_nav1:
+        if st.button("🏠 Main Menu", help="Return to landing page"):
+            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:3000">', unsafe_allow_html=True)
+    with col_nav2:
+        st.markdown("**🏦 GuruFocus Version**")
+    with col_nav3:
+        if st.button("📈 Yahoo Finance Version", help="Switch to free technical analysis"):
+            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:5000">', unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
     st.title("📊 GuruFocus Stock Analysis Application")
     st.markdown("Advanced stock analysis using GuruFocus professional data")
     

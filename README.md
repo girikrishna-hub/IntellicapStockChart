@@ -4,7 +4,12 @@ A comprehensive stock analysis platform offering two distinct data sources and a
 
 ## 🚀 Quick Start
 
-**Choose Your Version:**
+**Main Landing Page**: `http://localhost:3000`
+- Interactive comparison interface
+- Choose between Yahoo Finance and GuruFocus
+- Quick start guides and feature comparisons
+
+**Direct Access:**
 
 1. **Yahoo Finance Version** (Free): `http://localhost:5000`
    - Real-time stock data and technical indicators
@@ -130,10 +135,12 @@ A comprehensive stock analysis platform offering two distinct data sources and a
 ## 📁 File Structure
 
 ```
-├── app.py                 # Yahoo Finance version
-├── app_gurufocus.py       # GuruFocus version
+├── index.py              # Main landing page (Port 3000)
+├── app.py                # Yahoo Finance version (Port 5000)
+├── app_gurufocus.py      # GuruFocus version (Port 5001)
 ├── .streamlit/
-│   ├── config.toml        # Yahoo Finance config
+│   ├── config_index.toml      # Landing page config
+│   ├── config.toml            # Yahoo Finance config
 │   └── config_gurufocus.toml  # GuruFocus config
 ├── replit.md             # Project documentation
 └── README.md             # This file

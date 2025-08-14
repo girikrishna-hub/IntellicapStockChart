@@ -1077,6 +1077,19 @@ def main():
     """
     Main application function
     """
+    # Navigation bar
+    col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 1])
+    with col_nav1:
+        if st.button("🏠 Main Menu", help="Return to landing page"):
+            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:3000">', unsafe_allow_html=True)
+    with col_nav2:
+        st.markdown("**📈 Yahoo Finance Version**")
+    with col_nav3:
+        if st.button("🏦 GuruFocus Version", help="Switch to professional data"):
+            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:5001">', unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
     # App header
     st.title("📈 Stock Technical Analysis Tool")
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")

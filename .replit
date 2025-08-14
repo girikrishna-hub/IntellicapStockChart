@@ -28,6 +28,10 @@ args = "install_dependencies"
 task = "workflow.run"
 args = "GuruFocus Stock Analysis App"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Main Landing Page"
+
 [[workflows.workflow]]
 name = "Streamlit Stock Chart App"
 author = "agent"
@@ -59,6 +63,22 @@ waitForPort = 5001
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Main Landing Page"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "streamlit run index.py --server.port 3000"
+waitForPort = 3000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 3000
+externalPort = 3001
 
 [[ports]]
 localPort = 5000

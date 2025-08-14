@@ -8,6 +8,8 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 **2. GuruFocus Version (app_gurufocus.py):** Professional-grade stock analysis using GuruFocus API for institutional-quality data. Provides company profiles, comprehensive fundamentals, dividend history, valuation metrics, bulk analysis capabilities, and Excel reporting. Designed for investors who need access to deeper financial data and institutional-grade analytics.
 
+**3. Landing Page (index.py):** Main entry point with comparison interface allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, quick start guides, and seamless navigation between applications.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -19,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Built-in Streamlit widgets for user input and data display
 - **Visualization**: Plotly for interactive charting capabilities
 - **Layout**: Wide layout configuration for better chart visibility
-- **Dual Application Setup**: Two separate applications running on different ports (5000 for Yahoo Finance, 5001 for GuruFocus)
+- **Triple Application Setup**: Three applications running on different ports (3000 for Landing Page, 5000 for Yahoo Finance, 5001 for GuruFocus)
 
 ### Data Processing Layer
 - **Yahoo Finance Version**: Yahoo Finance API integration via yfinance library for free real-time and historical data
