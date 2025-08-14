@@ -191,7 +191,13 @@
                     <li>Bulk analysis with Excel export</li>
                     <li>US and Indian markets</li>
                 </ul>
-                <a href="javascript:void(0)" onclick="openYahooFinance()" class="launch-btn">Open Yahoo Finance Version</a>
+                <div style="text-align: center; margin-top: 15px;">
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>Yahoo Finance URL:</strong><br>
+                        <code id="yahoo-url" style="color: #007bff;">Loading...</code>
+                    </div>
+                    <a href="javascript:void(0)" onclick="copyYahooUrl()" class="launch-btn">Copy Yahoo Finance URL</a>
+                </div>
             </div>
             
             <div class="platform-card">
@@ -203,7 +209,13 @@
                     <li>Dividend analysis</li>
                     <li>Valuation metrics</li>
                 </ul>
-                <a href="javascript:void(0)" onclick="openGuruFocus()" class="launch-btn">Open GuruFocus Version</a>
+                <div style="text-align: center; margin-top: 15px;">
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                        <strong>GuruFocus URL:</strong><br>
+                        <code id="guru-url" style="color: #007bff;">Loading...</code>
+                    </div>
+                    <a href="javascript:void(0)" onclick="copyGuruUrl()" class="launch-btn">Copy GuruFocus URL</a>
+                </div>
             </div>
         </div>
         
@@ -288,12 +300,30 @@
     </div>
     
     <script>
-        function openYahooFinance() {
-            alert('Yahoo Finance Version: Replace :3001 with :80 in your browser URL\n\nExample: if you are at yourproject.replit.dev:3001\nGo to: yourproject.replit.dev:80');
+        // Get the current URL and generate the correct URLs for each service
+        window.onload = function() {
+            const currentUrl = window.location.href;
+            const baseUrl = currentUrl.replace(':3001', '').replace('/landing.html', '');
+            
+            const yahooUrl = baseUrl + (baseUrl.includes('.replit.dev') ? '' : ':5000');
+            const guruUrl = baseUrl.replace(':3001', ':3000').replace('/landing.html', '');
+            
+            document.getElementById('yahoo-url').textContent = yahooUrl;
+            document.getElementById('guru-url').textContent = guruUrl;
+        };
+        
+        function copyYahooUrl() {
+            const url = document.getElementById('yahoo-url').textContent;
+            navigator.clipboard.writeText(url).then(function() {
+                alert('Yahoo Finance URL copied! Paste it in a new browser tab.');
+            });
         }
         
-        function openGuruFocus() {
-            alert('GuruFocus Version: Replace :3001 with :3000 in your browser URL\n\nExample: if you are at yourproject.replit.dev:3001\nGo to: yourproject.replit.dev:3000');
+        function copyGuruUrl() {
+            const url = document.getElementById('guru-url').textContent;
+            navigator.clipboard.writeText(url).then(function() {
+                alert('GuruFocus URL copied! Paste it in a new browser tab.');
+            });
         }
     </script>
 </body>
