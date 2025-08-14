@@ -289,36 +289,11 @@
     
     <script>
         function openYahooFinance() {
-            // Get current URL and replace port
-            const currentUrl = window.location.href;
-            let targetUrl;
-            
-            if (currentUrl.includes('.replit.dev')) {
-                // Replace :3001 with :80 or just remove port for default
-                targetUrl = currentUrl.replace(':3001', '');
-                if (targetUrl.endsWith('/')) {
-                    targetUrl = targetUrl.slice(0, -1);
-                }
-            } else {
-                targetUrl = 'http://localhost:5000';
-            }
-            
-            window.open(targetUrl, '_blank');
+            alert('Yahoo Finance Version: Replace :3001 with :80 in your browser URL\n\nExample: if you are at yourproject.replit.dev:3001\nGo to: yourproject.replit.dev:80');
         }
         
         function openGuruFocus() {
-            // Get current URL and replace port
-            const currentUrl = window.location.href;
-            let targetUrl;
-            
-            if (currentUrl.includes('.replit.dev')) {
-                // Replace :3001 with :3000
-                targetUrl = currentUrl.replace(':3001', ':3000');
-            } else {
-                targetUrl = 'http://localhost:5001';
-            }
-            
-            window.open(targetUrl, '_blank');
+            alert('GuruFocus Version: Replace :3001 with :3000 in your browser URL\n\nExample: if you are at yourproject.replit.dev:3001\nGo to: yourproject.replit.dev:3000');
         }
     </script>
 </body>
