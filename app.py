@@ -15,18 +15,26 @@ st.set_page_config(
     layout="wide"
 )
 
-def fetch_stock_data(symbol, period="1y"):
+def fetch_stock_data(symbol, period="1y", market="US"):
     """
     Fetch stock data for the given symbol and period
     
     Args:
         symbol (str): Stock ticker symbol
         period (str): Time period for data retrieval
+        market (str): Market type ("US" or "India")
     
     Returns:
         tuple: (historical_data, ticker_info, ticker_object) or (None, None, None) if error
     """
     try:
+        # Format symbol for Indian stocks
+        if market == "India":
+            # Add .NS (NSE) or .BO (BSE) suffix if not present
+            if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
+                # Default to NSE (.NS) for Indian stocks
+                symbol = f"{symbol}.NS"
+        
         # Create ticker object
         ticker = yf.Ticker(symbol)
         
@@ -254,20 +262,49 @@ def get_dividend_info(ticker_obj, ticker_info):
     
     return dividend_info
 
-def get_stock_metrics(symbol, period="1y"):
+def format_currency(value, market="US"):
+    """
+    Format currency based on market
+    
+    Args:
+        value (float): Currency value
+        market (str): Market type ("US" or "India")
+    
+    Returns:
+        str: Formatted currency string
+    """
+    if market == "India":
+        return f"₹{value:,.2f}"
+    else:
+        return f"${value:.2f}"
+
+def get_currency_symbol(market="US"):
+    """
+    Get currency symbol for the market
+    
+    Args:
+        market (str): Market type ("US" or "India")
+    
+    Returns:
+        str: Currency symbol
+    """
+    return "₹" if market == "India" else "$"
+
+def get_stock_metrics(symbol, period="1y", market="US"):
     """
     Get comprehensive metrics for a single stock
     
     Args:
         symbol (str): Stock ticker symbol
         period (str): Time period for analysis
+        market (str): Market type ("US" or "India")
     
     Returns:
         dict: Dictionary containing all key metrics
     """
     try:
         # Fetch data
-        data, ticker_info, ticker_obj = fetch_stock_data(symbol, period)
+        data, ticker_info, ticker_obj = fetch_stock_data(symbol, period, market)
         
         if data is None or data.empty:
             return {
@@ -363,20 +400,21 @@ def get_stock_metrics(symbol, period="1y"):
             except:
                 pass
         
-        # Return comprehensive metrics
+        # Return comprehensive metrics with proper currency formatting
+        currency_symbol = get_currency_symbol(market)
         return {
             'Symbol': symbol,
-            'Current Price': f"${latest_price:.2f}",
-            '52-Week High': f"${year_high:.2f}",
-            '52-Week Low': f"${year_low:.2f}",
+            'Current Price': format_currency(latest_price, market),
+            '52-Week High': format_currency(year_high, market),
+            '52-Week Low': format_currency(year_low, market),
             'Distance from High (%)': f"{distance_from_high:.1f}%",
             'Distance from Low (%)': f"{distance_from_low:.1f}%",
-            '50-Day MA': f"${latest_ma_50:.2f}" if latest_ma_50 and not pd.isna(latest_ma_50) else "N/A",
-            '200-Day MA': f"${latest_ma_200:.2f}" if latest_ma_200 and not pd.isna(latest_ma_200) else "N/A",
+            '50-Day MA': format_currency(latest_ma_50, market) if latest_ma_50 and not pd.isna(latest_ma_50) else "N/A",
+            '200-Day MA': format_currency(latest_ma_200, market) if latest_ma_200 and not pd.isna(latest_ma_200) else "N/A",
             'Price vs 50-Day MA (%)': f"{price_vs_ma_50:.1f}%" if price_vs_ma_50 is not None else "N/A",
             'Price vs 200-Day MA (%)': f"{price_vs_ma_200:.1f}%" if price_vs_ma_200 is not None else "N/A",
-            'Support Level': f"${support_level:.2f}",
-            'Resistance Level': f"${resistance_level:.2f}",
+            'Support Level': format_currency(support_level, market),
+            'Resistance Level': format_currency(resistance_level, market),
             'RSI': f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
             'MACD Signal': macd_signal,
             'Chaikin Money Flow': f"{latest_cmf:.3f}" if latest_cmf and not pd.isna(latest_cmf) else "N/A",
@@ -384,7 +422,7 @@ def get_stock_metrics(symbol, period="1y"):
             'Next Earnings Date': earnings_info['next_earnings_formatted'],
             'Earnings Performance (%)': f"{earnings_performance:.1f}%" if earnings_performance is not None else "N/A",
             'Last Dividend Date': dividend_info['last_dividend_formatted'],
-            'Last Dividend Amount': f"${dividend_info['last_dividend_amount']:.2f}" if dividend_info['last_dividend_amount'] > 0 else "N/A",
+            'Last Dividend Amount': format_currency(dividend_info['last_dividend_amount'], market) if dividend_info['last_dividend_amount'] > 0 else "N/A",
             'Dividend Yield (%)': dividend_info['dividend_yield'],
             'Forward Dividend': dividend_info['forward_dividend'],
             'Payout Ratio (%)': dividend_info['payout_ratio'],
@@ -806,7 +844,7 @@ def create_chaikin_chart(data, symbol, cmf, period_label="1 Year"):
     
     return fig
 
-def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level):
+def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level, market="US"):
     """
     Display comprehensive key metrics about the stock
     
@@ -861,35 +899,35 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
     with col1:
         st.metric(
             label="Current Price",
-            value=f"${latest_price:.2f}",
+            value=format_currency(latest_price, market),
             delta=f"{price_vs_ma_50:.1f}% vs MA(50)" if not pd.isna(latest_ma_50) else None
         )
     
     with col2:
         st.metric(
             label="52-Week High",
-            value=f"${year_high:.2f}",
+            value=format_currency(year_high, market),
             delta=f"{distance_from_high:.1f}% below high"
         )
     
     with col3:
         st.metric(
             label="52-Week Low",
-            value=f"${year_low:.2f}",
+            value=format_currency(year_low, market),
             delta=f"+{distance_from_low:.1f}% above low"
         )
     
     with col4:
         st.metric(
             label="Support Level",
-            value=f"${support_level:.2f}",
+            value=format_currency(support_level, market),
             help="Recent 20-day support level"
         )
     
     with col5:
         st.metric(
             label="Resistance Level",
-            value=f"${resistance_level:.2f}",
+            value=format_currency(resistance_level, market),
             help="Recent 20-day resistance level"
         )
     
@@ -900,13 +938,13 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
     with col6:
         st.metric(
             label="50-Day MA",
-            value=f"${latest_ma_50:.2f}" if not pd.isna(latest_ma_50) else "N/A"
+            value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A"
         )
     
     with col7:
         st.metric(
             label="200-Day MA",
-            value=f"${latest_ma_200:.2f}" if not pd.isna(latest_ma_200) else "N/A",
+            value=format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A",
             delta=f"{price_vs_ma_200:.1f}% vs Price" if not pd.isna(latest_ma_200) else None
         )
     
@@ -988,23 +1026,43 @@ def main():
     st.title("📈 Stock Technical Analysis Tool")
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
     
-    # Analysis mode selection
-    analysis_mode = st.radio(
-        "Analysis Mode:",
-        ["Single Stock Analysis", "Bulk Stock Analysis (Excel Export)"],
-        horizontal=True
-    )
+    # Market and analysis mode selection
+    col_market, col_mode = st.columns([1, 2])
+    
+    with col_market:
+        market_selection = st.selectbox(
+            "Select Market:",
+            ["US Stocks", "Indian Stocks"],
+            help="Choose between US stocks (USD) or Indian stocks (INR)"
+        )
+        market = "India" if market_selection == "Indian Stocks" else "US"
+    
+    with col_mode:
+        analysis_mode = st.radio(
+            "Analysis Mode:",
+            ["Single Stock Analysis", "Bulk Stock Analysis (Excel Export)"],
+            horizontal=True
+        )
     
     if analysis_mode == "Single Stock Analysis":
         # Create input section for single stock
         col1, col2, col3 = st.columns([3, 2, 1])
         
         with col1:
+            if market == "India":
+                placeholder_text = "e.g., RELIANCE, TCS, INFY"
+                help_text = "Enter Indian stock symbols (e.g., RELIANCE for Reliance Industries, TCS for Tata Consultancy Services, INFY for Infosys)"
+                default_symbol = "RELIANCE"
+            else:
+                placeholder_text = "e.g., AAPL, GOOGL, TSLA"
+                help_text = "Enter US stock symbols (e.g., AAPL for Apple, GOOGL for Google, TSLA for Tesla)"
+                default_symbol = "AAPL"
+            
             symbol = st.text_input(
-                "Enter Stock Symbol (e.g., AAPL, GOOGL, TSLA):",
-                value="AAPL",
-                placeholder="Enter a valid stock ticker symbol",
-                help="Enter any valid stock ticker symbol (e.g., AAPL for Apple, GOOGL for Google, TSLA for Tesla)"
+                f"Enter {market_selection} Symbol:",
+                value=default_symbol,
+                placeholder=placeholder_text,
+                help=help_text
             )
         
         with col2:
@@ -1040,11 +1098,18 @@ def main():
         col1, col2 = st.columns([3, 1])
         
         with col1:
+            if market == "India":
+                bulk_placeholder = "RELIANCE\nTCS\nINFY\nHDFC\nICICIBANK\n\nOr: RELIANCE, TCS, INFY, HDFC, ICICIBANK"
+                bulk_help = "Enter Indian stock symbols separated by commas or new lines"
+            else:
+                bulk_placeholder = "AAPL\nMSFT\nGOOGL\nTSLA\nAMZN\n\nOr: AAPL, MSFT, GOOGL, TSLA, AMZN"
+                bulk_help = "Enter US stock symbols separated by commas or new lines"
+            
             stock_list = st.text_area(
-                "Enter Stock Symbols (one per line or comma-separated)",
-                placeholder="AAPL\nMSFT\nGOOGL\nTSLA\nAMZN\n\nOr: AAPL, MSFT, GOOGL, TSLA, AMZN",
+                f"Enter {market_selection} Symbols (one per line or comma-separated)",
+                placeholder=bulk_placeholder,
                 height=150,
-                help="Enter stock symbols separated by commas or new lines"
+                help=bulk_help
             )
         
         with col2:
@@ -1093,7 +1158,7 @@ def main():
                 for i, symbol in enumerate(symbols):
                     status_text.text(f"Analyzing {symbol}... ({i+1}/{len(symbols)})")
                     
-                    metrics = get_stock_metrics(symbol, bulk_period_code)
+                    metrics = get_stock_metrics(symbol, bulk_period_code, market)
                     all_metrics.append(metrics)
                     
                     # Update progress
@@ -1154,7 +1219,7 @@ def main():
             # Show loading spinner
             with st.spinner(f'Fetching {selected_period.lower()} data for {symbol}...'):
                 # Fetch stock data and company info
-                data, ticker_info, ticker_obj = fetch_stock_data(symbol, period=period_code)
+                data, ticker_info, ticker_obj = fetch_stock_data(symbol, period=period_code, market=market)
             
             if data is not None and ticker_info is not None and ticker_obj is not None and not data.empty:
                 # Calculate moving averages
@@ -1171,7 +1236,7 @@ def main():
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
-                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level)
+                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level, market)
                 
                 # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")
@@ -1323,6 +1388,7 @@ def main():
     st.markdown("""
     **About this application:**
     - Data is sourced from Yahoo Finance via the yfinance library
+    - Supports both US stocks (USD) and Indian stocks (INR) with proper currency formatting
     - Two analysis modes: Single stock with charts or bulk analysis with Excel export
     - Choose from multiple time periods: 1 month to maximum available history
     - Comprehensive metrics include price position relative to 52-week range
