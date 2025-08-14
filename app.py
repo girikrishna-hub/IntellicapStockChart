@@ -606,12 +606,17 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"
         gridcolor='lightgray'
     )
     
-    # Update y-axis
+    # Update y-axis with market-specific formatting
+    if market == "India":
+        tick_format = '₹,.2f'
+    else:
+        tick_format = '$,.2f'
+    
     fig.update_yaxes(
         showgrid=True,
         gridwidth=1,
         gridcolor='lightgray',
-        tickformat='$.2f'
+        tickformat=tick_format
     )
     
     return fig
