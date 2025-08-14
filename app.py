@@ -209,13 +209,14 @@ def get_earnings_info(ticker_info):
     
     return earnings_info
 
-def get_dividend_info(ticker_obj, ticker_info):
+def get_dividend_info(ticker_obj, ticker_info, market="US"):
     """
     Extract dividend information from ticker object and info
     
     Args:
         ticker_obj: yfinance Ticker object
         ticker_info (dict): Company information from yfinance
+        market (str): Market type ("US" or "India")
     
     Returns:
         dict: Dividend information
@@ -239,7 +240,8 @@ def get_dividend_info(ticker_obj, ticker_info):
             
             dividend_info['last_dividend_date'] = last_dividend_date
             dividend_info['last_dividend_amount'] = last_dividend_amount
-            dividend_info['last_dividend_formatted'] = f"${last_dividend_amount:.2f} on {last_dividend_date.strftime('%Y-%m-%d')}"
+            currency_symbol = get_currency_symbol(market)
+            dividend_info['last_dividend_formatted'] = f"{currency_symbol}{last_dividend_amount:.2f} on {last_dividend_date.strftime('%Y-%m-%d')}"
         
         # Get dividend yield from ticker info
         if 'dividendYield' in ticker_info and ticker_info['dividendYield']:
@@ -248,10 +250,11 @@ def get_dividend_info(ticker_obj, ticker_info):
             dividend_info['dividend_yield'] = f"{ticker_info['trailingAnnualDividendYield']*100:.2f}%"
         
         # Get forward dividend rate
+        currency_symbol = get_currency_symbol(market)
         if 'dividendRate' in ticker_info and ticker_info['dividendRate']:
-            dividend_info['forward_dividend'] = f"${ticker_info['dividendRate']:.2f}"
+            dividend_info['forward_dividend'] = f"{currency_symbol}{ticker_info['dividendRate']:.2f}"
         elif 'trailingAnnualDividendRate' in ticker_info and ticker_info['trailingAnnualDividendRate']:
-            dividend_info['forward_dividend'] = f"${ticker_info['trailingAnnualDividendRate']:.2f}"
+            dividend_info['forward_dividend'] = f"{currency_symbol}{ticker_info['trailingAnnualDividendRate']:.2f}"
         
         # Get payout ratio
         if 'payoutRatio' in ticker_info and ticker_info['payoutRatio']:
@@ -356,7 +359,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         
         # Earnings and dividend info
         earnings_info = get_earnings_info(ticker_info)
-        dividend_info = get_dividend_info(ticker_obj, ticker_info)
+        dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
         
         # Calculate performance metrics
         distance_from_high = ((year_high - latest_price) / year_high) * 100
@@ -519,7 +522,7 @@ def create_excel_report(stock_metrics_list, period_label="1 Year"):
     output.seek(0)
     return output
 
-def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
+def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"):
     """
     Create an interactive Plotly chart with stock price, 50-day and 200-day moving averages
     
@@ -529,11 +532,15 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
         ma_50 (pd.Series): 50-day moving average data
         ma_200 (pd.Series): 200-day moving average data
         period_label (str): Time period label for chart title
+        market (str): Market type ("US" or "India")
     
     Returns:
         plotly.graph_objects.Figure: Interactive chart
     """
     fig = go.Figure()
+    
+    # Get currency symbol
+    currency_symbol = get_currency_symbol(market)
     
     # Add stock price line
     fig.add_trace(go.Scatter(
@@ -544,7 +551,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
         line=dict(color='#1f77b4', width=2),
         hovertemplate='<b>%{fullData.name}</b><br>' +
                       'Date: %{x}<br>' +
-                      'Price: $%{y:.2f}<br>' +
+                      f'Price: {currency_symbol}%{{y:,.2f}}<br>' +
                       '<extra></extra>'
     ))
     
@@ -557,7 +564,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
         line=dict(color='#ff7f0e', width=2, dash='dash'),
         hovertemplate='<b>%{fullData.name}</b><br>' +
                       'Date: %{x}<br>' +
-                      'MA(50): $%{y:.2f}<br>' +
+                      f'MA(50): {currency_symbol}%{{y:,.2f}}<br>' +
                       '<extra></extra>'
     ))
     
@@ -570,7 +577,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
         line=dict(color='#d62728', width=2, dash='dot'),
         hovertemplate='<b>%{fullData.name}</b><br>' +
                       'Date: %{x}<br>' +
-                      'MA(200): $%{y:.2f}<br>' +
+                      f'MA(200): {currency_symbol}%{{y:,.2f}}<br>' +
                       '<extra></extra>'
     ))
     
@@ -578,7 +585,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     fig.update_layout(
         title=f'{symbol.upper()} Stock Price with 50-Day & 200-Day Moving Averages ({period_label})',
         xaxis_title='Date',
-        yaxis_title='Price ($)',
+        yaxis_title=f'Price ({currency_symbol})',
         hovermode='x unified',
         showlegend=True,
         legend=dict(
@@ -609,7 +616,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     
     return fig
 
-def create_macd_chart(data, symbol, macd_line, signal_line, histogram, period_label="1 Year"):
+def create_macd_chart(data, symbol, macd_line, signal_line, histogram, period_label="1 Year", market="US"):
     """
     Create MACD indicator chart
     
@@ -706,7 +713,7 @@ def create_macd_chart(data, symbol, macd_line, signal_line, histogram, period_la
     
     return fig
 
-def create_rsi_chart(data, symbol, rsi, period_label="1 Year"):
+def create_rsi_chart(data, symbol, rsi, period_label="1 Year", market="US"):
     """
     Create RSI indicator chart
     
@@ -775,7 +782,7 @@ def create_rsi_chart(data, symbol, rsi, period_label="1 Year"):
     
     return fig
 
-def create_chaikin_chart(data, symbol, cmf, period_label="1 Year"):
+def create_chaikin_chart(data, symbol, cmf, period_label="1 Year", market="US"):
     """
     Create Chaikin Money Flow chart
     
@@ -877,7 +884,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
     
     # Get earnings and dividend information
     earnings_info = get_earnings_info(ticker_info)
-    dividend_info = get_dividend_info(ticker_obj, ticker_info)
+    dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
     
     # Calculate performance since last earnings (if available)
     earnings_performance = "N/A"
@@ -1240,7 +1247,7 @@ def main():
                 
                 # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")
-                fig = create_chart(data, symbol, ma_50, ma_200, selected_period)
+                fig = create_chart(data, symbol, ma_50, ma_200, selected_period, market)
                 st.plotly_chart(fig, use_container_width=True)
                 
                 # Create and display MACD chart
@@ -1251,7 +1258,7 @@ def main():
                 - **Signal Line** (orange): 9-day EMA of the MACD line  
                 - **Histogram** (bars): MACD line minus Signal line
                 """)
-                macd_fig = create_macd_chart(data, symbol, macd_line, signal_line, histogram, selected_period)
+                macd_fig = create_macd_chart(data, symbol, macd_line, signal_line, histogram, selected_period, market)
                 st.plotly_chart(macd_fig, use_container_width=True)
                 
                 # Create and display RSI chart
@@ -1262,7 +1269,7 @@ def main():
                 - **Below 30**: Potentially oversold (buying opportunity may exist)
                 - **Around 50**: Neutral momentum
                 """)
-                rsi_fig = create_rsi_chart(data, symbol, rsi, selected_period)
+                rsi_fig = create_rsi_chart(data, symbol, rsi, selected_period, market)
                 st.plotly_chart(rsi_fig, use_container_width=True)
                 
                 # Create and display Chaikin Money Flow chart
@@ -1273,7 +1280,7 @@ def main():
                 - **Negative values**: Selling pressure (distribution)
                 - **Values near zero**: Balanced buying/selling pressure
                 """)
-                cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period)
+                cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period, market)
                 st.plotly_chart(cmf_fig, use_container_width=True)
                 
                 # Additional information
