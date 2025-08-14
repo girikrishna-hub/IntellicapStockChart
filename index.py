@@ -27,8 +27,10 @@ with col1:
     """)
     
     if st.button("Open Yahoo Finance Version", key="yahoo", use_container_width=True):
-        st.success("Yahoo Finance version is available at: http://localhost:5000")
-        st.markdown("[Click here to open Yahoo Finance Version](http://localhost:5000)")
+        st.success("Yahoo Finance version selected!")
+        st.info("**Access Yahoo Finance Version:**")
+        st.code("Replace :3001 with :80 in your browser URL")
+        st.markdown("Example: If you're at `yourproject.replit.dev:3001`, go to `yourproject.replit.dev:80`")
 
 with col2:
     st.header("💼 GuruFocus Version")
@@ -42,9 +44,11 @@ with col2:
     """)
     
     if st.button("Open GuruFocus Version", key="guru", use_container_width=True):
-        st.success("GuruFocus version is available at: http://localhost:5001")
-        st.markdown("[Click here to open GuruFocus Version](http://localhost:5001)")
-        st.info("Note: Requires GuruFocus API key")
+        st.success("GuruFocus version selected!")
+        st.info("**Access GuruFocus Version:**")
+        st.code("Replace :3001 with :3000 in your browser URL")
+        st.markdown("Example: If you're at `yourproject.replit.dev:3001`, go to `yourproject.replit.dev:3000`")
+        st.warning("Note: Requires GuruFocus API key")
 
 # Feature comparison
 st.markdown("---")
