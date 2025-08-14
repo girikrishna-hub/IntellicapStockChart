@@ -6,7 +6,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 **1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
-**2. GuruFocus Version (app_gurufocus_minimal.py):** Streamlined stock analysis using GuruFocus API for institutional-quality data. Provides basic company profiles and fundamental metrics. Designed for investors who need access to professional financial data.
+**2. GuruFocus Version (app_gurufocus_minimal.py):** Currently disabled for deployment. Previously provided streamlined stock analysis using GuruFocus API for institutional-quality data.
 
 **3. Landing Page (landing.html):** Static HTML main entry point with clear URL navigation allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, copy-to-clipboard URL buttons, and seamless navigation between applications without WebSocket conflicts.
 

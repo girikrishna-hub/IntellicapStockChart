@@ -22,19 +22,11 @@ args = "install_dependencies"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "GuruFocus Stock Analysis App"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Landing Page Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Yahoo Finance App Clean"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "GuruFocus App Clean"
 
 [[workflows.workflow]]
 name = "install_dependencies"
@@ -43,18 +35,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "uv add yfinance plotly"
-
-[[workflows.workflow]]
-name = "GuruFocus Stock Analysis App"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run app_gurufocus.py --server.port 5001"
-waitForPort = 5001
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "Landing Page Server"
@@ -76,18 +56,6 @@ author = "agent"
 task = "shell.exec"
 args = "streamlit run app.py --server.port 5000"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
-name = "GuruFocus App Clean"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "streamlit run app_gurufocus_minimal.py --server.port 5001"
-waitForPort = 5001
 
 [workflows.workflow.metadata]
 outputType = "webview"
