@@ -2,7 +2,11 @@
 
 ## Overview
 
-This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides two analysis modes: single stock analysis with interactive charts and real-time tracking, and bulk stock analysis with Excel export capabilities. Features include multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation for portfolio analysis, saved stock list management for repeat bulk analysis, and auto-refresh functionality for live market tracking. Users can analyze individual stocks with detailed visualizations, enable 10-minute auto-refresh for real-time monitoring, export comprehensive data for multiple stocks simultaneously, and save frequently used stock lists for quick access.
+This project includes two comprehensive Streamlit-based web applications for advanced stock analysis:
+
+**1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
+
+**2. GuruFocus Version (app_gurufocus.py):** Professional-grade stock analysis using GuruFocus API for institutional-quality data. Provides company profiles, comprehensive fundamentals, dividend history, valuation metrics, bulk analysis capabilities, and Excel reporting. Designed for investors who need access to deeper financial data and institutional-grade analytics.
 
 ## User Preferences
 
@@ -15,12 +19,15 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Built-in Streamlit widgets for user input and data display
 - **Visualization**: Plotly for interactive charting capabilities
 - **Layout**: Wide layout configuration for better chart visibility
+- **Dual Application Setup**: Two separate applications running on different ports (5000 for Yahoo Finance, 5001 for GuruFocus)
 
 ### Data Processing Layer
-- **Data Source**: Yahoo Finance API integration via yfinance library
-- **Data Structure**: Pandas DataFrames for efficient data manipulation
+- **Yahoo Finance Version**: Yahoo Finance API integration via yfinance library for free real-time and historical data
+- **GuruFocus Version**: GuruFocus REST API integration for institutional-grade financial data with authentication
+- **Data Structure**: Pandas DataFrames for efficient data manipulation across both versions
 - **Analytics**: NumPy for numerical computations and moving average calculations
 - **Time Series Handling**: Built-in datetime operations for historical data processing
+- **HTTP Requests**: Requests library for GuruFocus API communication with proper error handling
 
 ### Application Logic
 - **Dual-Mode Architecture**: Single stock analysis with interactive visualizations and bulk analysis with Excel export
@@ -42,8 +49,10 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 ### Financial Data Services
-- **Yahoo Finance API**: Primary data source for historical stock prices and market data
+- **Yahoo Finance API**: Free data source for historical stock prices and market data (app.py)
 - **yfinance Library**: Python wrapper for Yahoo Finance API integration
+- **GuruFocus API**: Professional institutional-grade financial data service (app_gurufocus.py)
+- **Requests Library**: HTTP client for GuruFocus API communication with authentication headers
 
 ### Visualization and Analytics
 - **Plotly**: Interactive charting library for creating responsive financial charts
