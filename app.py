@@ -1107,6 +1107,41 @@ def main():
         st.markdown("### 📊 Bulk Stock Analysis")
         st.markdown("Enter multiple stock symbols to generate a comprehensive Excel report with key metrics for all stocks.")
         
+        # Initialize session state for saved lists
+        if 'saved_stock_lists' not in st.session_state:
+            st.session_state.saved_stock_lists = {}
+        
+        # Saved lists management
+        st.markdown("#### 📂 Saved Stock Lists")
+        col_saved1, col_saved2, col_saved3 = st.columns([2, 1, 1])
+        
+        with col_saved1:
+            if st.session_state.saved_stock_lists:
+                selected_saved_list = st.selectbox(
+                    "Load a saved list:",
+                    options=[""] + list(st.session_state.saved_stock_lists.keys()),
+                    help="Select a previously saved stock list"
+                )
+            else:
+                st.info("No saved lists yet. Create one below!")
+                selected_saved_list = ""
+        
+        with col_saved2:
+            if selected_saved_list:
+                if st.button("📥 Load List", help="Load the selected stock list"):
+                    st.session_state.bulk_stock_input = st.session_state.saved_stock_lists[selected_saved_list]
+                    st.success(f"Loaded '{selected_saved_list}'")
+                    st.rerun()
+        
+        with col_saved3:
+            if selected_saved_list:
+                if st.button("🗑️ Delete", help="Delete the selected list"):
+                    del st.session_state.saved_stock_lists[selected_saved_list]
+                    st.success(f"Deleted '{selected_saved_list}'")
+                    st.rerun()
+        
+        st.divider()
+        
         col1, col2 = st.columns([3, 1])
         
         with col1:
@@ -1117,12 +1152,38 @@ def main():
                 bulk_placeholder = "AAPL\nMSFT\nGOOGL\nTSLA\nAMZN\n\nOr: AAPL, MSFT, GOOGL, TSLA, AMZN"
                 bulk_help = "Enter US stock symbols separated by commas or new lines"
             
+            # Use session state for persistent input
+            if 'bulk_stock_input' not in st.session_state:
+                st.session_state.bulk_stock_input = ""
+            
             stock_list = st.text_area(
                 f"Enter {market_selection} Symbols (one per line or comma-separated)",
+                value=st.session_state.bulk_stock_input,
                 placeholder=bulk_placeholder,
                 height=150,
-                help=bulk_help
+                help=bulk_help,
+                key="stock_list_input"
             )
+            
+            # Update session state when input changes
+            if stock_list != st.session_state.bulk_stock_input:
+                st.session_state.bulk_stock_input = stock_list
+            
+            # Save list functionality
+            col_save1, col_save2 = st.columns([2, 1])
+            with col_save1:
+                list_name = st.text_input(
+                    "Save this list as:",
+                    placeholder="e.g., Tech Stocks, Banking Stocks, My Portfolio",
+                    help="Enter a name to save the current stock list for future use"
+                )
+            with col_save2:
+                st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+                if st.button("💾 Save List", disabled=not (stock_list.strip() and list_name.strip())):
+                    if list_name.strip() and stock_list.strip():
+                        st.session_state.saved_stock_lists[list_name.strip()] = stock_list.strip()
+                        st.success(f"Saved list '{list_name.strip()}'!")
+                        st.rerun()
         
         with col2:
             # Period selection for bulk
