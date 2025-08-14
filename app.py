@@ -21,7 +21,7 @@ def fetch_stock_data(symbol, period="1y"):
         period (str): Time period for data retrieval
     
     Returns:
-        pd.DataFrame: Stock data or None if error
+        tuple: (historical_data, ticker_info) or (None, None) if error
     """
     try:
         # Create ticker object
@@ -31,13 +31,19 @@ def fetch_stock_data(symbol, period="1y"):
         data = ticker.history(period=period)
         
         if data.empty:
-            return None
+            return None, None
+        
+        # Fetch additional company info
+        try:
+            info = ticker.info
+        except:
+            info = {}
             
-        return data
+        return data, info
     
     except Exception as e:
         st.error(f"Error fetching data for {symbol}: {str(e)}")
-        return None
+        return None, None
 
 def calculate_moving_average(data, window=50):
     """
@@ -130,6 +136,67 @@ def calculate_chaikin_money_flow(data, period=20):
     cmf = mf_volume.rolling(window=period).sum() / data['Volume'].rolling(window=period).sum()
     
     return cmf
+
+def calculate_support_resistance(data, window=20):
+    """
+    Calculate potential support and resistance levels
+    
+    Args:
+        data (pd.DataFrame): Stock price data
+        window (int): Rolling window for calculations
+    
+    Returns:
+        tuple: (support_level, resistance_level)
+    """
+    # Calculate rolling lows and highs
+    rolling_lows = data['Low'].rolling(window=window).min()
+    rolling_highs = data['High'].rolling(window=window).max()
+    
+    # Get recent support (lowest low) and resistance (highest high)
+    recent_support = rolling_lows.iloc[-window:].min()
+    recent_resistance = rolling_highs.iloc[-window:].max()
+    
+    return recent_support, recent_resistance
+
+def get_earnings_info(ticker_info):
+    """
+    Extract earnings information from ticker info
+    
+    Args:
+        ticker_info (dict): Company information from yfinance
+    
+    Returns:
+        dict: Earnings information
+    """
+    earnings_info = {
+        'last_earnings': None,
+        'next_earnings': None,
+        'last_earnings_formatted': 'N/A',
+        'next_earnings_formatted': 'N/A'
+    }
+    
+    try:
+        # Get last earnings date
+        if 'lastFiscalYearEnd' in ticker_info:
+            last_earnings = pd.to_datetime(ticker_info['lastFiscalYearEnd'], unit='s')
+            earnings_info['last_earnings'] = last_earnings
+            earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+        
+        # Get next earnings date (if available)
+        if 'nextFiscalYearEnd' in ticker_info:
+            next_earnings = pd.to_datetime(ticker_info['nextFiscalYearEnd'], unit='s')
+            earnings_info['next_earnings'] = next_earnings
+            earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+        elif 'earningsDate' in ticker_info and ticker_info['earningsDate']:
+            # Sometimes earnings date is available as a list
+            if isinstance(ticker_info['earningsDate'], list) and ticker_info['earningsDate']:
+                next_earnings = pd.to_datetime(ticker_info['earningsDate'][0], unit='s')
+                earnings_info['next_earnings'] = next_earnings
+                earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+    except:
+        pass
+    
+    return earnings_info
 
 def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year"):
     """
@@ -456,30 +523,54 @@ def create_chaikin_chart(data, symbol, cmf, period_label="1 Year"):
     
     return fig
 
-def display_key_metrics(data, symbol, ma_50, ma_200):
+def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level, resistance_level):
     """
-    Display key metrics about the stock and moving averages
+    Display comprehensive key metrics about the stock
     
     Args:
         data (pd.DataFrame): Stock price data
         symbol (str): Stock symbol
         ma_50 (pd.Series): 50-day moving average data
         ma_200 (pd.Series): 200-day moving average data
+        ticker_info (dict): Company information from yfinance
+        support_level (float): Calculated support level
+        resistance_level (float): Calculated resistance level
     """
     # Get latest values
     latest_price = data['Close'].iloc[-1]
     latest_ma_50 = ma_50.iloc[-1]
     latest_ma_200 = ma_200.iloc[-1]
     
-    # Calculate some metrics
+    # Calculate comprehensive metrics
     year_high = data['Close'].max()
     year_low = data['Close'].min()
+    
+    # Distance from 52-week high/low
+    distance_from_high = ((year_high - latest_price) / year_high) * 100
+    distance_from_low = ((latest_price - year_low) / year_low) * 100
     
     # Price vs MA comparison
     price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if not pd.isna(latest_ma_50) else 0
     price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if not pd.isna(latest_ma_200) else 0
     
-    # Create columns for metrics
+    # Get earnings information
+    earnings_info = get_earnings_info(ticker_info)
+    
+    # Calculate performance since last earnings (if available)
+    earnings_performance = "N/A"
+    if earnings_info['last_earnings'] is not None:
+        try:
+            # Find closest trading day to earnings date
+            earnings_date = earnings_info['last_earnings']
+            mask = data.index >= earnings_date
+            if mask.any():
+                earnings_day_price = data[mask]['Close'].iloc[0]
+                earnings_performance = f"{((latest_price - earnings_day_price) / earnings_day_price) * 100:.1f}%"
+        except:
+            pass
+    
+    # First row of metrics
+    st.markdown("**📈 Current Price & Position**")
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
@@ -491,27 +582,68 @@ def display_key_metrics(data, symbol, ma_50, ma_200):
     
     with col2:
         st.metric(
+            label="52-Week High",
+            value=f"${year_high:.2f}",
+            delta=f"{distance_from_high:.1f}% below high"
+        )
+    
+    with col3:
+        st.metric(
+            label="52-Week Low",
+            value=f"${year_low:.2f}",
+            delta=f"+{distance_from_low:.1f}% above low"
+        )
+    
+    with col4:
+        st.metric(
+            label="Support Level",
+            value=f"${support_level:.2f}",
+            help="Recent 20-day support level"
+        )
+    
+    with col5:
+        st.metric(
+            label="Resistance Level",
+            value=f"${resistance_level:.2f}",
+            help="Recent 20-day resistance level"
+        )
+    
+    # Second row of metrics
+    st.markdown("**📊 Technical Indicators & Moving Averages**")
+    col6, col7, col8, col9, col10 = st.columns(5)
+    
+    with col6:
+        st.metric(
             label="50-Day MA",
             value=f"${latest_ma_50:.2f}" if not pd.isna(latest_ma_50) else "N/A"
         )
     
-    with col3:
+    with col7:
         st.metric(
             label="200-Day MA",
             value=f"${latest_ma_200:.2f}" if not pd.isna(latest_ma_200) else "N/A",
             delta=f"{price_vs_ma_200:.1f}% vs Price" if not pd.isna(latest_ma_200) else None
         )
     
-    with col4:
+    with col8:
         st.metric(
-            label="52-Week High",
-            value=f"${year_high:.2f}"
+            label="Last Earnings",
+            value=earnings_info['last_earnings_formatted'],
+            help="Most recent earnings announcement date"
         )
     
-    with col5:
+    with col9:
         st.metric(
-            label="52-Week Low",
-            value=f"${year_low:.2f}"
+            label="Next Earnings",
+            value=earnings_info['next_earnings_formatted'],
+            help="Expected next earnings date"
+        )
+    
+    with col10:
+        st.metric(
+            label="Since Earnings",
+            value=earnings_performance,
+            help="Price change since last earnings"
         )
 
 def main():
@@ -565,8 +697,8 @@ def main():
             
             # Show loading spinner
             with st.spinner(f'Fetching {selected_period.lower()} data for {symbol}...'):
-                # Fetch stock data
-                data = fetch_stock_data(symbol, period=period_code)
+                # Fetch stock data and company info
+                data, ticker_info = fetch_stock_data(symbol, period=period_code)
             
             if data is not None and not data.empty:
                 # Calculate moving averages
@@ -578,9 +710,12 @@ def main():
                 rsi = calculate_rsi(data)
                 cmf = calculate_chaikin_money_flow(data)
                 
+                # Calculate support and resistance levels
+                support_level, resistance_level = calculate_support_resistance(data)
+                
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
-                display_key_metrics(data, symbol, ma_50, ma_200)
+                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, support_level, resistance_level)
                 
                 # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")
@@ -733,18 +868,19 @@ def main():
     **About this application:**
     - Data is sourced from Yahoo Finance via the yfinance library
     - Choose from multiple time periods: 1 month to maximum available history
-    - The 50-day moving average shows short-term trends (last 50 trading days)
-    - The 200-day moving average shows long-term trends (last 200 trading days)
-    - MACD indicator shows momentum and trend changes using exponential moving averages
-    - RSI measures momentum and identifies overbought/oversold conditions
-    - Chaikin Money Flow analyzes buying/selling pressure using price and volume
+    - Comprehensive metrics include price position relative to 52-week range
+    - Moving averages (50 & 200-day) show short and long-term trends
+    - Support/resistance levels calculated from recent 20-day price action
+    - Earnings data and performance tracking since last earnings announcement
+    - Multiple technical indicators: MACD, RSI, and Chaikin Money Flow
     - Charts are interactive - you can zoom, pan, and hover for detailed information
     - All data is real-time and reflects actual market conditions
     
-    **Technical Indicators Guide:**
-    - **MACD:** Crossovers may signal trend changes and momentum shifts
-    - **RSI:** Values above 70 suggest overbought, below 30 suggest oversold conditions
-    - **Chaikin Money Flow:** Positive values indicate accumulation, negative indicate distribution
+    **Key Metrics Explained:**
+    - **52-Week Position:** Shows how close the stock is trading to yearly highs/lows
+    - **Support/Resistance:** Recent price levels that may act as floors/ceilings
+    - **Earnings Performance:** Price movement since last earnings announcement
+    - **Technical Indicators:** MACD (momentum), RSI (overbought/oversold), CMF (money flow)
     
     **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
     

@@ -30,7 +30,8 @@ Preferred communication style: Simple, everyday language.
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
-- **Default Parameters**: 50-day and 200-day moving averages, MACD (12,26,9), RSI (14-period), and Chaikin Money Flow (20-period) for comprehensive technical analysis
+- **Default Parameters**: 50-day and 200-day moving averages, MACD (12,26,9), RSI (14-period), Chaikin Money Flow (20-period), and support/resistance levels (20-period) for comprehensive technical analysis
+- **Financial Metrics**: 52-week high/low position analysis, earnings date tracking, and performance since earnings
 - **Symbol Input**: Dynamic stock ticker symbol processing
 
 ## External Dependencies
