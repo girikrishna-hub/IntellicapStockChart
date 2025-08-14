@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides multiple technical indicators including 50-day and 200-day moving averages, MACD (Moving Average Convergence Divergence), RSI (Relative Strength Index), and Chaikin Money Flow indicators. Users can input stock ticker symbols, select flexible time periods, and view interactive charts displaying historical stock prices alongside calculated technical indicators. It leverages financial data APIs to provide comprehensive real-time stock market analysis capabilities through an intuitive web interface.
+This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides two analysis modes: single stock analysis with interactive charts and bulk stock analysis with Excel export capabilities. Features include multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, and professional Excel report generation for portfolio analysis. Users can analyze individual stocks with detailed visualizations or export comprehensive data for multiple stocks simultaneously.
 
 ## User Preferences
 
@@ -23,16 +23,19 @@ Preferred communication style: Simple, everyday language.
 - **Time Series Handling**: Built-in datetime operations for historical data processing
 
 ### Application Logic
-- **Modular Design**: Separate functions for data fetching and moving average calculations
-- **Error Handling**: Try-catch blocks for robust API interaction
-- **Data Validation**: Empty data checks to ensure data quality
+- **Dual-Mode Architecture**: Single stock analysis with interactive visualizations and bulk analysis with Excel export
+- **Modular Design**: Separate functions for data fetching, technical calculations, and metrics extraction
+- **Error Handling**: Comprehensive try-catch blocks for robust API interaction and bulk processing
+- **Data Validation**: Empty data checks and error tracking for data quality assurance
 - **Period Configuration**: User-selectable time periods from 1 month to maximum available history (default 1-year)
+- **Bulk Processing**: Progress tracking and comprehensive metrics export for multiple stocks
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
 - **Default Parameters**: 50-day and 200-day moving averages, MACD (12,26,9), RSI (14-period), Chaikin Money Flow (20-period), and support/resistance levels (20-period) for comprehensive technical analysis
-- **Financial Metrics**: 52-week high/low position analysis, earnings date tracking, and performance since earnings
-- **Symbol Input**: Dynamic stock ticker symbol processing
+- **Financial Metrics**: 52-week high/low position analysis, earnings date tracking, performance since earnings, and comprehensive dividend information
+- **Symbol Input**: Dynamic stock ticker symbol processing for single or bulk analysis
+- **Export Capabilities**: Professional Excel report generation with formatted headers and summary sheets
 
 ## External Dependencies
 
