@@ -169,11 +169,12 @@ def calculate_support_resistance(data, window=20):
     
     return recent_support, recent_resistance
 
-def get_earnings_info(ticker_info):
+def get_earnings_info(ticker_obj, ticker_info):
     """
-    Extract earnings information from ticker info
+    Extract earnings information from ticker object and info with improved accuracy
     
     Args:
+        ticker_obj: yfinance Ticker object
         ticker_info (dict): Company information from yfinance
     
     Returns:
@@ -187,24 +188,65 @@ def get_earnings_info(ticker_info):
     }
     
     try:
-        # Get last earnings date
-        if 'lastFiscalYearEnd' in ticker_info:
-            last_earnings = pd.to_datetime(ticker_info['lastFiscalYearEnd'], unit='s')
-            earnings_info['last_earnings'] = last_earnings
-            earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-        
-        # Get next earnings date (if available)
-        if 'nextFiscalYearEnd' in ticker_info:
-            next_earnings = pd.to_datetime(ticker_info['nextFiscalYearEnd'], unit='s')
-            earnings_info['next_earnings'] = next_earnings
-            earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-        elif 'earningsDate' in ticker_info and ticker_info['earningsDate']:
-            # Sometimes earnings date is available as a list
-            if isinstance(ticker_info['earningsDate'], list) and ticker_info['earningsDate']:
-                next_earnings = pd.to_datetime(ticker_info['earningsDate'][0], unit='s')
+        # Try to get earnings calendar first (most accurate for next earnings)
+        try:
+            calendar = ticker_obj.calendar
+            if calendar is not None and not calendar.empty:
+                # Get the most recent upcoming earnings date
+                next_earnings = calendar.index[0]
                 earnings_info['next_earnings'] = next_earnings
                 earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-    except:
+        except:
+            pass
+        
+        # Try to get earnings history for last earnings
+        try:
+            earnings_dates = ticker_obj.earnings_dates
+            if earnings_dates is not None and not earnings_dates.empty:
+                # Get the most recent past earnings date
+                current_date = pd.Timestamp.now()
+                past_earnings = earnings_dates[earnings_dates.index <= current_date]
+                if not past_earnings.empty:
+                    last_earnings = past_earnings.index[-1]
+                    earnings_info['last_earnings'] = last_earnings
+                    earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                
+                # If we don't have next earnings from calendar, try from earnings_dates
+                if earnings_info['next_earnings'] is None:
+                    future_earnings = earnings_dates[earnings_dates.index > current_date]
+                    if not future_earnings.empty:
+                        next_earnings = future_earnings.index[0]
+                        earnings_info['next_earnings'] = next_earnings
+                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+        except:
+            pass
+        
+        # Fallback to ticker_info if earnings_dates/calendar unavailable
+        if earnings_info['last_earnings'] is None:
+            try:
+                if 'lastFiscalYearEnd' in ticker_info and ticker_info['lastFiscalYearEnd']:
+                    last_earnings = pd.to_datetime(ticker_info['lastFiscalYearEnd'], unit='s')
+                    earnings_info['last_earnings'] = last_earnings
+                    earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+            except:
+                pass
+        
+        # Fallback for next earnings
+        if earnings_info['next_earnings'] is None:
+            try:
+                if 'earningsDate' in ticker_info and ticker_info['earningsDate']:
+                    if isinstance(ticker_info['earningsDate'], list) and ticker_info['earningsDate']:
+                        next_earnings = pd.to_datetime(ticker_info['earningsDate'][0], unit='s')
+                        earnings_info['next_earnings'] = next_earnings
+                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                    elif not isinstance(ticker_info['earningsDate'], list):
+                        next_earnings = pd.to_datetime(ticker_info['earningsDate'], unit='s')
+                        earnings_info['next_earnings'] = next_earnings
+                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+            except:
+                pass
+                
+    except Exception as e:
         pass
     
     return earnings_info
@@ -358,7 +400,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         support_level, resistance_level = calculate_support_resistance(data)
         
         # Earnings and dividend info
-        earnings_info = get_earnings_info(ticker_info)
+        earnings_info = get_earnings_info(ticker_obj, ticker_info)
         dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
         
         # Calculate performance metrics
@@ -888,7 +930,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
     price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if not pd.isna(latest_ma_200) else 0
     
     # Get earnings and dividend information
-    earnings_info = get_earnings_info(ticker_info)
+    earnings_info = get_earnings_info(ticker_obj, ticker_info)
     dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
     
     # Calculate performance since last earnings (if available)
@@ -964,14 +1006,14 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
         st.metric(
             label="Last Earnings",
             value=earnings_info['last_earnings_formatted'],
-            help="Most recent earnings announcement date"
+            help="Most recent earnings announcement date (sourced from earnings calendar when available)"
         )
     
     with col9:
         st.metric(
             label="Next Earnings",
             value=earnings_info['next_earnings_formatted'],
-            help="Expected next earnings date"
+            help="Expected next earnings date (from earnings calendar when available)"
         )
     
     with col10:
