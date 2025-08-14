@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import time
 import numpy as np
 import io
 from openpyxl import Workbook
@@ -1141,7 +1142,13 @@ def main():
             period_code = period_options[selected_period]
         
         with col3:
-            st.markdown("<br>", unsafe_allow_html=True)  # Add some spacing
+            # Auto-refresh toggle
+            auto_refresh = st.checkbox(
+                "🔄 Auto-refresh (10 min)",
+                value=False,
+                help="Automatically update data every 10 minutes during market hours"
+            )
+            
             analyze_button = st.button("Generate Chart", type="primary")
     
     else:
@@ -1326,6 +1333,35 @@ def main():
         selected_period = "1 Year"
         period_code = "1y"
     
+    # Auto-refresh functionality
+    if auto_refresh and symbol:
+        # Initialize refresh state
+        if 'last_refresh_time' not in st.session_state:
+            st.session_state.last_refresh_time = time.time()
+            st.session_state.refresh_count = 0
+        
+        current_time = time.time()
+        time_since_refresh = int(current_time - st.session_state.last_refresh_time)
+        
+        # Check if 10 minutes have passed
+        if time_since_refresh >= 600:  # 600 seconds = 10 minutes
+            st.session_state.last_refresh_time = current_time
+            st.session_state.refresh_count += 1
+            st.rerun()
+        
+        # Display refresh status with countdown
+        minutes_since = time_since_refresh // 60
+        seconds_since = time_since_refresh % 60
+        next_refresh_in = 600 - time_since_refresh
+        next_refresh_min = next_refresh_in // 60
+        next_refresh_sec = next_refresh_in % 60
+        
+        refresh_info = f"🔄 Auto-refresh active (#{st.session_state.refresh_count}) | Last update: {minutes_since}m {seconds_since}s ago | Next refresh: {next_refresh_min}m {next_refresh_sec}s"
+        st.info(refresh_info)
+        
+        # Add auto-refresh timer with meta refresh
+        st.markdown(f'<meta http-equiv="refresh" content="{next_refresh_in}">', unsafe_allow_html=True)
+    
     # Process the request when button is clicked or symbol is entered
     if analyze_button or symbol:
         if symbol:
@@ -1348,6 +1384,17 @@ def main():
                 
                 # Calculate support and resistance levels
                 support_level, resistance_level = calculate_support_resistance(data)
+                
+                # Display auto-refresh status and timestamp
+                if auto_refresh:
+                    col_status1, col_status2, col_status3 = st.columns([2, 1, 1])
+                    with col_status1:
+                        st.success(f"✅ Live tracking {symbol} - Updates every 10 minutes")
+                    with col_status2:
+                        st.metric("Refresh #", st.session_state.get('refresh_count', 0))
+                    with col_status3:
+                        current_time = datetime.now().strftime("%H:%M:%S")
+                        st.metric("Last Updated", current_time)
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides two analysis modes: single stock analysis with interactive charts and bulk stock analysis with Excel export capabilities. Features include multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation for portfolio analysis, and saved stock list management for repeat bulk analysis. Users can analyze individual stocks with detailed visualizations, export comprehensive data for multiple stocks simultaneously, and save frequently used stock lists for quick access.
+This is a comprehensive Streamlit-based web application for advanced technical analysis of stock price data. The application provides two analysis modes: single stock analysis with interactive charts and real-time tracking, and bulk stock analysis with Excel export capabilities. Features include multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation for portfolio analysis, saved stock list management for repeat bulk analysis, and auto-refresh functionality for live market tracking. Users can analyze individual stocks with detailed visualizations, enable 10-minute auto-refresh for real-time monitoring, export comprehensive data for multiple stocks simultaneously, and save frequently used stock lists for quick access.
 
 ## User Preferences
 
@@ -30,6 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Period Configuration**: User-selectable time periods from 1 month to maximum available history (default 1-year)
 - **Bulk Processing**: Progress tracking and comprehensive metrics export for multiple stocks
 - **List Management**: Session-based storage for saved stock lists with load, save, and delete functionality
+- **Auto-Refresh System**: Optional 10-minute automatic data updates for live market tracking with countdown timer and refresh status
 
 ### Configuration Management
 - **Page Settings**: Centralized Streamlit configuration for consistent UI
