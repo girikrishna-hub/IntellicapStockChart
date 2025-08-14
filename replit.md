@@ -6,9 +6,16 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 **1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
-**2. GuruFocus Version (app_gurufocus.py):** Professional-grade stock analysis using GuruFocus API for institutional-quality data. Provides company profiles, comprehensive fundamentals, dividend history, valuation metrics, bulk analysis capabilities, and Excel reporting. Designed for investors who need access to deeper financial data and institutional-grade analytics.
+**2. GuruFocus Version (app_gurufocus_minimal.py):** Streamlined stock analysis using GuruFocus API for institutional-quality data. Provides basic company profiles and fundamental metrics. Designed for investors who need access to professional financial data.
 
-**3. Landing Page (index.py):** Main entry point with comparison interface allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, quick start guides, and seamless navigation between applications.
+**3. Landing Page (landing.html):** Static HTML main entry point with clear URL navigation allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, copy-to-clipboard URL buttons, and seamless navigation between applications without WebSocket conflicts.
+
+## Recent Changes (August 2025)
+
+- **Fixed Dividend Display Bug:** Corrected dividend yield calculations that were showing inflated percentages (e.g., 45.00% instead of 0.45%)
+- **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
+- **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
+- **Streamlined GuruFocus:** Created minimal working version to avoid DataFrame processing hangs
 
 ## User Preferences
 
@@ -21,7 +28,8 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: Built-in Streamlit widgets for user input and data display
 - **Visualization**: Plotly for interactive charting capabilities
 - **Layout**: Wide layout configuration for better chart visibility
-- **Triple Application Setup**: Three applications running on different ports (3000 for Landing Page, 5000 for Yahoo Finance, 5001 for GuruFocus)
+- **Triple Application Setup**: Three applications running on different ports (3000 for Static HTML Landing, 5000 for Yahoo Finance, 5001 for GuruFocus Minimal)
+- **Landing Page**: Static HTML with JavaScript for WebSocket-free navigation and clear URL display
 
 ### Data Processing Layer
 - **Yahoo Finance Version**: Yahoo Finance API integration via yfinance library for free real-time and historical data

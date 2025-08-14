@@ -30,10 +30,6 @@ args = "Landing Page Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Static HTML Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Yahoo Finance App Clean"
 
 [[workflows.workflow.tasks]]
@@ -67,18 +63,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python simple_server.py"
-waitForPort = 3000
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow]]
-name = "Static HTML Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python -m http.server 3000 --bind 0.0.0.0"
 waitForPort = 3000
 
 [workflows.workflow.metadata]
