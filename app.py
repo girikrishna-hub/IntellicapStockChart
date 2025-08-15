@@ -3719,7 +3719,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     st.subheader("📅 Earnings Information")
     
     # Get earnings information
-    earnings_info = get_earnings_info(ticker_info, ticker_obj)
+    earnings_info = get_earnings_info(ticker_obj, ticker_info)
     
     col_earnings1, col_earnings2, col_earnings3 = st.columns(3)
     
