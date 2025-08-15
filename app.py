@@ -476,7 +476,7 @@ def get_earnings_info(ticker_obj, ticker_info):
 
 def get_earnings_performance_analysis(ticker_obj, data, market="US"):
     """
-    Analyze stock performance after earnings for the last 4 quarters
+    Analyze stock performance after earnings for available quarters (up to 4)
     
     Args:
         ticker_obj: yfinance Ticker object
@@ -484,22 +484,54 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
         market (str): Market type (US/IN)
     
     Returns:
-        pd.DataFrame: Earnings performance analysis table
+        tuple: (pd.DataFrame: Earnings performance analysis table, int: number of quarters found)
     """
     try:
-        # Get earnings history
-        earnings = ticker_obj.earnings_dates
-        if earnings is None or earnings.empty:
-            return None
+        # Get earnings history - try multiple methods
+        earnings = None
+        earnings_count = 0
         
-        # Get the last 4 earnings dates
+        # Method 1: Try earnings_dates
+        try:
+            earnings = ticker_obj.earnings_dates
+            if earnings is not None and not earnings.empty:
+                earnings_count = len(earnings)
+        except:
+            pass
+        
+        # Method 2: Try calendar if earnings_dates failed
+        if earnings is None or earnings.empty:
+            try:
+                calendar = ticker_obj.calendar
+                if calendar is not None and not calendar.empty:
+                    earnings = calendar
+                    earnings_count = len(calendar)
+            except:
+                pass
+        
+        # Method 3: Try earnings history
+        if earnings is None or earnings.empty:
+            try:
+                earnings_history = ticker_obj.earnings
+                if earnings_history is not None and not earnings_history.empty:
+                    # Convert earnings history to datetime index
+                    earnings = earnings_history
+                    earnings_count = len(earnings_history)
+            except:
+                pass
+        
+        if earnings is None or earnings.empty:
+            return None, 0
+        
+        # Get available earnings dates (up to 4, but show what's available)
         earnings_dates = earnings.index.tolist()
         earnings_dates.sort(reverse=True)  # Most recent first
-        last_4_earnings = earnings_dates[:4]
+        available_earnings = earnings_dates[:min(4, len(earnings_dates))]
         
         analysis_data = []
+        successful_analyses = 0
         
-        for earnings_date in last_4_earnings:
+        for earnings_date in available_earnings:
             try:
                 # Convert to timezone-naive for comparison
                 earnings_date_naive = earnings_date.tz_localize(None) if earnings_date.tz else earnings_date
@@ -552,18 +584,19 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                     'Week Performance (%)': f"{week_performance:+.2f}%",
                     'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
                 })
+                successful_analyses += 1
                 
             except Exception as e:
                 continue
         
         if analysis_data:
             df = pd.DataFrame(analysis_data)
-            return df
+            return df, successful_analyses
         else:
-            return None
+            return None, 0
             
     except Exception as e:
-        return None
+        return None, 0
 
 def get_dividend_info(ticker_obj, ticker_info, market="US"):
     """
@@ -775,7 +808,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         ctp_levels = calculate_ctp_levels(latest_price)
         
         # Earnings performance analysis summary
-        earnings_analysis = get_earnings_performance_analysis(ticker_obj, data, market)
+        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
         earnings_summary = "N/A"
         if earnings_analysis is not None and not earnings_analysis.empty:
             try:
@@ -2119,14 +2152,14 @@ def main():
                 st.plotly_chart(cmf_fig, use_container_width=True)
                 
                 # Earnings Performance Analysis
-                st.subheader("📊 Earnings Performance Analysis (Last 4 Quarters)")
+                earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
+                st.subheader(f"📊 Earnings Performance Analysis ({quarters_found} Quarter{'s' if quarters_found != 1 else ''} Available)")
                 st.markdown("""
                 **Track how the stock performed after each earnings announcement:**
                 - **Overnight Change**: Price movement from close before earnings to open after earnings
                 - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
                 """)
                 
-                earnings_analysis = get_earnings_performance_analysis(ticker_obj, data, market)
                 if earnings_analysis is not None and not earnings_analysis.empty:
                     # Display summary statistics
                     col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
@@ -2181,10 +2214,28 @@ def main():
                 else:
                     st.info("📋 Earnings performance data not available for this stock. This could be due to:")
                     st.markdown("""
-                    - Limited earnings history (less than 4 quarters)
-                    - Data availability issues
+                    - No earnings history found in available data sources
                     - Stock may be relatively new to the market
+                    - Data availability issues with yfinance API
+                    - Company may not report regular quarterly earnings
                     """)
+                    
+                    # Debug information for troubleshooting
+                    with st.expander("🔍 Debug Information"):
+                        try:
+                            earnings_dates = ticker_obj.earnings_dates
+                            calendar = ticker_obj.calendar
+                            earnings_history = ticker_obj.earnings
+                            
+                            st.write(f"**Earnings Dates Available:** {len(earnings_dates) if earnings_dates is not None and not earnings_dates.empty else 0}")
+                            st.write(f"**Calendar Available:** {len(calendar) if calendar is not None and not calendar.empty else 0}")
+                            st.write(f"**Earnings History Available:** {len(earnings_history) if earnings_history is not None and not earnings_history.empty else 0}")
+                            
+                            if earnings_dates is not None and not earnings_dates.empty:
+                                st.write("**Recent Earnings Dates:**")
+                                st.write(earnings_dates.head())
+                        except Exception as e:
+                            st.write(f"Debug error: {str(e)}")
                 
                 # Additional information
                 st.subheader("Chart Information")
