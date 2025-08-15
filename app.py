@@ -686,13 +686,23 @@ def get_earnings_info(ticker_obj, ticker_info):
                 else:
                     current_date_tz = current_date
                 
-                # Get the most recent past earnings date
-                past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
-                if not past_earnings.empty:
-                    last_earnings = past_earnings.index[-1]
+                # Get the most recent past earnings date (within reasonable timeframe)
+                cutoff_date_tz = current_date_tz - pd.Timedelta(days=540)  # 18 months
+                recent_past_earnings = earnings_dates[
+                    (earnings_dates.index <= current_date_tz) & 
+                    (earnings_dates.index >= cutoff_date_tz)
+                ]
+                if not recent_past_earnings.empty:
+                    last_earnings = recent_past_earnings.index[-1]
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
                     print(f"Found last earnings: {earnings_info['last_earnings_formatted']}")
+                else:
+                    # If no recent earnings, check if we have any past earnings and show as old
+                    all_past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
+                    if not all_past_earnings.empty:
+                        old_earnings = all_past_earnings.index[-1]
+                        print(f"Found old earnings (skipped): {old_earnings.strftime('%Y-%m-%d')}")
                 
                 # Get next upcoming earnings
                 future_earnings = earnings_dates[earnings_dates.index > current_date_tz]
@@ -738,16 +748,22 @@ def get_earnings_info(ticker_obj, ticker_info):
             except Exception as e:
                 print(f"Calendar error: {e}")
         
-        # Method 3: Try earnings history for past earnings
+        # Method 3: Try earnings history for past earnings (with date validation)
         if earnings_info['last_earnings'] is None:
             try:
                 earnings_history = ticker_obj.earnings
                 if earnings_history is not None and not earnings_history.empty:
-                    # Convert earnings history index to datetime
-                    last_earnings_date = earnings_history.index[-1]
-                    earnings_info['last_earnings'] = last_earnings_date
-                    earnings_info['last_earnings_formatted'] = last_earnings_date.strftime('%Y-%m-%d')
-                    print(f"Found last earnings from history: {earnings_info['last_earnings_formatted']}")
+                    # Convert earnings history index to datetime and filter for recent dates
+                    last_earnings_date = pd.to_datetime(earnings_history.index[-1])
+                    
+                    # Only use if it's within the last 2 years (more reasonable for earnings)
+                    cutoff_date = current_date - pd.Timedelta(days=730)  # 2 years
+                    if last_earnings_date >= cutoff_date:
+                        earnings_info['last_earnings'] = last_earnings_date
+                        earnings_info['last_earnings_formatted'] = last_earnings_date.strftime('%Y-%m-%d')
+                        print(f"Found last earnings from history: {earnings_info['last_earnings_formatted']}")
+                    else:
+                        print(f"Earnings history date too old: {last_earnings_date.strftime('%Y-%m-%d')}")
             except Exception as e:
                 print(f"Earnings history error: {e}")
         
@@ -767,17 +783,26 @@ def get_earnings_info(ticker_obj, ticker_info):
             except Exception as e:
                 print(f"Ticker info earnings date error: {e}")
         
-        # Method 5: Try additional ticker_info fields for last earnings
+        # Method 5: Try additional ticker_info fields for last earnings (with date validation)
         if earnings_info['last_earnings'] is None:
             try:
-                # Try multiple possible fields
+                # Try multiple possible fields but validate dates
                 for field in ['lastFiscalYearEnd', 'mostRecentQuarter', 'lastQuarterEnd']:
                     if field in ticker_info and ticker_info[field]:
-                        last_earnings = pd.to_datetime(ticker_info[field], unit='s')
-                        earnings_info['last_earnings'] = last_earnings
-                        earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-                        print(f"Found last earnings from {field}: {earnings_info['last_earnings_formatted']}")
-                        break
+                        try:
+                            last_earnings = pd.to_datetime(ticker_info[field], unit='s')
+                            
+                            # Only use if it's within the last 18 months (more reasonable for recent earnings)
+                            cutoff_date = current_date - pd.Timedelta(days=540)  # 18 months
+                            if last_earnings >= cutoff_date:
+                                earnings_info['last_earnings'] = last_earnings
+                                earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                                print(f"Found last earnings from {field}: {earnings_info['last_earnings_formatted']}")
+                                break
+                            else:
+                                print(f"Field {field} date too old: {last_earnings.strftime('%Y-%m-%d')}")
+                        except:
+                            continue
             except Exception as e:
                 print(f"Ticker info fallback error: {e}")
         
