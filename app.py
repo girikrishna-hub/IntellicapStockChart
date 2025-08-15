@@ -3094,7 +3094,7 @@ def main():
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
     
     # Create data source tabs
-    tab_yahoo, tab_guru = st.tabs(["📊 Yahoo Finance Analysis", "🎯 GuruFocus Analysis"])
+    tab_yahoo, tab_guru = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis"])
     
     with tab_yahoo:
         yahoo_finance_tab()
@@ -3103,8 +3103,8 @@ def main():
         gurufocus_tab()
 
 def yahoo_finance_tab():
-    """Yahoo Finance analysis tab content"""
-    st.markdown("### Real-time stock analysis with Yahoo Finance data")
+    """Fundamental analysis tab content"""
+    st.markdown("### Real-time stock analysis with comprehensive fundamental metrics")
     
     # Show shared insights history if any exist
     if 'shared_insights' in st.session_state and st.session_state.shared_insights:
@@ -3457,7 +3457,7 @@ def yahoo_finance_tab():
 
 
 def gurufocus_tab():
-    """GuruFocus analysis tab content"""
+    """Advanced analysis tab content"""
     st.markdown("### Professional institutional-grade financial analysis")
     st.markdown("Advanced earnings performance analysis with up to 8 quarters of historical data")
     st.markdown("---")
