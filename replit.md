@@ -27,6 +27,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Fixed Earnings Date Accuracy:** Resolved incorrect earnings dates showing outdated 2022 data by implementing 18-month date validation filters and prioritizing current year (2025) earnings data with proper chronological sorting to display accurate Q2 2025 earnings instead of old quarterly data
 - **Implemented Chart Export Functionality:** Added comprehensive chart export capabilities supporting PNG and PDF formats for all charts including price charts, technical indicators (MACD, RSI, Chaikin), and earnings performance charts with high-resolution output and professional PDF formatting
 - **AI-Powered Financial News Sentiment Analysis:** Integrated OpenAI-powered sentiment analysis of financial news articles with comprehensive metrics including sentiment scoring, confidence levels, investment impact assessment, key themes identification, risk factor analysis, and interactive visualizations
+- **Added Extended Hours Trading Information:** Restored comprehensive after-market data display in Price Action tab including pre-market changes, after-hours changes, regular session close prices, and real-time market status indicators (Open/Pre-Market/After-Hours) for complete trading day coverage
 
 ## User Preferences
 
