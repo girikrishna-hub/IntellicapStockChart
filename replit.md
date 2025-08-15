@@ -15,12 +15,14 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Fixed Dividend Display Bug:** Corrected dividend yield calculations that were showing inflated percentages (e.g., 45.00% instead of 0.45%)
 - **Added Fibonacci Analysis:** Integrated comprehensive Fibonacci retracement analysis for both uptrends and downtrends with visual chart overlays and detailed metrics display
 - **Added Beta Value:** Integrated stock beta calculation showing volatility relative to market
-- **Added CTP Levels:** Added +/- 12.5% Close to Price target levels for support and resistance analysis
+- **Added CTP Levels:** Added +/- 12.5% Close to Price target levels for support and resistance analysis (renamed to "Safe Level Low/High")
 - **Added Earnings Performance Analysis:** Successfully integrated comprehensive earnings performance tracking showing stock movement after earnings announcements, with overnight changes and week performance analysis for up to 4 quarters
 - **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
 - **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
 - **Streamlined Navigation:** App now opens directly on Yahoo Finance tab with GuruFocus available as secondary tab
 - **Enhanced GuruFocus Tab:** Added detailed 8-quarter earnings performance analysis with advanced charts and institutional-grade financial metrics including valuation, profitability, financial strength, and growth analysis
+- **Fixed Bulk Analysis Error:** Resolved auto-refresh variable error in bulk analysis mode by restricting auto-refresh to single stock analysis only
+- **Implemented Social Sharing:** Added comprehensive social sharing feature with three privacy levels (public, anonymized, private) including Twitter, LinkedIn, email sharing options, and shared insights history tracking
 
 ## User Preferences
 

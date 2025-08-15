@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 import time
 import numpy as np
 import io
+import json
+import hashlib
+import urllib.parse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 
@@ -75,6 +78,160 @@ def get_beta_value(ticker_info):
             return "N/A"
     except:
         return "N/A"
+
+def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
+    """
+    Create a shareable investment insight with customizable privacy
+    
+    Args:
+        symbol (str): Stock ticker symbol
+        data (pd.DataFrame): Stock price data
+        metrics (dict): Key stock metrics
+        privacy_level (str): Privacy level ("public", "private", "anonymized")
+    
+    Returns:
+        dict: Shareable insight data
+    """
+    try:
+        latest_price = data['Close'].iloc[-1]
+        price_change = ((latest_price - data['Close'].iloc[-2]) / data['Close'].iloc[-2]) * 100
+        
+        # Base insight structure
+        insight = {
+            "id": hashlib.md5(f"{symbol}_{datetime.now()}".encode()).hexdigest()[:8],
+            "timestamp": datetime.now().isoformat(),
+            "privacy_level": privacy_level,
+            "analysis_type": "technical_analysis"
+        }
+        
+        if privacy_level == "public":
+            # Full public sharing
+            insight.update({
+                "symbol": symbol,
+                "company_name": metrics.get('longName', symbol),
+                "current_price": f"${latest_price:.2f}",
+                "daily_change": f"{price_change:+.2f}%",
+                "key_metrics": {
+                    "rsi": metrics.get('RSI', 'N/A'),
+                    "ma_50_signal": metrics.get('Price vs 50-Day MA (%)', 'N/A'),
+                    "ma_200_signal": metrics.get('Price vs 200-Day MA (%)', 'N/A'),
+                    "volume": metrics.get('Volume', 'N/A')
+                },
+                "recommendation": generate_simple_recommendation(metrics),
+                "risk_level": assess_risk_level(metrics)
+            })
+            
+        elif privacy_level == "anonymized":
+            # Anonymized - no symbol or company name
+            insight.update({
+                "symbol": "***",
+                "company_name": "Anonymized Stock",
+                "current_price": f"${latest_price:.2f}",
+                "daily_change": f"{price_change:+.2f}%",
+                "key_metrics": {
+                    "rsi": metrics.get('RSI', 'N/A'),
+                    "ma_50_signal": metrics.get('Price vs 50-Day MA (%)', 'N/A'),
+                    "ma_200_signal": metrics.get('Price vs 200-Day MA (%)', 'N/A')
+                },
+                "recommendation": generate_simple_recommendation(metrics),
+                "note": "Stock identity hidden for privacy"
+            })
+            
+        else:  # private
+            # Private sharing - limited info
+            insight.update({
+                "symbol": symbol,
+                "analysis_summary": "Private technical analysis completed",
+                "recommendation": generate_simple_recommendation(metrics),
+                "shared_with": "Private analysis - limited details"
+            })
+        
+        return insight
+        
+    except Exception as e:
+        return {"error": f"Failed to create insight: {str(e)}"}
+
+def generate_simple_recommendation(metrics):
+    """Generate a simple investment recommendation based on key metrics"""
+    try:
+        rsi_text = metrics.get('RSI', '50')
+        if rsi_text != 'N/A':
+            rsi = float(rsi_text)
+        else:
+            rsi = 50
+            
+        ma_50_text = metrics.get('Price vs 50-Day MA (%)', '0')
+        if ma_50_text != 'N/A':
+            ma_50_signal = float(ma_50_text.replace('%', ''))
+        else:
+            ma_50_signal = 0
+            
+        # Simple recommendation logic
+        if rsi > 70:
+            return "⚠️ Potentially Overbought"
+        elif rsi < 30:
+            return "📈 Potentially Oversold - Watch for Entry"
+        elif ma_50_signal > 5:
+            return "📈 Above 50-Day MA - Bullish Trend"
+        elif ma_50_signal < -5:
+            return "📉 Below 50-Day MA - Bearish Trend"
+        else:
+            return "➡️ Neutral - Monitor for Clear Signals"
+            
+    except:
+        return "➡️ Analysis Available - Review Details"
+
+def assess_risk_level(metrics):
+    """Assess risk level based on key metrics"""
+    try:
+        rsi_text = metrics.get('RSI', '50')
+        if rsi_text != 'N/A':
+            rsi = float(rsi_text)
+        else:
+            rsi = 50
+            
+        beta_text = metrics.get('Beta', '1.0')
+        if beta_text != 'N/A':
+            beta = float(beta_text)
+        else:
+            beta = 1.0
+            
+        # Risk assessment
+        if beta > 1.5 or rsi > 75 or rsi < 25:
+            return "🔴 High Risk"
+        elif beta > 1.2 or rsi > 65 or rsi < 35:
+            return "🟡 Medium Risk"
+        else:
+            return "🟢 Lower Risk"
+            
+    except:
+        return "🟡 Risk Assessment Available"
+
+def create_share_urls(insight):
+    """Create shareable URLs for different platforms"""
+    
+    # Create a summary text
+    symbol = insight.get('symbol', 'Stock')
+    recommendation = insight.get('recommendation', 'Analysis available')
+    
+    if insight['privacy_level'] == 'public':
+        share_text = f"📊 {symbol} Analysis: {recommendation}. Current: {insight.get('current_price', 'N/A')} ({insight.get('daily_change', 'N/A')}). Risk: {insight.get('risk_level', 'N/A')}"
+    elif insight['privacy_level'] == 'anonymized':
+        share_text = f"📊 Stock Analysis: {recommendation}. Daily change: {insight.get('daily_change', 'N/A')}. Technical indicators suggest monitoring for opportunities."
+    else:
+        share_text = f"📊 Completed technical analysis with recommendation: {recommendation}"
+    
+    hashtags = "#StockAnalysis #TechnicalAnalysis #Investing"
+    
+    urls = {
+        "twitter": f"https://twitter.com/intent/tweet?text={urllib.parse.quote(share_text)}&hashtags={urllib.parse.quote('StockAnalysis,TechnicalAnalysis')}",
+        "linkedin": f"https://www.linkedin.com/sharing/share-offsite/?url={urllib.parse.quote('https://example.com')}&summary={urllib.parse.quote(share_text)}",
+        "copy_text": f"{share_text} {hashtags}",
+        "email_subject": f"Stock Analysis Insight - {symbol}",
+        "email_body": f"Hi,\n\nI wanted to share this investment insight:\n\n{share_text}\n\nGenerated using technical analysis tools.\n\nBest regards"
+    }
+    
+    return urls
 
 def calculate_ctp_levels(current_price):
     """
@@ -2499,6 +2656,103 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                         delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
                         help="78.6% retracement from swing low"
                     )
+    
+    # Add Social Sharing Section
+    st.markdown("---")
+    st.subheader("📤 Share Your Analysis")
+    st.markdown("Share your investment insights with customizable privacy settings")
+    
+    col_privacy, col_share = st.columns([1, 2])
+    
+    with col_privacy:
+        privacy_level = st.selectbox(
+            "Privacy Level:",
+            ["public", "anonymized", "private"],
+            format_func=lambda x: {
+                "public": "🌐 Public - Full Details",
+                "anonymized": "🔒 Anonymized - No Stock Name", 
+                "private": "🔐 Private - Limited Info"
+            }.get(x, x),
+            help="Choose how much information to include when sharing"
+        )
+    
+    with col_share:
+        if st.button("🚀 Generate Shareable Insight", type="primary"):
+            # Collect all metrics for sharing
+            share_metrics = {
+                'longName': ticker_info.get('longName', symbol),
+                'RSI': f"{rsi.iloc[-1]:.2f}" if not rsi.empty else "N/A",
+                'Price vs 50-Day MA (%)': f"{price_vs_ma_50:+.2f}%",
+                'Price vs 200-Day MA (%)': f"{price_vs_ma_200:+.2f}%",
+                'Beta': get_beta_value(ticker_info),
+                'Volume': f"{data['Volume'].iloc[-1]:,.0f}" if 'Volume' in data.columns else "N/A"
+            }
+            
+            # Create shareable insight
+            insight = create_shareable_insight(symbol, data, share_metrics, privacy_level)
+            
+            if 'error' not in insight:
+                # Display the generated insight
+                st.success("✅ Shareable insight generated!")
+                
+                with st.expander("📋 Preview Your Insight", expanded=True):
+                    if privacy_level == "public":
+                        st.markdown(f"**📊 {insight['symbol']} Analysis**")
+                        st.markdown(f"**Company:** {insight['company_name']}")
+                        st.markdown(f"**Current Price:** {insight['current_price']} ({insight['daily_change']})")
+                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
+                        st.markdown(f"**Risk Level:** {insight['risk_level']}")
+                        
+                        col_rsi, col_ma50, col_ma200 = st.columns(3)
+                        with col_rsi:
+                            st.metric("RSI", insight['key_metrics']['rsi'])
+                        with col_ma50:
+                            st.metric("vs 50-Day MA", insight['key_metrics']['ma_50_signal'])
+                        with col_ma200:
+                            st.metric("vs 200-Day MA", insight['key_metrics']['ma_200_signal'])
+                    
+                    elif privacy_level == "anonymized":
+                        st.markdown(f"**📊 Anonymous Stock Analysis**")
+                        st.markdown(f"**Current Price:** {insight['current_price']} ({insight['daily_change']})")
+                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
+                        st.info(insight['note'])
+                    
+                    else:  # private
+                        st.markdown(f"**📊 Private Analysis for {insight['symbol']}**")
+                        st.markdown(f"**Summary:** {insight['analysis_summary']}")
+                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
+                
+                # Generate share URLs
+                share_urls = create_share_urls(insight)
+                
+                st.markdown("### 🔗 Share Options")
+                col_twitter, col_linkedin, col_copy, col_email = st.columns(4)
+                
+                with col_twitter:
+                    st.markdown(f"[📱 Twitter]({share_urls['twitter']})")
+                
+                with col_linkedin:
+                    st.markdown(f"[💼 LinkedIn]({share_urls['linkedin']})")
+                
+                with col_copy:
+                    if st.button("📋 Copy Text"):
+                        st.code(share_urls['copy_text'], language="text")
+                        st.success("Text ready to copy!")
+                
+                with col_email:
+                    email_url = f"mailto:?subject={urllib.parse.quote(share_urls['email_subject'])}&body={urllib.parse.quote(share_urls['email_body'])}"
+                    st.markdown(f"[📧 Email]({email_url})")
+                
+                # Store insight in session state for potential later use
+                if 'shared_insights' not in st.session_state:
+                    st.session_state.shared_insights = []
+                st.session_state.shared_insights.append(insight)
+                
+                # Show insight ID for reference
+                st.caption(f"Insight ID: {insight['id']} | Generated: {insight['timestamp'][:19]}")
+            
+            else:
+                st.error(f"Failed to generate insight: {insight['error']}")
 
 
 def main():
@@ -2521,6 +2775,27 @@ def main():
 def yahoo_finance_tab():
     """Yahoo Finance analysis tab content"""
     st.markdown("### Real-time stock analysis with Yahoo Finance data")
+    
+    # Show shared insights history if any exist
+    if 'shared_insights' in st.session_state and st.session_state.shared_insights:
+        with st.expander(f"📋 Shared Insights History ({len(st.session_state.shared_insights)})", expanded=False):
+            for i, insight in enumerate(reversed(st.session_state.shared_insights[-5:]), 1):  # Show last 5
+                col_hist1, col_hist2, col_hist3 = st.columns([2, 1, 1])
+                with col_hist1:
+                    symbol_display = insight.get('symbol', 'N/A')
+                    if symbol_display == '***':
+                        symbol_display = 'Anonymous'
+                    st.markdown(f"**{symbol_display}** - {insight.get('recommendation', 'N/A')}")
+                with col_hist2:
+                    privacy_icon = {"public": "🌐", "anonymized": "🔒", "private": "🔐"}.get(insight.get('privacy_level'), "📊")
+                    st.markdown(f"{privacy_icon} {insight.get('privacy_level', 'N/A').title()}")
+                with col_hist3:
+                    timestamp = insight.get('timestamp', '')[:16].replace('T', ' ')
+                    st.markdown(f"🕒 {timestamp}")
+            
+            if len(st.session_state.shared_insights) > 5:
+                st.caption(f"Showing latest 5 of {len(st.session_state.shared_insights)} total insights")
+    
     st.markdown("---")
     
     # Market and analysis mode selection
