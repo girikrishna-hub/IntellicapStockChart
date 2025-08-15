@@ -915,20 +915,20 @@ class NewsSentimentAnalyzer:
                     st.markdown("**Share your analysis:**")
                     
                     # Create sharing buttons with direct links
-                    col_twitter, col_linkedin, col_copy, col_email = st.columns(4)
+                    col_whatsapp, col_linkedin, col_copy, col_email = st.columns(4)
                     
-                    with col_twitter:
+                    with col_whatsapp:
                         st.markdown(f"""
-                        <a href="{share_urls['twitter']}" target="_blank" style="
+                        <a href="{share_urls['whatsapp']}" target="_blank" style="
                             display: inline-block; 
                             padding: 0.5rem 1rem; 
-                            background-color: #1DA1F2; 
+                            background-color: #25D366; 
                             color: white; 
                             text-decoration: none; 
                             border-radius: 0.25rem;
                             text-align: center;
                             width: 100%;
-                        ">🐦 Share on Twitter</a>
+                        ">📱 Share on WhatsApp</a>
                         """, unsafe_allow_html=True)
                     
                     with col_linkedin:
@@ -1063,13 +1063,13 @@ AI-powered analysis"""
         share_text = insight['formatted_text']
         
         # Create URLs
-        twitter_url = f"https://twitter.com/intent/tweet?text={urllib.parse.quote(share_text)}"
+        whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(share_text)}"
         linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={urllib.parse.quote(share_text)}"
         email_subject = "News Sentiment Analysis Results"
         email_url = f"mailto:?subject={urllib.parse.quote(email_subject)}&body={urllib.parse.quote(share_text)}"
         
         return {
-            'twitter': twitter_url,
+            'whatsapp': whatsapp_url,
             'linkedin': linkedin_url,
             'email': email_url,
             'text': share_text
