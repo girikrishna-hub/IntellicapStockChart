@@ -749,96 +749,9 @@ def display_news_sentiment_analysis(symbol):
                         if article.get('reasoning'):
                             st.write(f"**Analysis:** {article['reasoning']}")
                 
-                # Add social sharing section
-                st.markdown("---")
-                st.markdown("### 📤 Share Your Sentiment Analysis")
-                st.markdown("Share your AI-powered sentiment insights with customizable privacy settings")
-                
-                col_privacy, col_generate = st.columns([1, 1])
-                
-                with col_privacy:
-                    privacy_level = st.selectbox(
-                        "Privacy Level:",
-                        ["public", "anonymized", "private"],
-                        format_func=lambda x: {
-                            "public": "🌐 Public - Full Details",
-                            "anonymized": "🔒 Anonymized - No Stock Name", 
-                            "private": "🔐 Private - Limited Info"
-                        }.get(x, x),
-                        help="Choose how much information to include when sharing",
-                        key=f"sentiment_privacy_{symbol}"
-                    )
-                
-                with col_generate:
-                    if st.button("🚀 Generate Shareable Insight", type="primary", key=f"sentiment_share_{symbol}"):
-                        st.session_state[f'sentiment_sharing_{symbol}'] = True
-                
-                # Display sharing options if button clicked
-                if st.session_state.get(f'sentiment_sharing_{symbol}', False):
-                    # Create sentiment insight for sharing
-                    insight = create_sentiment_insight(
-                        symbol, 
-                        analyzed_articles,
-                        aggregate_metrics['sentiment_score'],
-                        aggregate_metrics['overall_impact'],
-                        aggregate_metrics['avg_confidence'],
-                        aggregate_metrics['total_articles'],
-                        privacy_level
-                    )
-                    
-                    # Generate sharing URLs
-                    share_urls = create_sentiment_share_urls(insight)
-                    
-                    st.success("✅ Shareable insight generated!")
-                    
-                    # Display preview
-                    st.markdown("**📋 Sharing Preview:**")
-                    st.info(insight['formatted_text'])
-                    
-                    # Create sharing buttons with direct links
-                    col_whatsapp, col_linkedin, col_email = st.columns(3)
-                    
-                    with col_whatsapp:
-                        st.markdown(f"""
-                        <a href="{share_urls['whatsapp']}" target="_blank" style="
-                            display: inline-block; 
-                            padding: 0.5rem 1rem; 
-                            background-color: #25D366; 
-                            color: white; 
-                            text-decoration: none; 
-                            border-radius: 0.25rem;
-                            text-align: center;
-                            width: 100%;
-                        ">📱 Share on WhatsApp</a>
-                        """, unsafe_allow_html=True)
-                    
-                    with col_linkedin:
-                        st.markdown(f"""
-                        <a href="{share_urls['linkedin']}" target="_blank" style="
-                            display: inline-block; 
-                            padding: 0.5rem 1rem; 
-                            background-color: #0077B5; 
-                            color: white; 
-                            text-decoration: none; 
-                            border-radius: 0.25rem;
-                            text-align: center;
-                            width: 100%;
-                        ">💼 Share on LinkedIn</a>
-                        """, unsafe_allow_html=True)
-                    
-                    with col_email:
-                        st.markdown(f"""
-                        <a href="{share_urls['email']}" style="
-                            display: inline-block; 
-                            padding: 0.5rem 1rem; 
-                            background-color: #D44638; 
-                            color: white; 
-                            text-decoration: none; 
-                            border-radius: 0.25rem;
-                            text-align: center;
-                            width: 100%;
-                        ">📧 Email Results</a>
-                        """, unsafe_allow_html=True)
+                # Add working social sharing section
+                from news_sentiment_fixed import create_social_sharing_section
+                create_social_sharing_section(symbol, aggregate_metrics)
             
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
