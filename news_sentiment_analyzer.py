@@ -911,18 +911,39 @@ class NewsSentimentAnalyzer:
                     # Create sharing URLs
                     share_urls = self.create_sentiment_share_urls(insight, privacy_level)
                     
-                    # Display sharing options
+                    # Display sharing options with direct links
                     st.markdown("**Share your analysis:**")
                     
+                    # Create sharing buttons with direct links
                     col_twitter, col_linkedin, col_copy, col_email = st.columns(4)
                     
                     with col_twitter:
-                        if st.button("🐦 Twitter", key=f"twitter_sentiment_{symbol}"):
-                            st.info(f"Twitter sharing URL: {share_urls['twitter']}")
+                        st.markdown(f"""
+                        <a href="{share_urls['twitter']}" target="_blank" style="
+                            display: inline-block; 
+                            padding: 0.5rem 1rem; 
+                            background-color: #1DA1F2; 
+                            color: white; 
+                            text-decoration: none; 
+                            border-radius: 0.25rem;
+                            text-align: center;
+                            width: 100%;
+                        ">🐦 Share on Twitter</a>
+                        """, unsafe_allow_html=True)
                     
                     with col_linkedin:
-                        if st.button("💼 LinkedIn", key=f"linkedin_sentiment_{symbol}"):
-                            st.info(f"LinkedIn sharing URL: {share_urls['linkedin']}")
+                        st.markdown(f"""
+                        <a href="{share_urls['linkedin']}" target="_blank" style="
+                            display: inline-block; 
+                            padding: 0.5rem 1rem; 
+                            background-color: #0077B5; 
+                            color: white; 
+                            text-decoration: none; 
+                            border-radius: 0.25rem;
+                            text-align: center;
+                            width: 100%;
+                        ">💼 Share on LinkedIn</a>
+                        """, unsafe_allow_html=True)
                     
                     with col_copy:
                         if st.button("📋 Copy Text", key=f"copy_sentiment_{symbol}"):
@@ -930,8 +951,18 @@ class NewsSentimentAnalyzer:
                             st.success("Text ready to copy!")
                     
                     with col_email:
-                        if st.button("📧 Email", key=f"email_sentiment_{symbol}"):
-                            st.info(f"Email sharing URL: {share_urls['email']}")
+                        st.markdown(f"""
+                        <a href="{share_urls['email']}" style="
+                            display: inline-block; 
+                            padding: 0.5rem 1rem; 
+                            background-color: #D44638; 
+                            color: white; 
+                            text-decoration: none; 
+                            border-radius: 0.25rem;
+                            text-align: center;
+                            width: 100%;
+                        ">📧 Email Results</a>
+                        """, unsafe_allow_html=True)
                     
                     # Store insight in session state
                     if 'sentiment_insights' not in st.session_state:
