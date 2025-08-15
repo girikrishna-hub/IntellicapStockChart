@@ -25,6 +25,8 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Implemented Social Sharing:** Added comprehensive social sharing feature with three privacy levels (public, anonymized, private) including Twitter, LinkedIn, email sharing options, and shared insights history tracking
 - **Enhanced Social Sharing with Fibonacci Analysis:** Integrated comprehensive Fibonacci analysis information into social sharing including trend direction, swing ranges, closest retracement levels, and proximity alerts for support/resistance levels
 - **Fixed Earnings Date Accuracy:** Resolved incorrect earnings dates showing outdated 2022 data by implementing 18-month date validation filters and prioritizing current year (2025) earnings data with proper chronological sorting to display accurate Q2 2025 earnings instead of old quarterly data
+- **Implemented Chart Export Functionality:** Added comprehensive chart export capabilities supporting PNG and PDF formats for all charts including price charts, technical indicators (MACD, RSI, Chaikin), and earnings performance charts with high-resolution output and professional PDF formatting
+- **AI-Powered Financial News Sentiment Analysis:** Integrated OpenAI-powered sentiment analysis of financial news articles with comprehensive metrics including sentiment scoring, confidence levels, investment impact assessment, key themes identification, risk factor analysis, and interactive visualizations
 
 ## User Preferences
 

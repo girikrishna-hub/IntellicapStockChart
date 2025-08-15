@@ -17,6 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as Re
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from news_sentiment_analyzer import display_news_sentiment_analysis, get_sentiment_summary_for_sharing
 
 # Set page configuration
 st.set_page_config(
@@ -3530,6 +3531,9 @@ def yahoo_finance_tab():
                 
                 # Export buttons for Chaikin Money Flow chart
                 create_export_buttons(cmf_fig, "Chaikin_Money_Flow", symbol)
+                
+                # News Sentiment Analysis
+                display_news_sentiment_analysis(symbol)
                 
                 # Earnings Performance Analysis
                 earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
