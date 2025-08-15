@@ -3089,6 +3089,97 @@ def main():
     """
     Main application function
     """
+    # Custom CSS to make tabs bigger and more visible
+    st.markdown("""
+    <style>
+    /* Make main tabs bigger and more visible */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        background-color: #f0f2f6;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 65px;
+        white-space: pre-wrap;
+        background-color: white;
+        border-radius: 10px;
+        color: #262730;
+        font-size: 20px;
+        font-weight: 700;
+        padding: 18px 30px;
+        border: 3px solid #e1e5e9;
+        transition: all 0.3s ease;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+        min-width: 280px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #0066cc;
+        color: white;
+        border-color: #0066cc;
+        box-shadow: 0 6px 15px rgba(0,102,204,0.4);
+        transform: translateY(-3px);
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f8f9fa;
+        border-color: #0066cc;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.18);
+    }
+    
+    .stTabs [aria-selected="true"]:hover {
+        background-color: #0052a3;
+        color: white;
+        transform: translateY(-3px);
+    }
+    
+    /* Sub-tabs styling */
+    .stTabs .stTabs [data-baseweb="tab-list"] {
+        background-color: #fafbfc;
+        padding: 10px;
+        border-radius: 10px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stTabs .stTabs [data-baseweb="tab"] {
+        height: 55px;
+        font-size: 17px;
+        font-weight: 600;
+        padding: 15px 25px;
+        background-color: white;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        min-width: 200px;
+    }
+    
+    .stTabs .stTabs [aria-selected="true"] {
+        background-color: #10b981;
+        color: white;
+        border-color: #10b981;
+        box-shadow: 0 4px 10px rgba(16,185,129,0.3);
+        transform: translateY(-2px);
+    }
+    
+    .stTabs .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f3f4f6;
+        border-color: #10b981;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    }
+    
+    .stTabs .stTabs [aria-selected="true"]:hover {
+        background-color: #059669;
+        transform: translateY(-2px);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # App header
     st.title("📈 Stock Technical Analysis Tool")
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
