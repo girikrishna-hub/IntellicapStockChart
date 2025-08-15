@@ -531,10 +531,24 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
         if earnings is None or earnings.empty:
             return None, 0
         
-        # Get available earnings dates (up to 4, but show what's available)
+        # Get available earnings dates and filter for unique quarters (up to 4)
         earnings_dates = earnings.index.tolist()
         earnings_dates.sort(reverse=True)  # Most recent first
-        available_earnings = earnings_dates[:min(4, len(earnings_dates))]
+        
+        # Filter for unique quarters to avoid duplicate earnings in same quarter
+        unique_quarters = []
+        seen_quarters = set()
+        
+        for date in earnings_dates:
+            quarter_key = f"{date.year}-Q{(date.month - 1) // 3 + 1}"
+            if quarter_key not in seen_quarters:
+                unique_quarters.append(date)
+                seen_quarters.add(quarter_key)
+                if len(unique_quarters) >= 4:
+                    break
+        
+        available_earnings = unique_quarters
+        print(f"Filtered to {len(available_earnings)} unique quarters from {len(earnings_dates)} total earnings dates")
         
         analysis_data = []
         successful_analyses = 0
