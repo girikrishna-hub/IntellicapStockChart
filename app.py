@@ -3108,13 +3108,15 @@ def main():
         background-color: white;
         border-radius: 10px;
         color: #262730;
-        font-size: 20px;
-        font-weight: 700;
+        font-size: 18px;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         padding: 18px 30px;
         border: 3px solid #e1e5e9;
         transition: all 0.3s ease;
         box-shadow: 0 3px 8px rgba(0,0,0,0.12);
         min-width: 280px;
+        text-align: center;
     }
     
     .stTabs [aria-selected="true"] {
@@ -3149,13 +3151,15 @@ def main():
     
     .stTabs .stTabs [data-baseweb="tab"] {
         height: 55px;
-        font-size: 17px;
+        font-size: 16px;
         font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         padding: 15px 25px;
         background-color: white;
         border: 2px solid #d1d5db;
         border-radius: 8px;
         min-width: 200px;
+        text-align: center;
     }
     
     .stTabs .stTabs [aria-selected="true"] {
