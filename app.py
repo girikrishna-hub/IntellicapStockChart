@@ -626,6 +626,150 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
     except Exception as e:
         return None, 0
 
+def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", max_quarters=8):
+    """
+    Enhanced earnings performance analysis with extended historical data
+    
+    Args:
+        ticker_obj: yfinance Ticker object
+        data (pd.DataFrame): Stock price data
+        market (str): Market type (US/IN)
+        max_quarters (int): Maximum number of quarters to analyze
+    
+    Returns:
+        tuple: (pd.DataFrame: Detailed earnings performance analysis, int: number of quarters found)
+    """
+    try:
+        # Get comprehensive earnings data
+        earnings = None
+        
+        # Primary method: earnings_dates
+        try:
+            earnings = ticker_obj.earnings_dates
+            if earnings is not None and not earnings.empty:
+                print(f"Found {len(earnings)} earnings records from earnings_dates")
+        except Exception as e:
+            print(f"Earnings dates error: {e}")
+        
+        if earnings is None or earnings.empty:
+            print("No earnings data found")
+            return None, 0
+        
+        # Get available earnings dates (up to max_quarters)
+        earnings_dates = earnings.index.tolist()
+        earnings_dates.sort(reverse=True)  # Most recent first
+        available_earnings = earnings_dates[:min(max_quarters, len(earnings_dates))]
+        
+        analysis_data = []
+        successful_analyses = 0
+        
+        print(f"Analyzing {len(available_earnings)} earnings dates...")
+        
+        for earnings_date in available_earnings:
+            try:
+                print(f"Processing earnings date: {earnings_date}")
+                
+                # Handle timezone compatibility
+                if hasattr(data.index[0], 'tz') and data.index[0].tz:
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_for_comparison = earnings_date
+                    else:
+                        earnings_date_for_comparison = earnings_date.tz_localize(data.index[0].tz)
+                else:
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_for_comparison = earnings_date.tz_localize(None)
+                    else:
+                        earnings_date_for_comparison = earnings_date
+                
+                # Find pre-earnings data
+                pre_earnings_mask = data.index < earnings_date_for_comparison
+                if not pre_earnings_mask.any():
+                    print(f"No pre-earnings data for {earnings_date}")
+                    continue
+                    
+                pre_earnings_price = data[pre_earnings_mask]['Close'].iloc[-1]
+                pre_earnings_date = data[pre_earnings_mask].index[-1]
+                
+                # Find post-earnings data
+                post_earnings_mask = data.index > earnings_date_for_comparison
+                if not post_earnings_mask.any():
+                    print(f"No post-earnings data for {earnings_date}")
+                    continue
+                    
+                post_earnings_open = data[post_earnings_mask]['Open'].iloc[0]
+                post_earnings_date = data[post_earnings_mask].index[0]
+                
+                # Calculate overnight change
+                overnight_change = ((post_earnings_open - pre_earnings_price) / pre_earnings_price) * 100
+                
+                # Calculate week performance (up to 5 trading days)
+                week_end_mask = data.index >= post_earnings_date
+                week_data = data[week_end_mask].head(5)
+                
+                if not week_data.empty:
+                    week_end_price = week_data['Close'].iloc[-1]
+                    week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
+                else:
+                    week_end_price = post_earnings_open
+                    week_performance = overnight_change
+                
+                # Get EPS data if available
+                eps_estimate = None
+                eps_actual = None
+                surprise_pct = None
+                
+                if earnings_date in earnings.index:
+                    row = earnings.loc[earnings_date]
+                    if hasattr(row, 'get'):
+                        eps_estimate = row.get('EPS Estimate', None)
+                        eps_actual = row.get('Reported EPS', None) 
+                        surprise_pct = row.get('Surprise(%)', None)
+                
+                # Determine quarter
+                quarter_num = (earnings_date.month - 1) // 3 + 1
+                quarter = f"Q{quarter_num} {earnings_date.year}"
+                
+                # Create detailed analysis row
+                analysis_row = {
+                    'Quarter': quarter,
+                    'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
+                    'Pre-Earnings Close': format_currency(pre_earnings_price, market),
+                    'Next Day Open': format_currency(post_earnings_open, market),
+                    'Overnight Change (%)': f"{overnight_change:+.2f}%",
+                    'End of Week Close': format_currency(week_end_price, market),
+                    'Week Performance (%)': f"{week_performance:+.2f}%",
+                    'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
+                }
+                
+                # Add EPS information if available
+                if eps_estimate and not pd.isna(eps_estimate):
+                    analysis_row['EPS Est'] = f"${eps_estimate:.2f}"
+                if eps_actual and not pd.isna(eps_actual):
+                    analysis_row['EPS Act'] = f"${eps_actual:.2f}"
+                if surprise_pct and not pd.isna(surprise_pct):
+                    analysis_row['Surprise'] = f"{surprise_pct:+.1f}%"
+                
+                analysis_data.append(analysis_row)
+                successful_analyses += 1
+                
+                print(f"✅ Analysis successful: {overnight_change:+.2f}% overnight, {week_performance:+.2f}% week")
+                
+            except Exception as e:
+                print(f"❌ Error processing {earnings_date}: {e}")
+                continue
+        
+        if analysis_data:
+            df = pd.DataFrame(analysis_data)
+            print(f"Created analysis DataFrame with {len(df)} rows")
+            return df, successful_analyses
+        else:
+            print("No successful analyses")
+            return None, 0
+            
+    except Exception as e:
+        print(f"Overall analysis error: {e}")
+        return None, 0
+
 def get_dividend_info(ticker_obj, ticker_info, market="US"):
     """
     Extract dividend information from ticker object and info
@@ -2425,19 +2569,198 @@ def yahoo_finance_tab():
 def gurufocus_tab():
     """GuruFocus analysis tab content"""
     st.markdown("### Professional institutional-grade financial analysis")
-    st.info("🚧 **GuruFocus Integration Coming Soon**")
-    st.markdown("""
-    **Features planned for GuruFocus integration:**
-    - Detailed earnings performance analysis with historical data
-    - Institutional-quality financial metrics
-    - Advanced valuation models
-    - Professional-grade stock screening
-    - Real-time analyst recommendations
+    st.markdown("Advanced earnings performance analysis with up to 8 quarters of historical data")
+    st.markdown("---")
     
-    **Current Status:** Framework prepared, API integration pending
+    # Create input section
+    col1, col2, col3 = st.columns([3, 2, 1])
     
-    **Meanwhile:** Use the Yahoo Finance tab for comprehensive technical analysis with real-time data.
-    """)
+    with col1:
+        symbol_guru = st.text_input(
+            "Enter Stock Symbol:",
+            value="AAPL",
+            placeholder="e.g., AAPL, GOOGL, TSLA",
+            help="Enter US stock symbols for detailed earnings analysis",
+            key="gurufocus_symbol"
+        )
+    
+    with col2:
+        quarters_selection = st.selectbox(
+            "Historical Quarters:",
+            ["4 Quarters", "6 Quarters", "8 Quarters"],
+            index=2,
+            help="Number of past quarters to analyze"
+        )
+        quarters_count = int(quarters_selection.split()[0])
+    
+    with col3:
+        if st.button("🔍 Analyze Earnings", key="guru_analyze", type="primary"):
+            st.session_state.guru_analyze_clicked = True
+    
+    # Analysis section
+    if st.session_state.get('guru_analyze_clicked', False) and symbol_guru:
+        with st.spinner(f"Analyzing {quarters_count} quarters of earnings data for {symbol_guru.upper()}..."):
+            # Fetch extended earnings data
+            data, info, ticker_obj = fetch_stock_data(symbol_guru.upper(), period="3y", market="US")
+            
+            if data is not None and ticker_obj is not None:
+                # Get detailed earnings performance analysis
+                earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
+                    ticker_obj, data, market="US", max_quarters=quarters_count
+                )
+                
+                if earnings_analysis is not None and not earnings_analysis.empty:
+                    st.success(f"✅ Found earnings data for {quarters_found} quarters")
+                    
+                    # Display comprehensive metrics
+                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                    
+                    # Calculate advanced statistics
+                    overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                    week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                    
+                    if overnight_changes and week_changes:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        avg_week = sum(week_changes) / len(week_changes)
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                        
+                        # Volatility calculations
+                        overnight_std = np.std(overnight_changes) if len(overnight_changes) > 1 else 0
+                        week_std = np.std(week_changes) if len(week_changes) > 1 else 0
+                        
+                        with col_stats1:
+                            st.metric(
+                                label="Avg Overnight Change",
+                                value=f"{avg_overnight:+.2f}%",
+                                delta=f"σ: {overnight_std:.2f}%",
+                                help="Average overnight reaction with standard deviation"
+                            )
+                        
+                        with col_stats2:
+                            st.metric(
+                                label="Success Rate (Overnight)",
+                                value=f"{positive_overnight}/{len(overnight_changes)}",
+                                delta=f"{(positive_overnight/len(overnight_changes)*100):.1f}%",
+                                help="Percentage of positive overnight reactions"
+                            )
+                        
+                        with col_stats3:
+                            st.metric(
+                                label="Avg Week Performance",
+                                value=f"{avg_week:+.2f}%",
+                                delta=f"σ: {week_std:.2f}%",
+                                help="Average week performance with standard deviation"
+                            )
+                        
+                        with col_stats4:
+                            st.metric(
+                                label="Success Rate (Week)",
+                                value=f"{positive_week}/{len(week_changes)}",
+                                delta=f"{(positive_week/len(week_changes)*100):.1f}%",
+                                help="Percentage of positive week outcomes"
+                            )
+                    
+                    st.markdown("---")
+                    
+                    # Detailed earnings table with enhanced information
+                    st.subheader("📊 Detailed Earnings Performance Analysis")
+                    st.dataframe(
+                        earnings_analysis,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Quarter": st.column_config.TextColumn("Quarter", width="small"),
+                            "Earnings Date": st.column_config.DateColumn("Earnings Date", width="medium"),
+                            "Pre-Earnings Close": st.column_config.TextColumn("Pre-Close", width="small"),
+                            "Next Day Open": st.column_config.TextColumn("Next Open", width="small"),
+                            "Overnight Change (%)": st.column_config.TextColumn("Overnight %", width="small"),
+                            "End of Week Close": st.column_config.TextColumn("Week Close", width="small"),
+                            "Week Performance (%)": st.column_config.TextColumn("Week %", width="small"),
+                            "Direction": st.column_config.TextColumn("Trend", width="small")
+                        }
+                    )
+                    
+                    # Advanced analytics section
+                    st.markdown("---")
+                    st.subheader("📈 Advanced Performance Analytics")
+                    
+                    if len(overnight_changes) > 2 and len(week_changes) > 2:
+                        col_chart1, col_chart2 = st.columns(2)
+                        
+                        with col_chart1:
+                            # Overnight performance chart
+                            overnight_fig = go.Figure()
+                            overnight_fig.add_trace(go.Bar(
+                                x=[f"Q{i+1}" for i in range(len(overnight_changes))],
+                                y=overnight_changes,
+                                name="Overnight Change %",
+                                marker_color=['green' if x > 0 else 'red' for x in overnight_changes]
+                            ))
+                            overnight_fig.update_layout(
+                                title="Overnight Earnings Reactions",
+                                xaxis_title="Quarter (Most Recent First)",
+                                yaxis_title="Change %",
+                                height=400
+                            )
+                            st.plotly_chart(overnight_fig, use_container_width=True)
+                        
+                        with col_chart2:
+                            # Week performance chart
+                            week_fig = go.Figure()
+                            week_fig.add_trace(go.Bar(
+                                x=[f"Q{i+1}" for i in range(len(week_changes))],
+                                y=week_changes,
+                                name="Week Performance %",
+                                marker_color=['green' if x > 0 else 'red' for x in week_changes]
+                            ))
+                            week_fig.update_layout(
+                                title="Week Performance After Earnings",
+                                xaxis_title="Quarter (Most Recent First)",
+                                yaxis_title="Change %",
+                                height=400
+                            )
+                            st.plotly_chart(week_fig, use_container_width=True)
+                        
+                        # Performance pattern analysis
+                        st.markdown("---")
+                        st.subheader("🎯 Pattern Analysis")
+                        
+                        pattern_col1, pattern_col2 = st.columns(2)
+                        
+                        with pattern_col1:
+                            # Consistency metrics
+                            consistent_overnight = sum(1 for i in range(len(overnight_changes)-1) 
+                                                     if (overnight_changes[i] > 0) == (overnight_changes[i+1] > 0))
+                            consistent_week = sum(1 for i in range(len(week_changes)-1) 
+                                                if (week_changes[i] > 0) == (week_changes[i+1] > 0))
+                            
+                            st.info(f"""
+                            **Performance Consistency:**
+                            - Overnight: {consistent_overnight}/{len(overnight_changes)-1} consecutive quarters with same direction
+                            - Week: {consistent_week}/{len(week_changes)-1} consecutive quarters with same direction
+                            """)
+                        
+                        with pattern_col2:
+                            # Magnitude analysis
+                            strong_overnight = sum(1 for x in overnight_changes if abs(x) > 5)
+                            strong_week = sum(1 for x in week_changes if abs(x) > 5)
+                            
+                            st.info(f"""
+                            **High-Impact Reactions (>5%):**
+                            - Overnight: {strong_overnight}/{len(overnight_changes)} quarters
+                            - Week: {strong_week}/{len(week_changes)} quarters
+                            """)
+                
+                else:
+                    st.warning(f"No earnings data available for {symbol_guru.upper()} in the selected period")
+                    st.info("Try a different symbol or check if the company reports regular quarterly earnings")
+            
+            else:
+                st.error(f"Unable to fetch data for {symbol_guru.upper()}. Please verify the symbol is correct.")
+    
+    elif symbol_guru and not st.session_state.get('guru_analyze_clicked', False):
+        st.info("👆 Click 'Analyze Earnings' to start the detailed analysis")
 
 if __name__ == "__main__":
     main()
