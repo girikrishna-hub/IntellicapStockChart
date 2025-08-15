@@ -11,6 +11,12 @@ import hashlib
 import urllib.parse
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
+import base64
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as ReportLabImage
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
 
 # Set page configuration
 st.set_page_config(
@@ -78,6 +84,133 @@ def get_beta_value(ticker_info):
             return "N/A"
     except:
         return "N/A"
+
+def export_chart_as_png(fig, filename_prefix="chart"):
+    """
+    Export a Plotly figure as PNG and return download data
+    
+    Args:
+        fig: Plotly figure object
+        filename_prefix (str): Prefix for the filename
+        
+    Returns:
+        tuple: (bytes_data, filename)
+    """
+    try:
+        # Convert figure to PNG bytes
+        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_{timestamp}.png"
+        
+        return img_bytes, filename
+    except Exception as e:
+        st.error(f"Error exporting PNG: {str(e)}")
+        return None, None
+
+def export_chart_as_pdf(fig, filename_prefix="chart", title="Stock Analysis Chart"):
+    """
+    Export a Plotly figure as PDF and return download data
+    
+    Args:
+        fig: Plotly figure object
+        filename_prefix (str): Prefix for the filename
+        title (str): Title for the PDF document
+        
+    Returns:
+        tuple: (bytes_data, filename)
+    """
+    try:
+        # Convert figure to PNG first (for embedding in PDF)
+        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+        
+        # Create PDF
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            textColor=colors.black,
+            spaceAfter=20,
+            alignment=1  # Center alignment
+        )
+        
+        # Create story
+        story = []
+        
+        # Add title
+        story.append(Paragraph(title, title_style))
+        story.append(Spacer(1, 20))
+        
+        # Add chart image
+        img_stream = io.BytesIO(img_bytes)
+        img = ReportLabImage(img_stream, width=7*inch, height=4.5*inch)
+        story.append(img)
+        
+        # Add timestamp
+        timestamp_text = f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(timestamp_text, styles['Normal']))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Get PDF bytes
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{filename_prefix}_{timestamp}.pdf"
+        
+        return pdf_bytes, filename
+    except Exception as e:
+        st.error(f"Error exporting PDF: {str(e)}")
+        return None, None
+
+def create_export_buttons(fig, chart_name, symbol=""):
+    """
+    Create export buttons for PNG and PDF download
+    
+    Args:
+        fig: Plotly figure object
+        chart_name (str): Name of the chart for filename
+        symbol (str): Stock symbol for filename
+    """
+    col_png, col_pdf = st.columns(2)
+    
+    # Prepare filename prefix
+    filename_prefix = f"{symbol}_{chart_name}".replace(" ", "_").replace("/", "_") if symbol else chart_name.replace(" ", "_")
+    
+    with col_png:
+        if st.button(f"📷 Export PNG", key=f"png_{chart_name}_{symbol}", help="Download chart as PNG image"):
+            png_data, png_filename = export_chart_as_png(fig, filename_prefix)
+            if png_data:
+                st.download_button(
+                    label="⬇️ Download PNG",
+                    data=png_data,
+                    file_name=png_filename,
+                    mime="image/png",
+                    key=f"download_png_{chart_name}_{symbol}"
+                )
+    
+    with col_pdf:
+        if st.button(f"📄 Export PDF", key=f"pdf_{chart_name}_{symbol}", help="Download chart as PDF document"):
+            pdf_title = f"{symbol.upper()} - {chart_name}" if symbol else chart_name
+            pdf_data, pdf_filename = export_chart_as_pdf(fig, filename_prefix, pdf_title)
+            if pdf_data:
+                st.download_button(
+                    label="⬇️ Download PDF",
+                    data=pdf_data,
+                    file_name=pdf_filename,
+                    mime="application/pdf",
+                    key=f"download_pdf_{chart_name}_{symbol}"
+                )
 
 def create_shareable_insight(symbol, data, metrics, privacy_level="public", fibonacci_data=None):
     """
@@ -3294,6 +3427,10 @@ def yahoo_finance_tab():
                 fig = create_chart(data, symbol, ma_50, ma_200, selected_period, market)
                 st.plotly_chart(fig, use_container_width=True)
                 
+                # Export buttons for price chart
+                st.markdown("**Export Chart:**")
+                create_export_buttons(fig, "Price_Chart_with_Moving_Averages", symbol)
+                
                 # Create and display MACD chart
                 st.subheader(f"MACD Indicator")
                 st.markdown("""
@@ -3304,6 +3441,9 @@ def yahoo_finance_tab():
                 """)
                 macd_fig = create_macd_chart(data, symbol, macd_line, signal_line, histogram, selected_period, market)
                 st.plotly_chart(macd_fig, use_container_width=True)
+                
+                # Export buttons for MACD chart
+                create_export_buttons(macd_fig, "MACD_Indicator", symbol)
                 
                 # Create and display RSI chart
                 st.subheader(f"RSI Indicator")
@@ -3316,6 +3456,9 @@ def yahoo_finance_tab():
                 rsi_fig = create_rsi_chart(data, symbol, rsi, selected_period, market)
                 st.plotly_chart(rsi_fig, use_container_width=True)
                 
+                # Export buttons for RSI chart
+                create_export_buttons(rsi_fig, "RSI_Indicator", symbol)
+                
                 # Create and display Chaikin Money Flow chart
                 st.subheader(f"Chaikin Money Flow")
                 st.markdown("""
@@ -3326,6 +3469,9 @@ def yahoo_finance_tab():
                 """)
                 cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period, market)
                 st.plotly_chart(cmf_fig, use_container_width=True)
+                
+                # Export buttons for Chaikin Money Flow chart
+                create_export_buttons(cmf_fig, "Chaikin_Money_Flow", symbol)
                 
                 # Earnings Performance Analysis
                 earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
@@ -3707,6 +3853,9 @@ def gurufocus_tab():
                                 height=400
                             )
                             st.plotly_chart(overnight_fig, use_container_width=True)
+                            
+                            # Export buttons for overnight chart
+                            create_export_buttons(overnight_fig, "Overnight_Earnings_Reactions", symbol)
                         
                         with col_chart2:
                             # Week performance chart
@@ -3724,6 +3873,9 @@ def gurufocus_tab():
                                 height=400
                             )
                             st.plotly_chart(week_fig, use_container_width=True)
+                            
+                            # Export buttons for week performance chart
+                            create_export_buttons(week_fig, "Week_Performance_After_Earnings", symbol)
                         
                         # Performance pattern analysis
                         st.markdown("---")

@@ -23,6 +23,8 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Enhanced GuruFocus Tab:** Added detailed 8-quarter earnings performance analysis with advanced charts and institutional-grade financial metrics including valuation, profitability, financial strength, and growth analysis
 - **Fixed Bulk Analysis Error:** Resolved auto-refresh variable error in bulk analysis mode by restricting auto-refresh to single stock analysis only
 - **Implemented Social Sharing:** Added comprehensive social sharing feature with three privacy levels (public, anonymized, private) including Twitter, LinkedIn, email sharing options, and shared insights history tracking
+- **Enhanced Social Sharing with Fibonacci Analysis:** Integrated comprehensive Fibonacci analysis information into social sharing including trend direction, swing ranges, closest retracement levels, and proximity alerts for support/resistance levels
+- **Fixed Earnings Date Accuracy:** Resolved incorrect earnings dates showing outdated 2022 data by implementing 18-month date validation filters and prioritizing current year (2025) earnings data with proper chronological sorting to display accurate Q2 2025 earnings instead of old quarterly data
 
 ## User Preferences
 
