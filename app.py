@@ -458,12 +458,23 @@ def get_earnings_info(ticker_obj, ticker_info):
                     elif isinstance(calendar, dict) and calendar:
                         # Handle dict format calendar
                         for key, dates in calendar.items():
-                            if dates and len(dates) > 0:
-                                next_earnings = pd.to_datetime(dates[0])
-                                earnings_info['next_earnings'] = next_earnings
-                                earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-                                print(f"Found next earnings from calendar dict: {earnings_info['next_earnings_formatted']}")
-                                break
+                            if dates:
+                                # Handle single date or list of dates
+                                if hasattr(dates, '__len__') and not isinstance(dates, str):
+                                    # It's a list or array
+                                    if len(dates) > 0:
+                                        next_earnings = pd.to_datetime(dates[0])
+                                        earnings_info['next_earnings'] = next_earnings
+                                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                                        print(f"Found next earnings from calendar dict list: {earnings_info['next_earnings_formatted']}")
+                                        break
+                                else:
+                                    # It's a single date object
+                                    next_earnings = pd.to_datetime(dates)
+                                    earnings_info['next_earnings'] = next_earnings
+                                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                                    print(f"Found next earnings from calendar dict single: {earnings_info['next_earnings_formatted']}")
+                                    break
             except Exception as e:
                 print(f"Calendar error: {e}")
         
@@ -513,23 +524,37 @@ def get_earnings_info(ticker_obj, ticker_info):
         # Method 6: Estimate next earnings based on last earnings (quarterly companies)
         if earnings_info['next_earnings'] is None and earnings_info['last_earnings'] is not None:
             try:
-                # Estimate next earnings as ~90 days after last earnings
                 last_earnings_date = earnings_info['last_earnings']
-                if hasattr(last_earnings_date, 'tz') and last_earnings_date.tz:
-                    # Keep timezone-aware
-                    estimated_next = last_earnings_date + pd.DateOffset(days=90)
-                else:
-                    # Handle timezone-naive dates
-                    estimated_next = last_earnings_date + pd.DateOffset(days=90)
+                print(f"Attempting to estimate next earnings from last: {last_earnings_date}")
                 
-                # Check if estimated date is in the future
-                current_check = current_date.tz_localize(None) if hasattr(current_date, 'tz') and current_date.tz else current_date
-                estimated_check = estimated_next.tz_localize(None) if hasattr(estimated_next, 'tz') and estimated_next.tz else estimated_next
+                # Try different estimation approaches
+                for days_offset in [90, 91, 92, 89, 88]:  # Try variations around 90 days (quarterly)
+                    try:
+                        if hasattr(last_earnings_date, 'tz') and last_earnings_date.tz:
+                            estimated_next = last_earnings_date + pd.DateOffset(days=days_offset)
+                        else:
+                            estimated_next = pd.to_datetime(last_earnings_date) + pd.DateOffset(days=days_offset)
+                        
+                        # Check if estimated date is in the future
+                        if estimated_next > pd.Timestamp.now():
+                            earnings_info['next_earnings'] = estimated_next
+                            earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')}"
+                            print(f"Estimated next earnings (+{days_offset} days): {earnings_info['next_earnings_formatted']}")
+                            break
+                    except Exception as inner_e:
+                        continue
                 
-                if estimated_check > current_check:
-                    earnings_info['next_earnings'] = estimated_next
-                    earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')}"
-                    print(f"Estimated next earnings: {earnings_info['next_earnings_formatted']}")
+                # If quarterly estimation doesn't work, try yearly estimation
+                if earnings_info['next_earnings'] is None:
+                    try:
+                        estimated_next = pd.to_datetime(last_earnings_date) + pd.DateOffset(years=1)
+                        if estimated_next > pd.Timestamp.now():
+                            earnings_info['next_earnings'] = estimated_next
+                            earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')}"
+                            print(f"Estimated next earnings (yearly): {earnings_info['next_earnings_formatted']}")
+                    except:
+                        pass
+                        
             except Exception as e:
                 print(f"Estimation error: {e}")
                 
