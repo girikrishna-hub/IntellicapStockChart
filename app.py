@@ -97,8 +97,8 @@ def export_chart_as_png(fig, filename_prefix="chart"):
         tuple: (bytes_data, filename)
     """
     try:
-        # Convert figure to PNG bytes
-        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+        # Try to convert figure to PNG bytes using Kaleido
+        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
         
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -106,8 +106,18 @@ def export_chart_as_png(fig, filename_prefix="chart"):
         
         return img_bytes, filename
     except Exception as e:
-        st.error(f"Error exporting PNG: {str(e)}")
-        return None, None
+        # If Kaleido fails, try alternative method using HTML export
+        try:
+            # Convert to HTML and then use a different approach
+            html_str = fig.to_html(include_plotlyjs='cdn')
+            
+            # Create a simple PNG export message
+            st.warning("PNG export is not available in this environment. Please use PDF export instead, or try the 'Download plot as PNG' option from the chart's toolbar (camera icon in the top-right corner of the chart).")
+            return None, None
+            
+        except Exception as e2:
+            st.error(f"Error exporting PNG: {str(e)}. Please try using the chart's built-in download feature (camera icon) or PDF export.")
+            return None, None
 
 def export_chart_as_pdf(fig, filename_prefix="chart", title="Stock Analysis Chart"):
     """
@@ -122,10 +132,55 @@ def export_chart_as_pdf(fig, filename_prefix="chart", title="Stock Analysis Char
         tuple: (bytes_data, filename)
     """
     try:
-        # Convert figure to PNG first (for embedding in PDF)
-        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+        # Try to convert figure to PNG first (for embedding in PDF)
+        try:
+            img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
+        except:
+            # If Kaleido fails, create a text-based PDF without the chart image
+            buffer = io.BytesIO()
+            doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch)
+            
+            # Styles
+            styles = getSampleStyleSheet()
+            title_style = ParagraphStyle(
+                'CustomTitle',
+                parent=styles['Heading1'],
+                fontSize=16,
+                textColor=colors.black,
+                spaceAfter=20,
+                alignment=1  # Center alignment
+            )
+            
+            # Create story
+            story = []
+            
+            # Add title
+            story.append(Paragraph(title, title_style))
+            story.append(Spacer(1, 20))
+            
+            # Add note about chart
+            note_text = "Chart image could not be embedded. Please use the chart's built-in download feature (camera icon in the top-right corner) to save the chart as an image."
+            story.append(Paragraph(note_text, styles['Normal']))
+            
+            # Add timestamp
+            timestamp_text = f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(timestamp_text, styles['Normal']))
+            
+            # Build PDF
+            doc.build(story)
+            
+            # Get PDF bytes
+            pdf_bytes = buffer.getvalue()
+            buffer.close()
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{filename_prefix}_{timestamp}.pdf"
+            
+            return pdf_bytes, filename
         
-        # Create PDF
+        # If we got the image, create PDF with chart
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch)
         
@@ -182,13 +237,16 @@ def create_export_buttons(fig, chart_name, symbol=""):
         chart_name (str): Name of the chart for filename
         symbol (str): Stock symbol for filename
     """
-    col_png, col_pdf = st.columns(2)
-    
     # Prepare filename prefix
     filename_prefix = f"{symbol}_{chart_name}".replace(" ", "_").replace("/", "_") if symbol else chart_name.replace(" ", "_")
     
+    # Show built-in chart download option first
+    st.info("💡 **Tip:** You can also download charts directly using the camera icon (📷) in the chart's toolbar (top-right corner when you hover over the chart).")
+    
+    col_png, col_pdf = st.columns(2)
+    
     with col_png:
-        if st.button(f"📷 Export PNG", key=f"png_{chart_name}_{symbol}", help="Download chart as PNG image"):
+        if st.button(f"📷 Export PNG", key=f"png_{chart_name}_{symbol}", help="Download chart as PNG image (may require browser setup)"):
             png_data, png_filename = export_chart_as_png(fig, filename_prefix)
             if png_data:
                 st.download_button(
