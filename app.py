@@ -3560,6 +3560,66 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     st.markdown("---")
     
+    # After-market information
+    st.subheader("🕐 Extended Hours Trading")
+    
+    try:
+        after_market_data = get_after_market_data(symbol, market)
+        
+        col_am1, col_am2, col_am3, col_am4 = st.columns(4)
+        
+        with col_am1:
+            if after_market_data['pre_market_change'] != 'N/A':
+                st.metric(
+                    "Pre-Market Change",
+                    after_market_data['pre_market_change'],
+                    after_market_data['pre_market_change_percent']
+                )
+            else:
+                st.metric("Pre-Market Change", "N/A")
+        
+        with col_am2:
+            if after_market_data['post_market_change'] != 'N/A':
+                st.metric(
+                    "After-Hours Change", 
+                    after_market_data['post_market_change'],
+                    after_market_data['post_market_change_percent']
+                )
+            else:
+                st.metric("After-Hours Change", "N/A")
+        
+        with col_am3:
+            if after_market_data['regular_session_close'] != 'N/A':
+                st.metric("Regular Session Close", after_market_data['regular_session_close'])
+            else:
+                st.metric("Regular Session Close", "N/A")
+        
+        with col_am4:
+            # Market status indicator
+            import datetime
+            current_time = datetime.datetime.now()
+            
+            # Simple market hours check (9:30 AM - 4:00 PM ET for US markets)
+            if market == "US":
+                market_open_time = current_time.replace(hour=9, minute=30)
+                market_close_time = current_time.replace(hour=16, minute=0)
+                
+                if market_open_time <= current_time <= market_close_time:
+                    market_status = "🟢 Open"
+                elif current_time < market_open_time:
+                    market_status = "🟡 Pre-Market"
+                else:
+                    market_status = "🔴 After-Hours"
+            else:
+                market_status = "🔵 Active"
+            
+            st.metric("Market Status", market_status)
+            
+    except Exception as e:
+        st.info("Extended hours data not available")
+    
+    st.markdown("---")
+    
     # Key metrics in organized columns
     col1, col2, col3, col4 = st.columns(4)
     
