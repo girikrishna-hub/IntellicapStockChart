@@ -874,7 +874,7 @@ def display_valuation_metrics(info):
             help="Price/Earnings to Growth ratio"
         )
         
-        if market_cap:
+        if market_cap and not pd.isna(market_cap):
             if market_cap >= 1e12:
                 cap_display = f"${market_cap/1e12:.2f}T"
             elif market_cap >= 1e9:
@@ -979,7 +979,7 @@ def display_financial_strength_metrics(info, ticker_obj):
             help="Total debt to equity ratio"
         )
         
-        if total_debt:
+        if total_debt and not pd.isna(total_debt):
             if total_debt >= 1e9:
                 debt_display = f"${total_debt/1e9:.2f}B"
             else:
@@ -1013,7 +1013,7 @@ def display_financial_strength_metrics(info, ticker_obj):
         total_cash = info.get('totalCash', None)
         cash_per_share = info.get('totalCashPerShare', None)
         
-        if total_cash:
+        if total_cash and not pd.isna(total_cash):
             if total_cash >= 1e9:
                 cash_display = f"${total_cash/1e9:.2f}B"
             else:
@@ -1110,10 +1110,10 @@ def display_growth_metrics(info, ticker_obj):
         recommendation = info.get('recommendationMean', None)
         num_analysts = info.get('numberOfAnalystOpinions', None)
         
-        if recommendation:
+        if recommendation and not pd.isna(recommendation):
             rec_text = ["Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"]
-            rec_index = min(int(recommendation - 1), 4)
-            rec_display = rec_text[rec_index] if rec_index >= 0 else "N/A"
+            rec_index = min(max(int(recommendation - 1), 0), 4)
+            rec_display = rec_text[rec_index]
         else:
             rec_display = "N/A"
         
@@ -1125,7 +1125,7 @@ def display_growth_metrics(info, ticker_obj):
         
         st.metric(
             label="Number of Analysts",
-            value=f"{num_analysts}" if num_analysts and not pd.isna(num_analysts) else "N/A",
+            value=f"{int(num_analysts)}" if num_analysts and not pd.isna(num_analysts) else "N/A",
             help="Number of analysts covering the stock"
         )
     
@@ -1168,12 +1168,14 @@ def display_growth_metrics(info, ticker_obj):
             else:
                 valuation_insight = "Premium valuation relative to growth"
         
+        peg_display = f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A"
+        
         st.info(f"""
         **Valuation vs Growth Assessment:**
         
         {valuation_insight}
         
-        PEG Ratio: {peg_ratio:.2f if peg_ratio and not pd.isna(peg_ratio) else 'N/A'}
+        PEG Ratio: {peg_display}
         """)
 
 def get_dividend_info(ticker_obj, ticker_info, market="US"):
