@@ -3739,24 +3739,34 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             st.metric("Next Earnings Date", "N/A")
     
     with col_earnings3:
-        # Calculate days since last earnings and days until next earnings
+        # Calculate days since last earnings or days until next earnings
+        days_calculated = False
+        
+        # Try to show days since last earnings first
         if earnings_info['last_earnings'] is not None:
             try:
                 days_since_last = (pd.Timestamp.now() - earnings_info['last_earnings']).days
                 st.metric("Days Since Last", f"{days_since_last} days")
+                days_calculated = True
             except:
-                st.metric("Days Since Last", "N/A")
-        elif earnings_info['next_earnings'] is not None:
+                pass
+        
+        # If we couldn't calculate days since last, try days until next
+        if not days_calculated and earnings_info['next_earnings'] is not None:
             try:
                 days_until_next = (earnings_info['next_earnings'] - pd.Timestamp.now()).days
                 if days_until_next > 0:
                     st.metric("Days Until Next", f"{days_until_next} days")
+                    days_calculated = True
                 else:
-                    st.metric("Days Until Next", "N/A")
+                    st.metric("Days Until Next", "Overdue")
+                    days_calculated = True
             except:
-                st.metric("Days Until Next", "N/A")
-        else:
-            st.metric("Days Until Next", "N/A")
+                pass
+        
+        # If neither calculation worked, show N/A
+        if not days_calculated:
+            st.metric("Days Since/Until", "N/A")
     
     st.markdown("---")
     
