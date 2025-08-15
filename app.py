@@ -655,15 +655,34 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
             print("No earnings data found")
             return None, 0
         
-        # Get available earnings dates (up to max_quarters)
+        # Get available earnings dates and filter for unique quarters
         earnings_dates = earnings.index.tolist()
         earnings_dates.sort(reverse=True)  # Most recent first
-        available_earnings = earnings_dates[:min(max_quarters, len(earnings_dates))]
+        
+        # Filter for unique quarters to avoid duplicate earnings in same quarter
+        unique_quarters = []
+        seen_quarters = set()
+        
+        for date in earnings_dates:
+            quarter_key = f"{date.year}-Q{(date.month - 1) // 3 + 1}"
+            if quarter_key not in seen_quarters:
+                unique_quarters.append(date)
+                seen_quarters.add(quarter_key)
+                if len(unique_quarters) >= max_quarters:
+                    break
+        
+        available_earnings = unique_quarters
+        print(f"Filtered to {len(available_earnings)} unique quarters from {len(earnings_dates)} total earnings dates")
         
         analysis_data = []
         successful_analyses = 0
         
-        print(f"Analyzing {len(available_earnings)} earnings dates...")
+        print(f"Analyzing {len(available_earnings)} unique quarterly earnings dates...")
+        
+        # Debug: Show which quarters we're analyzing
+        for date in available_earnings:
+            quarter_key = f"{date.year}-Q{(date.month - 1) // 3 + 1}"
+            print(f"Selected {quarter_key}: {date.strftime('%Y-%m-%d %H:%M:%S')}")
         
         for earnings_date in available_earnings:
             try:
