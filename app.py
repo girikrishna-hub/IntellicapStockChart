@@ -3764,104 +3764,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     st.markdown("---")
     
-    # Earnings and Dividend Information
-    st.subheader("📅 Earnings & Dividend Information")
-    
-    # Get earnings and dividend information
-    earnings_info = get_earnings_info(ticker_obj, ticker_info)
-    dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
-    
-    # Estimate next dividend date
-    next_dividend_info = estimate_next_dividend_date(ticker_obj, dividend_info)
-    
-    col_earnings1, col_earnings2, col_earnings3 = st.columns(3)
-    
-    with col_earnings1:
-        if earnings_info['last_earnings_formatted'] != 'N/A':
-            st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
-        else:
-            st.metric("Last Earnings Date", "N/A")
-    
-    with col_earnings2:
-        if earnings_info['next_earnings_formatted'] != 'N/A':
-            st.metric("Next Earnings Date", earnings_info['next_earnings_formatted'])
-            # Add estimated indicator if it's an estimate
-            if earnings_info['next_earnings_formatted'].startswith('~'):
-                st.caption("(Estimated)")
-        else:
-            st.metric("Next Earnings Date", "N/A")
-    
-    with col_earnings3:
-        # Calculate days since last earnings or days until next earnings
-        days_calculated = False
-        
-        # Try to show days since last earnings first
-        if earnings_info['last_earnings'] is not None:
-            try:
-                days_since_last = (pd.Timestamp.now() - earnings_info['last_earnings']).days
-                st.metric("Days Since Last", f"{days_since_last} days")
-                days_calculated = True
-            except:
-                pass
-        
-        # If we couldn't calculate days since last, try days until next
-        if not days_calculated and earnings_info['next_earnings'] is not None:
-            try:
-                days_until_next = (earnings_info['next_earnings'] - pd.Timestamp.now()).days
-                if days_until_next > 0:
-                    st.metric("Days Until Next", f"{days_until_next} days")
-                    days_calculated = True
-                else:
-                    st.metric("Days Until Next", "Overdue")
-                    days_calculated = True
-            except:
-                pass
-        
-        # If neither calculation worked, show N/A
-        if not days_calculated:
-            st.metric("Days Since/Until", "N/A")
-    
-    # Add dividend information section
-    st.markdown("---")
-    st.subheader("💰 Dividend Information")
-    
-    col_div1, col_div2, col_div3, col_div4 = st.columns(4)
-    
-    with col_div1:
-        if dividend_info['last_dividend_formatted'] != 'N/A':
-            # Extract just the date part for cleaner display
-            if dividend_info['last_dividend_date'] is not None:
-                last_div_date = dividend_info['last_dividend_date'].strftime('%Y-%m-%d')
-                st.metric("Last Dividend Date", last_div_date)
-            else:
-                st.metric("Last Dividend Date", "N/A")
-        else:
-            st.metric("Last Dividend Date", "N/A")
-    
-    with col_div2:
-        if dividend_info['last_dividend_amount'] > 0:
-            currency = "₹" if market == "India" else "$"
-            st.metric("Last Dividend Amount", f"{currency}{dividend_info['last_dividend_amount']:.2f}")
-        else:
-            st.metric("Last Dividend Amount", "N/A")
-    
-    with col_div3:
-        if next_dividend_info['next_dividend_date'] != 'N/A':
-            st.metric("Next Dividend Date", next_dividend_info['next_dividend_date'])
-            if next_dividend_info['estimated']:
-                st.caption("(Estimated)")
-        else:
-            st.metric("Next Dividend Date", "N/A")
-    
-    with col_div4:
-        if dividend_info['dividend_yield'] != 'N/A':
-            st.metric("Dividend Yield", dividend_info['dividend_yield'])
-        else:
-            st.metric("Dividend Yield", "N/A")
-    
-    st.markdown("---")
-    
-    # Key metrics in organized columns
+    # Key price metrics in organized columns
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -3964,6 +3867,102 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         safe_high = current_price * 1.125
         st.metric("Safe Level High", f"{currency}{safe_high:.2f}")
         st.caption("CTP +12.5%")
+    
+    # Earnings and Dividend Information
+    st.markdown("---")
+    st.subheader("📅 Earnings & Dividend Information")
+    
+    # Get earnings and dividend information
+    earnings_info = get_earnings_info(ticker_obj, ticker_info)
+    dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
+    
+    # Estimate next dividend date
+    next_dividend_info = estimate_next_dividend_date(ticker_obj, dividend_info)
+    
+    col_earnings1, col_earnings2, col_earnings3 = st.columns(3)
+    
+    with col_earnings1:
+        if earnings_info['last_earnings_formatted'] != 'N/A':
+            st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
+        else:
+            st.metric("Last Earnings Date", "N/A")
+    
+    with col_earnings2:
+        if earnings_info['next_earnings_formatted'] != 'N/A':
+            st.metric("Next Earnings Date", earnings_info['next_earnings_formatted'])
+            # Add estimated indicator if it's an estimate
+            if earnings_info['next_earnings_formatted'].startswith('~'):
+                st.caption("(Estimated)")
+        else:
+            st.metric("Next Earnings Date", "N/A")
+    
+    with col_earnings3:
+        # Calculate days since last earnings or days until next earnings
+        days_calculated = False
+        
+        # Try to show days since last earnings first
+        if earnings_info['last_earnings'] is not None:
+            try:
+                days_since_last = (pd.Timestamp.now() - earnings_info['last_earnings']).days
+                st.metric("Days Since Last", f"{days_since_last} days")
+                days_calculated = True
+            except:
+                pass
+        
+        # If we couldn't calculate days since last, try days until next
+        if not days_calculated and earnings_info['next_earnings'] is not None:
+            try:
+                days_until_next = (earnings_info['next_earnings'] - pd.Timestamp.now()).days
+                if days_until_next > 0:
+                    st.metric("Days Until Next", f"{days_until_next} days")
+                    days_calculated = True
+                else:
+                    st.metric("Days Until Next", "Overdue")
+                    days_calculated = True
+            except:
+                pass
+        
+        # If neither calculation worked, show N/A
+        if not days_calculated:
+            st.metric("Days Since/Until", "N/A")
+    
+    # Add dividend information section
+    st.markdown("---")
+    st.subheader("💰 Dividend Information")
+    
+    col_div1, col_div2, col_div3, col_div4 = st.columns(4)
+    
+    with col_div1:
+        if dividend_info['last_dividend_formatted'] != 'N/A':
+            # Extract just the date part for cleaner display
+            if dividend_info['last_dividend_date'] is not None:
+                last_div_date = dividend_info['last_dividend_date'].strftime('%Y-%m-%d')
+                st.metric("Last Dividend Date", last_div_date)
+            else:
+                st.metric("Last Dividend Date", "N/A")
+        else:
+            st.metric("Last Dividend Date", "N/A")
+    
+    with col_div2:
+        if dividend_info['last_dividend_amount'] > 0:
+            currency = "₹" if market == "India" else "$"
+            st.metric("Last Dividend Amount", f"{currency}{dividend_info['last_dividend_amount']:.2f}")
+        else:
+            st.metric("Last Dividend Amount", "N/A")
+    
+    with col_div3:
+        if next_dividend_info['next_dividend_date'] != 'N/A':
+            st.metric("Next Dividend Date", next_dividend_info['next_dividend_date'])
+            if next_dividend_info['estimated']:
+                st.caption("(Estimated)")
+        else:
+            st.metric("Next Dividend Date", "N/A")
+    
+    with col_div4:
+        if dividend_info['dividend_yield'] != 'N/A':
+            st.metric("Dividend Yield", dividend_info['dividend_yield'])
+        else:
+            st.metric("Dividend Yield", "N/A")
     
     # Fibonacci retracement analysis
     st.markdown("---")
