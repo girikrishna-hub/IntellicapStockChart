@@ -474,6 +474,97 @@ def get_earnings_info(ticker_obj, ticker_info):
     
     return earnings_info
 
+def get_earnings_performance_analysis(ticker_obj, data, market="US"):
+    """
+    Analyze stock performance after earnings for the last 8 quarters
+    
+    Args:
+        ticker_obj: yfinance Ticker object
+        data (pd.DataFrame): Stock price data
+        market (str): Market type (US/IN)
+    
+    Returns:
+        pd.DataFrame: Earnings performance analysis table
+    """
+    try:
+        # Get earnings history
+        earnings = ticker_obj.earnings_dates
+        if earnings is None or earnings.empty:
+            return None
+        
+        # Get the last 8 earnings dates
+        earnings_dates = earnings.index.tolist()
+        earnings_dates.sort(reverse=True)  # Most recent first
+        last_8_earnings = earnings_dates[:8]
+        
+        analysis_data = []
+        
+        for earnings_date in last_8_earnings:
+            try:
+                # Convert to timezone-naive for comparison
+                earnings_date_naive = earnings_date.tz_localize(None) if earnings_date.tz else earnings_date
+                
+                # Find the trading day before earnings (baseline price)
+                pre_earnings_mask = data.index < earnings_date_naive
+                if not pre_earnings_mask.any():
+                    continue
+                    
+                pre_earnings_price = data[pre_earnings_mask]['Close'].iloc[-1]
+                pre_earnings_date = data[pre_earnings_mask].index[-1]
+                
+                # Find the first trading day after earnings
+                post_earnings_mask = data.index > earnings_date_naive
+                if not post_earnings_mask.any():
+                    continue
+                    
+                # Opening price the day after earnings
+                post_earnings_open = data[post_earnings_mask]['Open'].iloc[0]
+                post_earnings_date = data[post_earnings_mask].index[0]
+                
+                # Calculate overnight change (from previous close to next open)
+                overnight_change = ((post_earnings_open - pre_earnings_price) / pre_earnings_price) * 100
+                
+                # Find end of week price (5 trading days after earnings, or last available)
+                week_end_mask = data.index >= post_earnings_date
+                week_data = data[week_end_mask].head(5)  # Get up to 5 trading days
+                
+                if not week_data.empty:
+                    week_end_price = week_data['Close'].iloc[-1]
+                    week_end_date = week_data.index[-1]
+                    
+                    # Calculate week performance (from pre-earnings close to end of week)
+                    week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
+                else:
+                    week_end_price = post_earnings_open
+                    week_end_date = post_earnings_date
+                    week_performance = overnight_change
+                
+                # Determine quarter
+                quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
+                
+                analysis_data.append({
+                    'Quarter': quarter,
+                    'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
+                    'Pre-Earnings Close': format_currency(pre_earnings_price, market),
+                    'Next Day Open': format_currency(post_earnings_open, market),
+                    'Overnight Change (%)': f"{overnight_change:+.2f}%",
+                    'End of Week Close': format_currency(week_end_price, market),
+                    'Week Performance (%)': f"{week_performance:+.2f}%",
+                    'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
+                })
+                
+            except Exception as e:
+                continue
+        
+        if analysis_data:
+            df = pd.DataFrame(analysis_data)
+            return df
+        else:
+            return None
+            
+    except Exception as e:
+        return None
+
 def get_dividend_info(ticker_obj, ticker_info, market="US"):
     """
     Extract dividend information from ticker object and info
@@ -683,6 +774,20 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         beta_value = get_beta_value(ticker_info)
         ctp_levels = calculate_ctp_levels(latest_price)
         
+        # Earnings performance analysis summary
+        earnings_analysis = get_earnings_performance_analysis(ticker_obj, data, market)
+        earnings_summary = "N/A"
+        if earnings_analysis is not None and not earnings_analysis.empty:
+            try:
+                # Calculate summary statistics
+                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                if week_changes:
+                    avg_week = sum(week_changes) / len(week_changes)
+                    positive_week = sum(1 for x in week_changes if x > 0)
+                    earnings_summary = f"{positive_week}/{len(week_changes)} positive (avg: {avg_week:+.1f}%)"
+            except:
+                pass
+        
         # Return comprehensive metrics with proper currency formatting
         currency_symbol = get_currency_symbol(market)
         return {
@@ -712,7 +817,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Est. Next Dividend Date': next_dividend_estimate,
             'Beta': beta_value,
             'CTP -12.5%': format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            'CTP +12.5%': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"
+            'CTP +12.5%': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
+            'Earnings Performance (8Q)': earnings_summary
         }
         
     except Exception as e:
@@ -744,7 +850,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Est. Next Dividend Date': 'Error',
             'Beta': 'Error',
             'CTP -12.5%': 'Error',
-            'CTP +12.5%': 'Error'
+            'CTP +12.5%': 'Error',
+            'Earnings Performance (8Q)': 'Error'
         }
 
 def create_excel_report(stock_metrics_list, period_label="1 Year"):
@@ -2010,6 +2117,74 @@ def main():
                 """)
                 cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period, market)
                 st.plotly_chart(cmf_fig, use_container_width=True)
+                
+                # Earnings Performance Analysis
+                st.subheader("📊 Earnings Performance Analysis (Last 8 Quarters)")
+                st.markdown("""
+                **Track how the stock performed after each earnings announcement:**
+                - **Overnight Change**: Price movement from close before earnings to open after earnings
+                - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
+                """)
+                
+                earnings_analysis = get_earnings_performance_analysis(ticker_obj, data, market)
+                if earnings_analysis is not None and not earnings_analysis.empty:
+                    # Display summary statistics
+                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                    
+                    # Calculate summary stats
+                    overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                    week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                    
+                    if overnight_changes:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        
+                    if week_changes:
+                        avg_week = sum(week_changes) / len(week_changes)
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                    
+                    with col_stats1:
+                        st.metric(
+                            label="Avg Overnight Change",
+                            value=f"{avg_overnight:+.1f}%" if overnight_changes else "N/A",
+                            help="Average overnight change after earnings"
+                        )
+                    
+                    with col_stats2:
+                        st.metric(
+                            label="Positive Overnight",
+                            value=f"{positive_overnight}/{len(overnight_changes)}" if overnight_changes else "N/A",
+                            help="Number of positive overnight reactions"
+                        )
+                    
+                    with col_stats3:
+                        st.metric(
+                            label="Avg Week Performance",
+                            value=f"{avg_week:+.1f}%" if week_changes else "N/A",
+                            help="Average week performance after earnings"
+                        )
+                    
+                    with col_stats4:
+                        st.metric(
+                            label="Positive Weeks",
+                            value=f"{positive_week}/{len(week_changes)}" if week_changes else "N/A",
+                            help="Number of positive week outcomes"
+                        )
+                    
+                    # Display the detailed table
+                    st.markdown("**Detailed Earnings Performance:**")
+                    st.dataframe(
+                        earnings_analysis,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                else:
+                    st.info("📋 Earnings performance data not available for this stock. This could be due to:")
+                    st.markdown("""
+                    - Limited earnings history (less than 8 quarters)
+                    - Data availability issues
+                    - Stock may be relatively new to the market
+                    """)
                 
                 # Additional information
                 st.subheader("Chart Information")
