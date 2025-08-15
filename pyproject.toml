@@ -10,6 +10,7 @@ dependencies = [
     "plotly>=6.3.0",
     "requests>=2.32.4",
     "streamlit>=1.48.1",
+    "trafilatura>=2.0.0",
     "xlsxwriter>=3.2.5",
     "yfinance>=0.2.65",
 ]
