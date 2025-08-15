@@ -1805,22 +1805,23 @@ def main():
     """
     Main application function
     """
-    # Navigation bar
-    col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 1])
-    with col_nav1:
-        if st.button("🏠 Main Menu", help="Return to landing page"):
-            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:3000">', unsafe_allow_html=True)
-    with col_nav2:
-        st.markdown("**📈 Yahoo Finance Version**")
-    with col_nav3:
-        if st.button("🏦 GuruFocus Version", help="Switch to professional data"):
-            st.markdown('<meta http-equiv="refresh" content="0; url=http://localhost:5001">', unsafe_allow_html=True)
-    
-    st.markdown("---")
-    
     # App header
     st.title("📈 Stock Technical Analysis Tool")
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
+    
+    # Create data source tabs
+    tab_yahoo, tab_guru = st.tabs(["📊 Yahoo Finance Analysis", "🎯 GuruFocus Analysis"])
+    
+    with tab_yahoo:
+        yahoo_finance_tab()
+    
+    with tab_guru:
+        gurufocus_tab()
+
+def yahoo_finance_tab():
+    """Yahoo Finance analysis tab content"""
+    st.markdown("### Real-time stock analysis with Yahoo Finance data")
+    st.markdown("---")
     
     # Market and analysis mode selection
     col_market, col_mode = st.columns([1, 2])
@@ -2419,6 +2420,23 @@ def main():
     **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
     
     **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as investment advice.
+    """)
+
+def gurufocus_tab():
+    """GuruFocus analysis tab content"""
+    st.markdown("### Professional institutional-grade financial analysis")
+    st.info("🚧 **GuruFocus Integration Coming Soon**")
+    st.markdown("""
+    **Features planned for GuruFocus integration:**
+    - Detailed earnings performance analysis with historical data
+    - Institutional-quality financial metrics
+    - Advanced valuation models
+    - Professional-grade stock screening
+    - Real-time analyst recommendations
+    
+    **Current Status:** Framework prepared, API integration pending
+    
+    **Meanwhile:** Use the Yahoo Finance tab for comprehensive technical analysis with real-time data.
     """)
 
 if __name__ == "__main__":

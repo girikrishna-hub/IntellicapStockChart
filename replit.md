@@ -6,7 +6,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 **1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
-**2. GuruFocus Version (app_gurufocus_minimal.py):** Currently disabled for deployment. Previously provided streamlined stock analysis using GuruFocus API for institutional-quality data.
+**2. GuruFocus Version:** Available as a tab within the main Yahoo Finance app. Currently shows placeholder content with planned features for institutional-quality data integration.
 
 **3. Landing Page (landing.html):** Static HTML main entry point with clear URL navigation allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, copy-to-clipboard URL buttons, and seamless navigation between applications without WebSocket conflicts.
 
@@ -19,7 +19,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Added Earnings Performance Analysis:** Successfully integrated comprehensive earnings performance tracking showing stock movement after earnings announcements, with overnight changes and week performance analysis for up to 4 quarters
 - **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
 - **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
-- **Streamlined GuruFocus:** Created minimal working version to avoid DataFrame processing hangs
+- **Streamlined Navigation:** App now opens directly on Yahoo Finance tab with GuruFocus available as secondary tab
 
 ## User Preferences
 
