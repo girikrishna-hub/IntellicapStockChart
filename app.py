@@ -496,17 +496,25 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
             earnings = ticker_obj.earnings_dates
             if earnings is not None and not earnings.empty:
                 earnings_count = len(earnings)
-        except:
+        except Exception as e:
+            print(f"Earnings dates error: {e}")
             pass
         
-        # Method 2: Try calendar if earnings_dates failed
+        # Method 2: Try calendar if earnings_dates failed  
         if earnings is None or earnings.empty:
             try:
                 calendar = ticker_obj.calendar
-                if calendar is not None and not calendar.empty:
-                    earnings = calendar
-                    earnings_count = len(calendar)
-            except:
+                if calendar is not None:
+                    # Calendar might be a dict, not DataFrame
+                    if hasattr(calendar, 'empty') and not calendar.empty:
+                        earnings = calendar
+                        earnings_count = len(calendar)
+                    elif isinstance(calendar, dict) and calendar:
+                        # Convert dict to DataFrame if needed
+                        earnings = pd.DataFrame(calendar)
+                        earnings_count = len(earnings)
+            except Exception as e:
+                print(f"Calendar error: {e}")
                 pass
         
         # Method 3: Try earnings history
@@ -533,20 +541,37 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
         
         for earnings_date in available_earnings:
             try:
-                # Convert to timezone-naive for comparison
-                earnings_date_naive = earnings_date.tz_localize(None) if earnings_date.tz else earnings_date
+                print(f"Processing earnings date: {earnings_date}")
+                
+                # Ensure both earnings_date and data.index have the same timezone handling
+                # Convert earnings_date to match data.index timezone
+                if hasattr(data.index[0], 'tz') and data.index[0].tz:
+                    # Data has timezone, make sure earnings_date has it too
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_for_comparison = earnings_date
+                    else:
+                        # Convert naive datetime to data's timezone
+                        earnings_date_for_comparison = earnings_date.tz_localize(data.index[0].tz)
+                else:
+                    # Data is timezone-naive, make earnings_date naive too
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_for_comparison = earnings_date.tz_localize(None)
+                    else:
+                        earnings_date_for_comparison = earnings_date
                 
                 # Find the trading day before earnings (baseline price)
-                pre_earnings_mask = data.index < earnings_date_naive
+                pre_earnings_mask = data.index < earnings_date_for_comparison
                 if not pre_earnings_mask.any():
+                    print(f"No pre-earnings data found for {earnings_date}")
                     continue
                     
                 pre_earnings_price = data[pre_earnings_mask]['Close'].iloc[-1]
                 pre_earnings_date = data[pre_earnings_mask].index[-1]
                 
                 # Find the first trading day after earnings
-                post_earnings_mask = data.index > earnings_date_naive
+                post_earnings_mask = data.index > earnings_date_for_comparison
                 if not post_earnings_mask.any():
+                    print(f"No post-earnings data found for {earnings_date}")
                     continue
                     
                 # Opening price the day after earnings
@@ -574,6 +599,8 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 # Determine quarter
                 quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
                 
+                print(f"Analysis successful for {earnings_date}: {overnight_change:+.2f}% overnight, {week_performance:+.2f}% week")
+                
                 analysis_data.append({
                     'Quarter': quarter,
                     'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
@@ -587,6 +614,7 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 successful_analyses += 1
                 
             except Exception as e:
+                print(f"Error processing {earnings_date}: {e}")
                 continue
         
         if analysis_data:
