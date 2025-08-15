@@ -3697,6 +3697,53 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         st.metric("Safe Level High", f"{currency}{safe_high:.2f}")
         st.caption("CTP +12.5%")
     
+    # Fibonacci retracement analysis
+    st.markdown("---")
+    st.subheader("📐 Fibonacci Retracement Analysis")
+    
+    # Calculate Fibonacci levels
+    fibonacci_data = calculate_fibonacci_retracement(data)
+    if fibonacci_data:
+        # Determine trend direction
+        recent_high = data['High'].tail(50).max()
+        recent_low = data['Low'].tail(50).min()
+        
+        if current_price > (recent_high + recent_low) / 2:
+            trend_direction = "🟢 Uptrend"
+            swing_range = f"Swing Low: {currency}{recent_low:.2f} → Swing High: {currency}{recent_high:.2f}"
+        else:
+            trend_direction = "🔴 Downtrend"
+            swing_range = f"Swing High: {currency}{recent_high:.2f} → Swing Low: {currency}{recent_low:.2f}"
+        
+        col_fib1, col_fib2 = st.columns([1, 2])
+        
+        with col_fib1:
+            st.info(f"""
+            **Trend Analysis:**
+            - Direction: {trend_direction}
+            - Current Price: {currency}{current_price:.2f}
+            
+            {swing_range}
+            """)
+        
+        with col_fib2:
+            # Display Fibonacci levels in a clean format
+            st.markdown("**Key Fibonacci Levels:**")
+            for level, price, label in fibonacci_data:
+                distance = abs(current_price - price)
+                distance_pct = (distance / current_price) * 100
+                proximity = "🎯 Close" if distance_pct < 2 else "📍 Moderate" if distance_pct < 5 else "📊 Far"
+                
+                # Color coding based on proximity
+                if distance_pct < 2:
+                    st.success(f"**{label}**: {currency}{price:.2f} ({proximity} - {distance_pct:.1f}% away)")
+                elif distance_pct < 5:
+                    st.warning(f"**{label}**: {currency}{price:.2f} ({proximity} - {distance_pct:.1f}% away)")
+                else:
+                    st.info(f"**{label}**: {currency}{price:.2f} ({proximity} - {distance_pct:.1f}% away)")
+    else:
+        st.info("Fibonacci analysis requires sufficient price history for calculation")
+    
     # Dividend and earnings information
     st.markdown("---")
     col1, col2 = st.columns(2)
@@ -3731,6 +3778,57 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 st.info("Next earnings date not available")
         except:
             st.info("Earnings information not available")
+    
+    # Earnings Performance Analysis
+    st.markdown("---")
+    st.subheader("📊 Earnings Performance Analysis")
+    
+    try:
+        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
+        
+        if earnings_analysis is not None and not earnings_analysis.empty:
+            st.markdown(f"""
+            **Track how the stock performed after each earnings announcement ({quarters_found} quarters available):**
+            - **Overnight Change**: Price movement from close before earnings to open after earnings
+            - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
+            """)
+            
+            # Display earnings analysis
+            st.dataframe(earnings_analysis, use_container_width=True)
+            
+            # Summary statistics
+            col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+            
+            try:
+                # Calculate summary stats
+                overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                
+                if overnight_changes:
+                    with col_stats1:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        st.metric("Avg Overnight Change", f"{avg_overnight:+.2f}%")
+                    
+                    with col_stats2:
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        success_rate_overnight = (positive_overnight / len(overnight_changes)) * 100
+                        st.metric("Overnight Success Rate", f"{success_rate_overnight:.0f}%")
+                
+                if week_changes:
+                    with col_stats3:
+                        avg_week = sum(week_changes) / len(week_changes)
+                        st.metric("Avg Week Performance", f"{avg_week:+.2f}%")
+                    
+                    with col_stats4:
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                        success_rate_week = (positive_week / len(week_changes)) * 100
+                        st.metric("Week Success Rate", f"{success_rate_week:.0f}%")
+            except:
+                pass  # Skip summary stats if parsing fails
+        else:
+            st.info("No recent earnings data available for performance analysis")
+    except Exception as e:
+        st.info(f"Earnings performance analysis not available")
 
 
 def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market):
