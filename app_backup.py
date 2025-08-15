@@ -3590,6 +3590,555 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             value=f"{currency}{current_price:.2f}",
             delta=f"{price_change:+.2f} ({price_change_pct:+.2f}%)"
         )
+                **RSI (Relative Strength Index)** measures the speed and change of price movements:
+                - **Above 70**: Potentially overbought (selling pressure may increase)
+                - **Below 30**: Potentially oversold (buying opportunity may exist)
+                - **Around 50**: Neutral momentum
+                """)
+                rsi_fig = create_rsi_chart(data, symbol, rsi, selected_period, market)
+                st.plotly_chart(rsi_fig, use_container_width=True)
+                
+                # Export buttons for RSI chart
+                create_export_buttons(rsi_fig, "RSI_Indicator", symbol)
+                
+                # Create and display Chaikin Money Flow chart
+                st.subheader(f"Chaikin Money Flow")
+                st.markdown("""
+                **Chaikin Money Flow (CMF)** measures the amount of Money Flow Volume over a period:
+                - **Positive values**: Buying pressure (accumulation)
+                - **Negative values**: Selling pressure (distribution)
+                - **Values near zero**: Balanced buying/selling pressure
+                """)
+                cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period, market)
+                st.plotly_chart(cmf_fig, use_container_width=True)
+                
+                # Export buttons for Chaikin Money Flow chart
+                create_export_buttons(cmf_fig, "Chaikin_Money_Flow", symbol)
+                
+                # News Sentiment Analysis
+                display_news_sentiment_analysis(symbol)
+                
+                # Earnings Performance Analysis
+                earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
+                st.subheader(f"📊 Earnings Performance Analysis ({quarters_found} Quarter{'s' if quarters_found != 1 else ''} Available)")
+                st.markdown("""
+                **Track how the stock performed after each earnings announcement:**
+                - **Overnight Change**: Price movement from close before earnings to open after earnings
+                - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
+                """)
+                
+                if earnings_analysis is not None and not earnings_analysis.empty:
+                    # Display summary statistics
+                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                    
+                    # Calculate summary stats
+                    overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                    week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                    
+                    if overnight_changes:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        
+                    if week_changes:
+                        avg_week = sum(week_changes) / len(week_changes)
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                    
+                    with col_stats1:
+                        st.metric(
+                            label="Avg Overnight Change",
+                            value=f"{avg_overnight:+.1f}%" if overnight_changes else "N/A",
+                            help="Average overnight change after earnings"
+                        )
+                    
+                    with col_stats2:
+                        st.metric(
+                            label="Positive Overnight",
+                            value=f"{positive_overnight}/{len(overnight_changes)}" if overnight_changes else "N/A",
+                            help="Number of positive overnight reactions"
+                        )
+                    
+                    with col_stats3:
+                        st.metric(
+                            label="Avg Week Performance",
+                            value=f"{avg_week:+.1f}%" if week_changes else "N/A",
+                            help="Average week performance after earnings"
+                        )
+                    
+                    with col_stats4:
+                        st.metric(
+                            label="Positive Weeks",
+                            value=f"{positive_week}/{len(week_changes)}" if week_changes else "N/A",
+                            help="Number of positive week outcomes"
+                        )
+                    
+                    # Display the detailed table
+                    st.markdown("**Detailed Earnings Performance:**")
+                    st.dataframe(
+                        earnings_analysis,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                else:
+                    st.info("📋 Earnings performance data not available for this stock. This could be due to:")
+                    st.markdown("""
+                    - No earnings history found in available data sources
+                    - Stock may be relatively new to the market
+                    - Data availability issues with yfinance API
+                    - Company may not report regular quarterly earnings
+                    """)
+                    
+                    # Show what data sources were attempted
+                    with st.expander("🔍 Data Source Debug Information"):
+                        try:
+                            st.write("**Available Data Sources Checked:**")
+                            
+                            # Check earnings_dates
+                            try:
+                                earnings_dates = ticker_obj.earnings_dates
+                                earnings_count = len(earnings_dates) if earnings_dates is not None and not earnings_dates.empty else 0
+                                st.write(f"- Earnings Dates: {earnings_count} records")
+                                if earnings_count > 0:
+                                    st.write(f"  Latest: {earnings_dates.index[0]}")
+                            except Exception as e:
+                                st.write(f"- Earnings Dates: Error ({str(e)[:50]}...)")
+                            
+                            # Check calendar
+                            try:
+                                calendar = ticker_obj.calendar
+                                calendar_count = len(calendar) if calendar is not None and not calendar.empty else 0
+                                st.write(f"- Calendar: {calendar_count} records")
+                                if calendar_count > 0:
+                                    st.write(f"  Next: {calendar.index[0] if len(calendar.index) > 0 else 'N/A'}")
+                            except Exception as e:
+                                st.write(f"- Calendar: Error ({str(e)[:50]}...)")
+                            
+                            # Check info
+                            try:
+                                info = ticker_obj.info
+                                earnings_date = info.get('earningsDate', 'Not available')
+                                st.write(f"- Company Info Earnings Date: {earnings_date}")
+                            except Exception as e:
+                                st.write(f"- Company Info: Error ({str(e)[:50]}...)")
+                                
+                        except Exception as e:
+                            st.write(f"Debug information error: {str(e)}")
+                
+                # Additional information
+                st.subheader("Chart Information")
+                
+                # Calculate statistics
+                total_days = len(data)
+                ma_50_days = len(ma_50.dropna()) if hasattr(ma_50, 'dropna') else len([x for x in ma_50 if not pd.isna(x)])
+                ma_200_days = len(ma_200.dropna()) if hasattr(ma_200, 'dropna') else len([x for x in ma_200 if not pd.isna(x)])
+                
+                info_col1, info_col2 = st.columns(2)
+                
+                with info_col1:
+                    st.info(f"""
+                    **Data Period:** {data.index[0].strftime('%Y-%m-%d')} to {data.index[-1].strftime('%Y-%m-%d')}
+                    
+                    **Total Trading Days:** {total_days}
+                    
+                    **50-Day MA Points:** {ma_50_days}
+                    
+                    **200-Day MA Points:** {ma_200_days}
+                    """)
+                    
+                    # Add period-specific note
+                    if selected_period in ["1 Month", "3 Months"]:
+                        st.warning("⚠️ **Note:** Short time periods may not provide enough data for reliable 200-day moving average analysis. Consider using longer periods for better trend identification.")
+                
+                with info_col2:
+                    # Trend analysis
+                    current_price = data['Close'].iloc[-1]
+                    current_ma_50 = ma_50.iloc[-1] if hasattr(ma_50, 'iloc') else ma_50[-1]
+                    current_ma_200 = ma_200.iloc[-1] if hasattr(ma_200, 'iloc') else ma_200[-1]
+                    
+                    trend_50 = ""
+                    trend_200 = ""
+                    
+                    if not pd.isna(current_ma_50):
+                        if current_price > current_ma_50:
+                            trend_50 = "Above 50-day MA (Short-term Bullish)"
+                        else:
+                            trend_50 = "Below 50-day MA (Short-term Bearish)"
+                    
+                    if not pd.isna(current_ma_200):
+                        if current_price > current_ma_200:
+                            trend_200 = "Above 200-day MA (Long-term Bullish)"
+                        else:
+                            trend_200 = "Below 200-day MA (Long-term Bearish)"
+                    
+                    # Technical indicators analysis
+                    latest_macd = macd_line.iloc[-1] if hasattr(macd_line, 'iloc') else macd_line[-1]
+                    latest_signal = signal_line.iloc[-1] if hasattr(signal_line, 'iloc') else signal_line[-1]
+                    latest_rsi = rsi.iloc[-1] if hasattr(rsi, 'iloc') else rsi[-1]
+                    latest_cmf = cmf.iloc[-1] if hasattr(cmf, 'iloc') else cmf[-1]
+                    
+                    macd_trend = ""
+                    rsi_trend = ""
+                    cmf_trend = ""
+                    
+                    if not pd.isna(latest_macd) and not pd.isna(latest_signal):
+                        if latest_macd > latest_signal:
+                            macd_trend = "MACD above Signal (Bullish momentum)"
+                        else:
+                            macd_trend = "MACD below Signal (Bearish momentum)"
+                    
+                    if not pd.isna(latest_rsi):
+                        if latest_rsi > 70:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Overbought)"
+                        elif latest_rsi < 30:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Oversold)"
+                        else:
+                            rsi_trend = f"RSI: {latest_rsi:.1f} (Neutral)"
+                    
+                    if not pd.isna(latest_cmf):
+                        if latest_cmf > 0.1:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Strong Buying Pressure)"
+                        elif latest_cmf < -0.1:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Strong Selling Pressure)"
+                        else:
+                            cmf_trend = f"CMF: {latest_cmf:.3f} (Balanced)"
+                    
+                    trend_text = "**Current Technical Analysis:**\n\n"
+                    if trend_50:
+                        trend_text += f"• {trend_50}\n"
+                    if trend_200:
+                        trend_text += f"• {trend_200}\n"
+                    if macd_trend:
+                        trend_text += f"• {macd_trend}\n"
+                    if rsi_trend:
+                        trend_text += f"• {rsi_trend}\n"
+                    if cmf_trend:
+                        trend_text += f"• {cmf_trend}\n"
+                    trend_text += "\n**Note:** This is for educational purposes only and should not be considered as investment advice."
+                    
+                    st.success(trend_text)
+                
+            else:
+                st.error(f"""
+                ❌ **Unable to fetch data for symbol '{symbol}'**
+                
+                Please check that:
+                - The stock symbol is valid and correctly spelled
+                - The stock is publicly traded
+                - You have an internet connection
+                
+                **Examples of valid symbols:** AAPL, GOOGL, MSFT, TSLA, AMZN
+                """)
+        else:
+            st.warning("Please enter a stock symbol to generate the chart.")
+    
+    # Footer with additional information
+    st.markdown("---")
+    st.markdown("""
+    **About this application:**
+    - Data is sourced from Yahoo Finance via the yfinance library
+    - Supports both US stocks (USD) and Indian stocks (INR) with proper currency formatting
+    - Two analysis modes: Single stock with charts or bulk analysis with Excel export
+    - Choose from multiple time periods: 1 month to maximum available history
+    - Comprehensive metrics include price position relative to 52-week range
+    - Moving averages (50 & 200-day) show short and long-term trends
+    - Support/resistance levels calculated from recent 20-day price action
+    - Earnings data and performance tracking since last earnings announcement
+    - Comprehensive dividend information including yield, payment dates, and projections
+    - Multiple technical indicators: MACD, RSI, and Chaikin Money Flow
+    - Bulk analysis generates downloadable Excel reports for multiple stocks
+    - Charts are interactive - you can zoom, pan, and hover for detailed information
+    - All data is real-time and reflects actual market conditions
+    
+    **Key Metrics Explained:**
+    - **52-Week Position:** Shows how close the stock is trading to yearly highs/lows
+    - **Support/Resistance:** Recent price levels that may act as floors/ceilings
+    - **Earnings Performance:** Price movement since last earnings announcement
+    - **Dividend Metrics:** Yield, payment dates, forward dividends, and payout ratios
+    - **Technical Indicators:** MACD (momentum), RSI (overbought/oversold), CMF (money flow)
+    
+    **Note:** For reliable analysis, longer time periods (1 year or more) are recommended.
+    
+    **Disclaimer:** This tool is for educational and informational purposes only. It should not be considered as investment advice.
+    """)
+
+def gurufocus_tab():
+    """GuruFocus analysis tab content"""
+    st.markdown("### Professional institutional-grade financial analysis")
+    st.markdown("Advanced earnings performance analysis with up to 8 quarters of historical data")
+    st.markdown("---")
+    
+    # Create input section
+    col1, col2, col3 = st.columns([3, 2, 1])
+    
+    with col1:
+        symbol_guru = st.text_input(
+            "Enter Stock Symbol:",
+            value="AAPL",
+            placeholder="e.g., AAPL, GOOGL, TSLA",
+            help="Enter US stock symbols for detailed earnings analysis",
+            key="gurufocus_symbol"
+        )
+    
+    with col2:
+        quarters_selection = st.selectbox(
+            "Historical Quarters:",
+            ["4 Quarters", "6 Quarters", "8 Quarters"],
+            index=2,
+            help="Number of past quarters to analyze"
+        )
+        quarters_count = int(quarters_selection.split()[0])
+    
+    with col3:
+        if st.button("🔍 Analyze Earnings", key="guru_analyze", type="primary"):
+            st.session_state.guru_analyze_clicked = True
+    
+    # Analysis section
+    if st.session_state.get('guru_analyze_clicked', False) and symbol_guru:
+        with st.spinner(f"Analyzing {quarters_count} quarters of earnings data for {symbol_guru.upper()}..."):
+            # Fetch extended earnings data
+            data, info, ticker_obj = fetch_stock_data(symbol_guru.upper(), period="3y", market="US")
+            
+            if data is not None and ticker_obj is not None:
+                # Get detailed earnings performance analysis
+                earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
+                    ticker_obj, data, market="US", max_quarters=quarters_count
+                )
+                
+                if earnings_analysis is not None and not earnings_analysis.empty:
+                    st.success(f"✅ Found earnings data for {quarters_found} quarters")
+                    
+                    # Display comprehensive metrics
+                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                    
+                    # Calculate advanced statistics
+                    overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                    week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                    
+                    if overnight_changes and week_changes:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        avg_week = sum(week_changes) / len(week_changes)
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                        
+                        # Volatility calculations
+                        overnight_std = np.std(overnight_changes) if len(overnight_changes) > 1 else 0
+                        week_std = np.std(week_changes) if len(week_changes) > 1 else 0
+                        
+                        with col_stats1:
+                            st.metric(
+                                label="Avg Overnight Change",
+                                value=f"{avg_overnight:+.2f}%",
+                                delta=f"σ: {overnight_std:.2f}%",
+                                help="Average overnight reaction with standard deviation"
+                            )
+                        
+                        with col_stats2:
+                            st.metric(
+                                label="Success Rate (Overnight)",
+                                value=f"{positive_overnight}/{len(overnight_changes)}",
+                                delta=f"{(positive_overnight/len(overnight_changes)*100):.1f}%",
+                                help="Percentage of positive overnight reactions"
+                            )
+                        
+                        with col_stats3:
+                            st.metric(
+                                label="Avg Week Performance",
+                                value=f"{avg_week:+.2f}%",
+                                delta=f"σ: {week_std:.2f}%",
+                                help="Average week performance with standard deviation"
+                            )
+                        
+                        with col_stats4:
+                            st.metric(
+                                label="Success Rate (Week)",
+                                value=f"{positive_week}/{len(week_changes)}",
+                                delta=f"{(positive_week/len(week_changes)*100):.1f}%",
+                                help="Percentage of positive week outcomes"
+                            )
+                    
+                    st.markdown("---")
+                    
+                    # Detailed earnings table with enhanced information
+                    st.subheader("📊 Detailed Earnings Performance Analysis")
+                    st.dataframe(
+                        earnings_analysis,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Quarter": st.column_config.TextColumn("Quarter", width="small"),
+                            "Earnings Date": st.column_config.DateColumn("Earnings Date", width="medium"),
+                            "Pre-Earnings Close": st.column_config.TextColumn("Pre-Close", width="small"),
+                            "Next Day Open": st.column_config.TextColumn("Next Open", width="small"),
+                            "Overnight Change (%)": st.column_config.TextColumn("Overnight %", width="small"),
+                            "End of Week Close": st.column_config.TextColumn("Week Close", width="small"),
+                            "Week Performance (%)": st.column_config.TextColumn("Week %", width="small"),
+                            "Direction": st.column_config.TextColumn("Trend", width="small")
+                        }
+                    )
+                    
+                    # Advanced analytics section
+                    st.markdown("---")
+                    st.subheader("📈 Advanced Performance Analytics")
+                    
+                    if len(overnight_changes) > 2 and len(week_changes) > 2:
+                        col_chart1, col_chart2 = st.columns(2)
+                        
+                        with col_chart1:
+                            # Overnight performance chart
+                            overnight_fig = go.Figure()
+                            overnight_fig.add_trace(go.Bar(
+                                x=[f"Q{i+1}" for i in range(len(overnight_changes))],
+                                y=overnight_changes,
+                                name="Overnight Change %",
+                                marker_color=['green' if x > 0 else 'red' for x in overnight_changes]
+                            ))
+                            overnight_fig.update_layout(
+                                title="Overnight Earnings Reactions",
+                                xaxis_title="Quarter (Most Recent First)",
+                                yaxis_title="Change %",
+                                height=400
+                            )
+                            st.plotly_chart(overnight_fig, use_container_width=True)
+                            
+                            # Export buttons for overnight chart
+                            create_export_buttons(overnight_fig, "Overnight_Earnings_Reactions", symbol)
+                        
+                        with col_chart2:
+                            # Week performance chart
+                            week_fig = go.Figure()
+                            week_fig.add_trace(go.Bar(
+                                x=[f"Q{i+1}" for i in range(len(week_changes))],
+                                y=week_changes,
+                                name="Week Performance %",
+                                marker_color=['green' if x > 0 else 'red' for x in week_changes]
+                            ))
+                            week_fig.update_layout(
+                                title="Week Performance After Earnings",
+                                xaxis_title="Quarter (Most Recent First)",
+                                yaxis_title="Change %",
+                                height=400
+                            )
+                            st.plotly_chart(week_fig, use_container_width=True)
+                            
+                            # Export buttons for week performance chart
+                            create_export_buttons(week_fig, "Week_Performance_After_Earnings", symbol)
+                        
+                        # Performance pattern analysis
+                        st.markdown("---")
+                        st.subheader("🎯 Pattern Analysis")
+                        
+                        pattern_col1, pattern_col2 = st.columns(2)
+                        
+                        with pattern_col1:
+                            # Consistency metrics
+                            consistent_overnight = sum(1 for i in range(len(overnight_changes)-1) 
+                                                     if (overnight_changes[i] > 0) == (overnight_changes[i+1] > 0))
+                            consistent_week = sum(1 for i in range(len(week_changes)-1) 
+                                                if (week_changes[i] > 0) == (week_changes[i+1] > 0))
+                            
+                            st.info(f"""
+                            **Performance Consistency:**
+                            - Overnight: {consistent_overnight}/{len(overnight_changes)-1} consecutive quarters with same direction
+                            - Week: {consistent_week}/{len(week_changes)-1} consecutive quarters with same direction
+                            """)
+                        
+                        with pattern_col2:
+                            # Magnitude analysis
+                            strong_overnight = sum(1 for x in overnight_changes if abs(x) > 5)
+                            strong_week = sum(1 for x in week_changes if abs(x) > 5)
+                            
+                            st.info(f"""
+                            **High-Impact Reactions (>5%):**
+                            - Overnight: {strong_overnight}/{len(overnight_changes)} quarters
+                            - Week: {strong_week}/{len(week_changes)} quarters
+                            """)
+                
+                else:
+                    st.warning(f"No earnings data available for {symbol_guru.upper()} in the selected period")
+                    st.info("Try a different symbol or check if the company reports regular quarterly earnings")
+            
+            else:
+                st.error(f"Unable to fetch data for {symbol_guru.upper()}. Please verify the symbol is correct.")
+    
+    elif symbol_guru and not st.session_state.get('guru_analyze_clicked', False):
+        st.info("👆 Click 'Analyze Earnings' to start the detailed analysis")
+    
+    # Add institutional-grade financial metrics section
+    st.markdown("---")
+    st.subheader("🏦 Institutional-Grade Financial Metrics")
+    
+    # Create metrics input section
+    col_metrics1, col_metrics2 = st.columns([3, 1])
+    
+    with col_metrics1:
+        symbol_metrics = st.text_input(
+            "Enter Symbol for Financial Analysis:",
+            value="AAPL",
+            placeholder="e.g., AAPL, GOOGL, MSFT",
+            help="Enter US stock symbol for comprehensive financial metrics",
+            key="guru_metrics_symbol"
+        )
+    
+    with col_metrics2:
+        if st.button("📊 Get Metrics", key="guru_metrics", type="primary"):
+            st.session_state.guru_metrics_clicked = True
+    
+    # Financial metrics analysis
+    if st.session_state.get('guru_metrics_clicked', False) and symbol_metrics:
+        with st.spinner(f"Fetching institutional-grade financial metrics for {symbol_metrics.upper()}..."):
+            data, info, ticker_obj = fetch_stock_data(symbol_metrics.upper(), period="1y", market="US")
+            
+            if data is not None and info is not None:
+                # Display comprehensive financial metrics
+                display_institutional_financial_metrics(info, ticker_obj, symbol_metrics.upper())
+            else:
+                st.error(f"Unable to fetch financial data for {symbol_metrics.upper()}. Please verify the symbol is correct.")
+    
+    elif symbol_metrics and not st.session_state.get('guru_metrics_clicked', False):
+        st.info("👆 Click 'Get Metrics' to display comprehensive financial analysis")
+
+def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, rsi, support_level, resistance_level, selected_period, market, auto_refresh):
+    """Display price action metrics and key financial data"""
+    
+    # Auto-refresh status display
+    if auto_refresh:
+        col_status1, col_status2, col_status3 = st.columns([2, 1, 1])
+        with col_status1:
+            st.success(f"✅ Live tracking {symbol} - Updates every 10 minutes")
+        with col_status2:
+            st.metric("Refresh #", st.session_state.get('refresh_count', 0))
+        with col_status3:
+            current_time = datetime.now().strftime("%H:%M:%S")
+            st.metric("Last Update", current_time)
+    
+    # Company information and current price
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
+        st.markdown(f"### 🏢 {company_name} ({symbol})")
+        
+        if 'sector' in ticker_info:
+            col_info1, col_info2 = st.columns(2)
+            with col_info1:
+                st.markdown(f"**Sector:** {ticker_info.get('sector', 'N/A')}")
+            with col_info2:
+                st.markdown(f"**Industry:** {ticker_info.get('industry', 'N/A')}")
+    
+    with col2:
+        # Current price and change
+        current_price = data['Close'].iloc[-1]
+        previous_close = ticker_info.get('previousClose', data['Close'].iloc[-2] if len(data) > 1 else current_price)
+        price_change = current_price - previous_close
+        price_change_pct = (price_change / previous_close) * 100 if previous_close != 0 else 0
+        
+        # Currency based on market
+        currency = "₹" if market == "India" else "$"
+        
+        st.metric(
+            label=f"Current Price ({currency})",
+            value=f"{currency}{current_price:.2f}",
+            delta=f"{price_change:+.2f} ({price_change_pct:+.2f}%)"
+        )
     
     st.markdown("---")
     
@@ -3718,7 +4267,6 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     with col2:
         st.subheader("📅 Earnings Information")
         # Get earnings data using the earnings provider
-        from earnings_data_provider import EarningsDataProvider
         earnings_provider = EarningsDataProvider()
         earnings_info = earnings_provider.get_earnings_info(symbol, market)
         
@@ -3737,13 +4285,12 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     
     st.subheader(f"📈 Technical Charts for {symbol}")
     
-    # Technical indicators
-    st.markdown("#### 📊 Price Chart with Moving Averages")
-    
     # Currency based on market
     currency = "₹" if market == "India" else "$"
     
     # Main price chart with moving averages
+    st.markdown("#### 📊 Price Chart with Moving Averages")
+    
     price_fig = go.Figure()
     
     # Add candlestick chart
@@ -3777,8 +4324,20 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
             line=dict(color='red', width=2)
         ))
     
+    # Add Fibonacci retracement analysis
+    fibonacci_data = calculate_fibonacci_retracement(data)
+    if fibonacci_data:
+        for level, price, label in fibonacci_data:
+            price_fig.add_hline(
+                y=price,
+                line_dash="dash",
+                line_color="purple",
+                annotation_text=f"{label} ({currency}{price:.2f})",
+                annotation_position="bottom right"
+            )
+    
     price_fig.update_layout(
-        title=f'{symbol} Price Chart with Moving Averages',
+        title=f'{symbol} Price Chart with Technical Indicators ({selected_period})',
         xaxis_title='Date',
         yaxis_title=f'Price ({currency})',
         height=600,
@@ -3786,7 +4345,9 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     )
     
     st.plotly_chart(price_fig, use_container_width=True)
-    create_export_buttons(price_fig, "Price_Chart", symbol)
+    
+    # Export buttons for price chart
+    create_export_buttons(price_fig, "Price_Chart_with_Moving_Averages", symbol)
     
     # Technical indicators in separate charts
     col1, col2 = st.columns(2)
@@ -3861,6 +4422,73 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
         
         st.plotly_chart(rsi_fig, use_container_width=True)
         create_export_buttons(rsi_fig, "RSI_Analysis", symbol)
+    
+    # Chaikin Money Flow Chart
+    st.markdown("#### 📊 Chaikin Money Flow Analysis")
+    
+    cmf_fig = go.Figure()
+    
+    if not cmf.empty:
+        # Color coding for CMF
+        colors = ['green' if x > 0 else 'red' for x in cmf]
+        
+        cmf_fig.add_trace(go.Bar(
+            x=data.index,
+            y=cmf,
+            name='Chaikin Money Flow',
+            marker_color=colors,
+            opacity=0.8
+        ))
+        
+        cmf_fig.add_hline(y=0, line_dash="solid", line_color="black", line_width=1)
+    
+    cmf_fig.update_layout(
+        title='Chaikin Money Flow (CMF) - Buying/Selling Pressure',
+        xaxis_title='Date',
+        yaxis_title='CMF',
+        height=400
+    )
+    
+    st.plotly_chart(cmf_fig, use_container_width=True)
+    create_export_buttons(cmf_fig, "Chaikin_Money_Flow", symbol)
+    
+    # Fibonacci retracement details
+    if fibonacci_data:
+        st.markdown("---")
+        st.subheader("📐 Fibonacci Retracement Analysis")
+        
+        # Determine trend direction
+        recent_high = data['High'].tail(50).max()
+        recent_low = data['Low'].tail(50).min()
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > (recent_high + recent_low) / 2:
+            trend_direction = "🟢 Uptrend"
+            swing_range = f"Swing Low: {currency}{recent_low:.2f} → Swing High: {currency}{recent_high:.2f}"
+        else:
+            trend_direction = "🔴 Downtrend"
+            swing_range = f"Swing High: {currency}{recent_high:.2f} → Swing Low: {currency}{recent_low:.2f}"
+        
+        col_fib1, col_fib2 = st.columns([1, 2])
+        
+        with col_fib1:
+            st.info(f"""
+            **Trend Analysis:**
+            - Direction: {trend_direction}
+            - Current Price: {currency}{current_price:.2f}
+            
+            {swing_range}
+            """)
+        
+        with col_fib2:
+            # Display Fibonacci levels
+            st.markdown("**Key Fibonacci Levels:**")
+            for level, price, label in fibonacci_data:
+                distance = abs(current_price - price)
+                distance_pct = (distance / current_price) * 100
+                proximity = "🎯 Close" if distance_pct < 2 else "📍 Moderate" if distance_pct < 5 else "📊 Far"
+                
+                st.markdown(f"- **{label}**: {currency}{price:.2f} ({proximity} - {distance_pct:.1f}% away)")
 
 
 def display_news_sentiment_analysis(symbol):
