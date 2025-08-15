@@ -749,9 +749,108 @@ def display_news_sentiment_analysis(symbol):
                         if article.get('reasoning'):
                             st.write(f"**Analysis:** {article['reasoning']}")
                 
-                # Add working social sharing section
-                from news_sentiment_fixed import create_social_sharing_section
-                create_social_sharing_section(symbol, aggregate_metrics)
+                # Add social sharing section
+                st.markdown("---")
+                st.markdown("### 📤 Share Your Sentiment Analysis")
+                st.markdown("Share your AI-powered sentiment insights with customizable privacy settings")
+                
+                col_privacy, col_generate = st.columns([1, 1])
+                
+                with col_privacy:
+                    privacy_level = st.selectbox(
+                        "Privacy Level:",
+                        ["public", "anonymized", "private"],
+                        format_func=lambda x: {
+                            "public": "🌐 Public - Full Details",
+                            "anonymized": "🔒 Anonymized - No Stock Name", 
+                            "private": "🔐 Private - Limited Info"
+                        }.get(x, x),
+                        help="Choose how much information to include when sharing",
+                        key=f"sentiment_privacy_{symbol}"
+                    )
+                
+                with col_generate:
+                    if st.button("🚀 Generate Shareable Insight", type="primary", key=f"sentiment_share_{symbol}"):
+                        st.session_state[f'sentiment_sharing_{symbol}'] = True
+                
+                # Display sharing options if button clicked
+                if st.session_state.get(f'sentiment_sharing_{symbol}', False):
+                    # Create formatted sharing text
+                    sentiment_score = aggregate_metrics['sentiment_score']
+                    overall_impact = aggregate_metrics['overall_impact']
+                    avg_confidence = aggregate_metrics['avg_confidence']
+                    total_articles = aggregate_metrics['total_articles']
+                    
+                    # Determine sentiment description
+                    if sentiment_score > 0.3:
+                        sentiment_desc = "Very Positive"
+                    elif sentiment_score > 0.1:
+                        sentiment_desc = "Positive"
+                    elif sentiment_score > -0.1:
+                        sentiment_desc = "Neutral"
+                    elif sentiment_score > -0.3:
+                        sentiment_desc = "Negative"
+                    else:
+                        sentiment_desc = "Very Negative"
+                    
+                    if privacy_level == "public":
+                        formatted_text = f"""📰 News Sentiment Analysis for {symbol.upper()}:
+• Overall Sentiment: {sentiment_desc} ({sentiment_score:+.2f})
+• Investment Outlook: {overall_impact}
+• Confidence Level: {avg_confidence:.1%}
+• Articles Analyzed: {total_articles}
+
+#StockAnalysis #SentimentAnalysis #Investing"""
+                    elif privacy_level == "anonymized":
+                        formatted_text = f"""📰 Stock News Sentiment Analysis:
+• Overall Sentiment: {sentiment_desc}
+• Investment Outlook: {overall_impact}  
+• Confidence Level: {avg_confidence:.1%}
+• Articles Analyzed: {total_articles}
+
+#StockAnalysis #SentimentAnalysis"""
+                    else:  # private
+                        formatted_text = f"""📰 News Sentiment Analysis Complete:
+• Analysis shows {sentiment_desc.lower()} sentiment
+• {total_articles} articles analyzed with {avg_confidence:.1%} confidence  
+• Investment outlook: {overall_impact}"""
+                    
+                    st.success("✅ Shareable insight generated!")
+                    
+                    # Display preview
+                    st.markdown("**📋 Sharing Preview:**")
+                    st.info(formatted_text)
+                    
+                    # Create sharing URLs with proper encoding
+                    import urllib.parse
+                    whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(formatted_text)}"
+                    # Use LinkedIn's share API instead of feed URL
+                    linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url=https://stockanalysis.com&text={urllib.parse.quote(formatted_text)}"
+                    email_subject = "Stock Sentiment Analysis Results"
+                    email_url = f"mailto:?subject={urllib.parse.quote(email_subject)}&body={urllib.parse.quote(formatted_text)}"
+                    
+                    st.markdown("**🔗 Share Your Analysis:**")
+                    
+                    # Simple text display with copy buttons (most reliable method)
+                    col_share1, col_share2, col_share3 = st.columns(3)
+                    
+                    with col_share1:
+                        st.markdown("**📱 WhatsApp**")
+                        if st.button("📋 Copy WhatsApp Text", key=f"copy_wa_{symbol}"):
+                            st.code(formatted_text, language=None)
+                            st.success("Copy this text and paste in WhatsApp!")
+                    
+                    with col_share2:
+                        st.markdown("**💼 LinkedIn**") 
+                        if st.button("📋 Copy LinkedIn Text", key=f"copy_li_{symbol}"):
+                            st.code(formatted_text, language=None)
+                            st.success("Copy this text and paste in LinkedIn!")
+                    
+                    with col_share3:
+                        st.markdown("**📧 Email**")
+                        if st.button("📋 Copy Email Text", key=f"copy_email_{symbol}"):
+                            st.code(formatted_text, language=None)
+                            st.success("Copy this text and paste in your email!")
             
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
