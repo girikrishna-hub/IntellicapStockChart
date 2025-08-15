@@ -3715,6 +3715,51 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     st.markdown("---")
     
+    # Earnings Information
+    st.subheader("📅 Earnings Information")
+    
+    # Get earnings information
+    earnings_info = get_earnings_info(ticker_info, ticker_obj)
+    
+    col_earnings1, col_earnings2, col_earnings3 = st.columns(3)
+    
+    with col_earnings1:
+        if earnings_info['last_earnings_formatted'] != 'N/A':
+            st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
+        else:
+            st.metric("Last Earnings Date", "N/A")
+    
+    with col_earnings2:
+        if earnings_info['next_earnings_formatted'] != 'N/A':
+            st.metric("Next Earnings Date", earnings_info['next_earnings_formatted'])
+            # Add estimated indicator if it's an estimate
+            if earnings_info['next_earnings_formatted'].startswith('~'):
+                st.caption("(Estimated)")
+        else:
+            st.metric("Next Earnings Date", "N/A")
+    
+    with col_earnings3:
+        # Calculate days since last earnings and days until next earnings
+        if earnings_info['last_earnings'] is not None:
+            try:
+                days_since_last = (pd.Timestamp.now() - earnings_info['last_earnings']).days
+                st.metric("Days Since Last", f"{days_since_last} days")
+            except:
+                st.metric("Days Since Last", "N/A")
+        elif earnings_info['next_earnings'] is not None:
+            try:
+                days_until_next = (earnings_info['next_earnings'] - pd.Timestamp.now()).days
+                if days_until_next > 0:
+                    st.metric("Days Until Next", f"{days_until_next} days")
+                else:
+                    st.metric("Days Until Next", "N/A")
+            except:
+                st.metric("Days Until Next", "N/A")
+        else:
+            st.metric("Days Until Next", "N/A")
+    
+    st.markdown("---")
+    
     # Key metrics in organized columns
     col1, col2, col3, col4 = st.columns(4)
     
