@@ -57,6 +57,97 @@ def fetch_stock_data(symbol, period="1y", market="US"):
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None, None, None
 
+def get_after_market_data(symbol, market="US"):
+    """
+    Get after-market trading data for a stock
+    
+    Args:
+        symbol (str): Stock ticker symbol
+        market (str): Market type ("US" or "India")
+    
+    Returns:
+        dict: After-market trading information
+    """
+    try:
+        # Format symbol for Indian stocks
+        if market == "India":
+            if not (symbol.endswith('.NS') or symbol.endswith('.BO')):
+                symbol = f"{symbol}.NS"
+        
+        ticker = yf.Ticker(symbol)
+        
+        # Get today's data including pre/post market
+        today_data = ticker.history(period="1d", interval="1m")
+        
+        if today_data.empty:
+            return {
+                'pre_market_change': 'N/A',
+                'pre_market_change_percent': 'N/A',
+                'post_market_change': 'N/A', 
+                'post_market_change_percent': 'N/A',
+                'regular_session_close': 'N/A'
+            }
+        
+        # Get regular session close (4 PM ET for US markets)
+        regular_close = today_data['Close'].iloc[-1]
+        
+        # Try to get real-time quote data
+        try:
+            info = ticker.info
+            current_price = info.get('currentPrice', regular_close)
+            pre_market_price = info.get('preMarketPrice', None)
+            post_market_price = info.get('postMarketPrice', None)
+            
+            # Calculate pre-market movement
+            pre_market_change = 'N/A'
+            pre_market_change_percent = 'N/A'
+            if pre_market_price and pre_market_price != regular_close:
+                prev_close = info.get('previousClose', regular_close)
+                if prev_close:
+                    pre_change = pre_market_price - prev_close
+                    pre_change_percent = (pre_change / prev_close) * 100
+                    pre_market_change = f"${pre_change:+.2f}" if market == "US" else f"₹{pre_change:+.2f}"
+                    pre_market_change_percent = f"{pre_change_percent:+.2f}%"
+            
+            # Calculate post-market movement
+            post_market_change = 'N/A'
+            post_market_change_percent = 'N/A'
+            if post_market_price and post_market_price != regular_close:
+                post_change = post_market_price - regular_close
+                post_change_percent = (post_change / regular_close) * 100
+                post_market_change = f"${post_change:+.2f}" if market == "US" else f"₹{post_change:+.2f}"
+                post_market_change_percent = f"{post_change_percent:+.2f}%"
+            
+            return {
+                'pre_market_change': pre_market_change,
+                'pre_market_change_percent': pre_market_change_percent,
+                'post_market_change': post_market_change,
+                'post_market_change_percent': post_market_change_percent,
+                'regular_session_close': f"${regular_close:.2f}" if market == "US" else f"₹{regular_close:.2f}",
+                'current_price': f"${current_price:.2f}" if market == "US" else f"₹{current_price:.2f}"
+            }
+            
+        except Exception as e:
+            # Fallback to basic calculation
+            return {
+                'pre_market_change': 'N/A',
+                'pre_market_change_percent': 'N/A', 
+                'post_market_change': 'N/A',
+                'post_market_change_percent': 'N/A',
+                'regular_session_close': f"${regular_close:.2f}" if market == "US" else f"₹{regular_close:.2f}",
+                'current_price': f"${regular_close:.2f}" if market == "US" else f"₹{regular_close:.2f}"
+            }
+            
+    except Exception as e:
+        return {
+            'pre_market_change': 'N/A',
+            'pre_market_change_percent': 'N/A',
+            'post_market_change': 'N/A', 
+            'post_market_change_percent': 'N/A',
+            'regular_session_close': 'N/A',
+            'current_price': 'N/A'
+        }
+
 def calculate_moving_average(data, window=50):
     """
     Calculate moving average for the given data
@@ -195,17 +286,38 @@ def calculate_fibonacci_retracements(data, period=50):
         swing_high_date = recent_data['High'].idxmax()
         swing_low_date = recent_data['Low'].idxmin()
         
-        # Determine trend direction based on which came first
-        if swing_low_date < swing_high_date:
-            # Uptrend: swing low came before swing high
+        # Determine trend direction based on recent price movement
+        # Get the current price and compare with swing levels
+        current_price = data['Close'].iloc[-1]
+        
+        # Calculate distance from swing points to determine trend
+        distance_from_high = abs(current_price - swing_high) / swing_high
+        distance_from_low = abs(current_price - swing_low) / swing_low
+        
+        # Also consider which came more recently
+        recent_trend_period = min(10, len(recent_data) // 2)
+        recent_data_slice = data.tail(recent_trend_period)
+        price_change = (recent_data_slice['Close'].iloc[-1] - recent_data_slice['Close'].iloc[0]) / recent_data_slice['Close'].iloc[0]
+        
+        # Determine trend: if price is closer to high and trending up, it's uptrend
+        if distance_from_high < distance_from_low and price_change >= 0:
             trend_direction = "uptrend"
             base_level = swing_low
             target_level = swing_high
-        else:
-            # Downtrend: swing high came before swing low
+        elif distance_from_low < distance_from_high and price_change < 0:
             trend_direction = "downtrend"
             base_level = swing_high
             target_level = swing_low
+        elif swing_low_date > swing_high_date:
+            # Recent swing low after swing high suggests downtrend
+            trend_direction = "downtrend"
+            base_level = swing_high
+            target_level = swing_low
+        else:
+            # Recent swing high after swing low suggests uptrend
+            trend_direction = "uptrend"
+            base_level = swing_low
+            target_level = swing_high
         
         # Calculate Fibonacci levels
         price_range = abs(target_level - base_level)
@@ -1123,6 +1235,56 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
             help="Price change since last earnings"
         )
     
+    # After-market data section
+    after_market = get_after_market_data(symbol, market)
+    if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
+        st.markdown("**🕘 Extended Hours Trading**")
+        col_am1, col_am2, col_am3, col_am4 = st.columns(4)
+        
+        with col_am1:
+            st.metric(
+                label="Regular Close",
+                value=after_market['regular_session_close'],
+                help="Official market close price"
+            )
+        
+        with col_am2:
+            st.metric(
+                label="Current Price", 
+                value=after_market['current_price'],
+                help="Most recent available price"
+            )
+        
+        with col_am3:
+            if after_market['pre_market_change'] != 'N/A':
+                st.metric(
+                    label="Pre-Market",
+                    value=after_market['pre_market_change'],
+                    delta=after_market['pre_market_change_percent'],
+                    help="Pre-market price movement"
+                )
+            else:
+                st.metric(
+                    label="Pre-Market",
+                    value="N/A",
+                    help="No pre-market data available"
+                )
+        
+        with col_am4:
+            if after_market['post_market_change'] != 'N/A':
+                st.metric(
+                    label="After-Hours",
+                    value=after_market['post_market_change'],
+                    delta=after_market['post_market_change_percent'],
+                    help="After-hours price movement"
+                )
+            else:
+                st.metric(
+                    label="After-Hours",
+                    value="N/A",
+                    help="No after-hours data available"
+                )
+
     # Third row of metrics - Dividend Information
     st.markdown("**💰 Dividend Information**")
     col11, col12, col13, col14, col15 = st.columns(5)
@@ -1178,19 +1340,40 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
         st.markdown("---")
         st.markdown("**🔢 Fibonacci Analysis**")
         
+        # Calculate both uptrend and downtrend Fibonacci levels
+        fib_uptrend = calculate_fibonacci_retracements(data, period=50)
+        fib_downtrend = None
+        
+        # Force calculate downtrend levels 
+        if fib_uptrend:
+            swing_high = fib_uptrend['swing_high']
+            swing_low = fib_uptrend['swing_low']
+            
+            # Create downtrend levels manually
+            fibonacci_ratios = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0]
+            price_range = abs(swing_high - swing_low)
+            
+            # Downtrend retracements go up from the low
+            downtrend_levels = {}
+            for ratio in fibonacci_ratios:
+                downtrend_levels[f"{ratio*100:.1f}%"] = swing_low + (price_range * ratio)
+                
+            # Uptrend retracements go down from the high  
+            uptrend_levels = {}
+            for ratio in fibonacci_ratios:
+                uptrend_levels[f"{ratio*100:.1f}%"] = swing_high - (price_range * ratio)
+        
         # Display trend information
-        trend_direction = fib_data['trend_direction']
+        trend_direction = fib_uptrend['trend_direction'] if fib_uptrend else "unknown"
         trend_emoji = "📈" if trend_direction == "uptrend" else "📉"
-        swing_high = fib_data['swing_high']
-        swing_low = fib_data['swing_low']
         
         col_trend1, col_trend2, col_trend3, col_trend4 = st.columns(4)
         
         with col_trend1:
             st.metric(
-                label=f"{trend_emoji} Current Trend",
+                label=f"{trend_emoji} Detected Trend",
                 value=trend_direction.title(),
-                help=f"Based on recent swing high/low pattern"
+                help=f"Current market trend based on recent price movement and swing points"
             )
         
         with col_trend2:
@@ -1215,72 +1398,137 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
                 help="Difference between swing high and low"
             )
         
-        # Display key Fibonacci levels
-        st.markdown("**Key Fibonacci Levels:**")
-        fib_levels = fib_data['fib_levels']
-        col_fib1, col_fib2, col_fib3, col_fib4, col_fib5 = st.columns(5)
+        # Display both uptrend and downtrend Fibonacci levels
+        st.markdown("**📈 Uptrend Fibonacci Levels (Retracements from High):**")
+        if fib_uptrend:
+            col_up1, col_up2, col_up3, col_up4, col_up5 = st.columns(5)
+            up_level_names = list(uptrend_levels.keys())
+            
+            with col_up1:
+                if len(up_level_names) > 1:  # 23.6%
+                    level = up_level_names[1]
+                    price = uptrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↗️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="23.6% retracement from swing high"
+                    )
+            
+            with col_up2:
+                if len(up_level_names) > 2:  # 38.2%
+                    level = up_level_names[2]
+                    price = uptrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↗️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="38.2% retracement from swing high"
+                    )
+            
+            with col_up3:
+                if len(up_level_names) > 3:  # 50%
+                    level = up_level_names[3]
+                    price = uptrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↗️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="50% retracement from swing high"
+                    )
+            
+            with col_up4:
+                if len(up_level_names) > 4:  # 61.8%
+                    level = up_level_names[4]
+                    price = uptrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↗️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="61.8% retracement (Golden Ratio)"
+                    )
+            
+            with col_up5:
+                if len(up_level_names) > 5:  # 78.6%
+                    level = up_level_names[5]
+                    price = uptrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↗️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="78.6% retracement from swing high"
+                    )
         
-        level_names = list(fib_levels.keys())
-        
-        with col_fib1:
-            if len(level_names) > 1:  # 23.6%
-                level = level_names[1]
-                price = fib_levels[level]
-                distance = ((latest_price - price) / price * 100)
-                st.metric(
-                    label=f"Fib {level}",
-                    value=format_currency(price, market),
-                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
-                    help="23.6% Fibonacci retracement level"
-                )
-        
-        with col_fib2:
-            if len(level_names) > 2:  # 38.2%
-                level = level_names[2]
-                price = fib_levels[level]
-                distance = ((latest_price - price) / price * 100)
-                st.metric(
-                    label=f"Fib {level}",
-                    value=format_currency(price, market),
-                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
-                    help="38.2% Fibonacci retracement level"
-                )
-        
-        with col_fib3:
-            if len(level_names) > 3:  # 50.0%
-                level = level_names[3]
-                price = fib_levels[level]
-                distance = ((latest_price - price) / price * 100)
-                st.metric(
-                    label=f"Fib {level}",
-                    value=format_currency(price, market),
-                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
-                    help="50% Fibonacci retracement level"
-                )
-        
-        with col_fib4:
-            if len(level_names) > 4:  # 61.8%
-                level = level_names[4]
-                price = fib_levels[level]
-                distance = ((latest_price - price) / price * 100)
-                st.metric(
-                    label=f"Fib {level}",
-                    value=format_currency(price, market),
-                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
-                    help="61.8% Fibonacci retracement level (Golden Ratio)"
-                )
-        
-        with col_fib5:
-            if len(level_names) > 5:  # 78.6%
-                level = level_names[5]
-                price = fib_levels[level]
-                distance = ((latest_price - price) / price * 100)
-                st.metric(
-                    label=f"Fib {level}",
-                    value=format_currency(price, market),
-                    delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
-                    help="78.6% Fibonacci retracement level"
-                )
+        st.markdown("**📉 Downtrend Fibonacci Levels (Retracements from Low):**")
+        if fib_uptrend:
+            col_down1, col_down2, col_down3, col_down4, col_down5 = st.columns(5)
+            down_level_names = list(downtrend_levels.keys())
+            
+            with col_down1:
+                if len(down_level_names) > 1:  # 23.6%
+                    level = down_level_names[1]
+                    price = downtrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↘️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="23.6% retracement from swing low"
+                    )
+            
+            with col_down2:
+                if len(down_level_names) > 2:  # 38.2%
+                    level = down_level_names[2]
+                    price = downtrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↘️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="38.2% retracement from swing low"
+                    )
+            
+            with col_down3:
+                if len(down_level_names) > 3:  # 50%
+                    level = down_level_names[3]
+                    price = downtrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↘️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="50% retracement from swing low"
+                    )
+            
+            with col_down4:
+                if len(down_level_names) > 4:  # 61.8%
+                    level = down_level_names[4]
+                    price = downtrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↘️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="61.8% retracement (Golden Ratio)"
+                    )
+            
+            with col_down5:
+                if len(down_level_names) > 5:  # 78.6%
+                    level = down_level_names[5]
+                    price = downtrend_levels[level]
+                    distance = ((latest_price - price) / price * 100)
+                    st.metric(
+                        label=f"↘️ {level}",
+                        value=format_currency(price, market),
+                        delta=f"{distance:+.1f}%" if abs(distance) < 50 else None,
+                        help="78.6% retracement from swing low"
+                    )
+
 
 def main():
     """
