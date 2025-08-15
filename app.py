@@ -3717,19 +3717,20 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     with col2:
         st.subheader("📅 Earnings Information")
-        # Get earnings data using the earnings provider
-        from earnings_data_provider import EarningsDataProvider
-        earnings_provider = EarningsDataProvider()
-        earnings_info = earnings_provider.get_earnings_info(symbol, market)
-        
-        if earnings_info['last_earnings'] and earnings_info['next_earnings']:
-            col_earn1, col_earn2 = st.columns(2)
-            with col_earn1:
-                st.metric("Last Earnings", earnings_info['last_earnings'].strftime('%Y-%m-%d'))
-            with col_earn2:
-                st.metric("Next Earnings", earnings_info['next_earnings'].strftime('%Y-%m-%d'))
-        else:
-            st.info("Earnings dates not available")
+        # Get earnings dates from ticker info
+        try:
+            # Try to get next earnings date from ticker info
+            next_earnings = ticker_info.get('earningsDate', None)
+            if next_earnings:
+                if isinstance(next_earnings, list) and len(next_earnings) > 0:
+                    next_earnings_date = next_earnings[0]
+                else:
+                    next_earnings_date = next_earnings
+                st.metric("Next Earnings", pd.to_datetime(next_earnings_date).strftime('%Y-%m-%d'))
+            else:
+                st.info("Next earnings date not available")
+        except:
+            st.info("Earnings information not available")
 
 
 def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market):
