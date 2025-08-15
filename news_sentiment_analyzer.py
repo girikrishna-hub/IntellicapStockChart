@@ -12,7 +12,16 @@ import time
 
 # Initialize OpenAI client
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+def get_openai_client():
+    """Get OpenAI client with proper error handling"""
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY environment variable not found")
+    
+    if not OPENAI_API_KEY.startswith('sk-'):
+        raise ValueError("Invalid OpenAI API key format. Key should start with 'sk-'")
+    
+    return OpenAI(api_key=OPENAI_API_KEY)
 
 def fetch_financial_news(symbol, days_back=7, max_articles=10):
     """
@@ -92,6 +101,14 @@ def analyze_news_sentiment(articles):
         list: Articles with sentiment analysis results
     """
     try:
+        # Check OpenAI API key and client
+        try:
+            openai_client = get_openai_client()
+        except ValueError as e:
+            st.error(f"OpenAI API configuration error: {str(e)}")
+            st.info("Please check that your OpenAI API key is correctly set in the environment variables.")
+            return articles
+        
         analyzed_articles = []
         
         for article in articles:
@@ -160,6 +177,14 @@ def analyze_news_sentiment(articles):
         
     except Exception as e:
         st.error(f"Error analyzing sentiment: {str(e)}")
+        st.error("This could be due to:")
+        st.markdown("""
+        - Invalid or expired OpenAI API key
+        - OpenAI API rate limits
+        - Network connectivity issues
+        - OpenAI service temporarily unavailable
+        """)
+        st.info("Please verify your OpenAI API key and try again.")
         return articles
 
 def calculate_aggregate_sentiment(analyzed_articles):
@@ -335,6 +360,16 @@ def display_news_sentiment_analysis(symbol):
         symbol (str): Stock symbol
     """
     st.subheader(f"📰 AI-Powered News Sentiment Analysis for {symbol.upper()}")
+    
+    # Check if OpenAI API key is available
+    if not OPENAI_API_KEY:
+        st.warning("OpenAI API key not found. Please add your OPENAI_API_KEY to use this feature.")
+        st.info("This feature analyzes financial news sentiment to provide investment insights.")
+        return
+    
+    if not OPENAI_API_KEY.startswith('sk-'):
+        st.error("Invalid OpenAI API key format. Please check your API key.")
+        return
     
     # Configuration options
     col_config1, col_config2 = st.columns(2)
