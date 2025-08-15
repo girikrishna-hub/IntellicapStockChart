@@ -770,6 +770,412 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
         print(f"Overall analysis error: {e}")
         return None, 0
 
+def display_institutional_financial_metrics(info, ticker_obj, symbol):
+    """
+    Display comprehensive institutional-grade financial metrics
+    
+    Args:
+        info (dict): Stock information from yfinance
+        ticker_obj: yfinance Ticker object
+        symbol (str): Stock symbol
+    """
+    try:
+        st.success(f"✅ Financial metrics loaded for {symbol}")
+        
+        # Create tabs for different metric categories
+        metrics_tab1, metrics_tab2, metrics_tab3, metrics_tab4 = st.tabs([
+            "📈 Valuation Metrics", 
+            "💰 Profitability", 
+            "🏛️ Financial Strength", 
+            "🚀 Growth Metrics"
+        ])
+        
+        with metrics_tab1:
+            display_valuation_metrics(info)
+        
+        with metrics_tab2:
+            display_profitability_metrics(info)
+        
+        with metrics_tab3:
+            display_financial_strength_metrics(info, ticker_obj)
+        
+        with metrics_tab4:
+            display_growth_metrics(info, ticker_obj)
+            
+    except Exception as e:
+        st.error(f"Error displaying financial metrics: {e}")
+
+def display_valuation_metrics(info):
+    """Display comprehensive valuation metrics"""
+    st.markdown("### Valuation Analysis")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    # Price-to-Earnings metrics
+    with col1:
+        pe_ratio = info.get('trailingPE', None)
+        forward_pe = info.get('forwardPE', None)
+        
+        st.metric(
+            label="P/E Ratio (TTM)",
+            value=f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else "N/A",
+            help="Price-to-Earnings ratio based on trailing twelve months"
+        )
+        
+        if forward_pe and not pd.isna(forward_pe):
+            st.metric(
+                label="Forward P/E",
+                value=f"{forward_pe:.2f}",
+                help="Forward Price-to-Earnings ratio"
+            )
+    
+    with col2:
+        # Price-to-Book and Price-to-Sales
+        pb_ratio = info.get('priceToBook', None)
+        ps_ratio = info.get('priceToSalesTrailing12Months', None)
+        
+        st.metric(
+            label="P/B Ratio",
+            value=f"{pb_ratio:.2f}" if pb_ratio and not pd.isna(pb_ratio) else "N/A",
+            help="Price-to-Book ratio"
+        )
+        
+        st.metric(
+            label="P/S Ratio (TTM)",
+            value=f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A",
+            help="Price-to-Sales ratio trailing twelve months"
+        )
+    
+    with col3:
+        # Enterprise Value metrics
+        ev_revenue = info.get('enterpriseToRevenue', None)
+        ev_ebitda = info.get('enterpriseToEbitda', None)
+        
+        st.metric(
+            label="EV/Revenue",
+            value=f"{ev_revenue:.2f}" if ev_revenue and not pd.isna(ev_revenue) else "N/A",
+            help="Enterprise Value to Revenue ratio"
+        )
+        
+        st.metric(
+            label="EV/EBITDA",
+            value=f"{ev_ebitda:.2f}" if ev_ebitda and not pd.isna(ev_ebitda) else "N/A",
+            help="Enterprise Value to EBITDA ratio"
+        )
+    
+    with col4:
+        # PEG and Market Cap
+        peg_ratio = info.get('pegRatio', None)
+        market_cap = info.get('marketCap', None)
+        
+        st.metric(
+            label="PEG Ratio",
+            value=f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A",
+            help="Price/Earnings to Growth ratio"
+        )
+        
+        if market_cap:
+            if market_cap >= 1e12:
+                cap_display = f"${market_cap/1e12:.2f}T"
+            elif market_cap >= 1e9:
+                cap_display = f"${market_cap/1e9:.2f}B"
+            else:
+                cap_display = f"${market_cap/1e6:.2f}M"
+            
+            st.metric(
+                label="Market Cap",
+                value=cap_display,
+                help="Total market capitalization"
+            )
+
+def display_profitability_metrics(info):
+    """Display comprehensive profitability metrics"""
+    st.markdown("### Profitability Analysis")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Margin metrics
+        gross_margin = info.get('grossMargins', None)
+        operating_margin = info.get('operatingMargins', None)
+        
+        st.metric(
+            label="Gross Margin",
+            value=f"{gross_margin*100:.2f}%" if gross_margin and not pd.isna(gross_margin) else "N/A",
+            help="Gross profit margin percentage"
+        )
+        
+        st.metric(
+            label="Operating Margin",
+            value=f"{operating_margin*100:.2f}%" if operating_margin and not pd.isna(operating_margin) else "N/A",
+            help="Operating profit margin percentage"
+        )
+    
+    with col2:
+        # Profit margins
+        profit_margin = info.get('profitMargins', None)
+        ebitda_margin = info.get('ebitdaMargins', None)
+        
+        st.metric(
+            label="Net Profit Margin",
+            value=f"{profit_margin*100:.2f}%" if profit_margin and not pd.isna(profit_margin) else "N/A",
+            help="Net profit margin percentage"
+        )
+        
+        st.metric(
+            label="EBITDA Margin",
+            value=f"{ebitda_margin*100:.2f}%" if ebitda_margin and not pd.isna(ebitda_margin) else "N/A",
+            help="EBITDA margin percentage"
+        )
+    
+    with col3:
+        # Return metrics
+        roe = info.get('returnOnEquity', None)
+        roa = info.get('returnOnAssets', None)
+        
+        st.metric(
+            label="ROE",
+            value=f"{roe*100:.2f}%" if roe and not pd.isna(roe) else "N/A",
+            help="Return on Equity"
+        )
+        
+        st.metric(
+            label="ROA",
+            value=f"{roa*100:.2f}%" if roa and not pd.isna(roa) else "N/A",
+            help="Return on Assets"
+        )
+    
+    with col4:
+        # Earnings metrics
+        eps = info.get('trailingEps', None)
+        forward_eps = info.get('forwardEps', None)
+        
+        st.metric(
+            label="EPS (TTM)",
+            value=f"${eps:.2f}" if eps and not pd.isna(eps) else "N/A",
+            help="Earnings per Share trailing twelve months"
+        )
+        
+        st.metric(
+            label="Forward EPS",
+            value=f"${forward_eps:.2f}" if forward_eps and not pd.isna(forward_eps) else "N/A",
+            help="Forward Earnings per Share"
+        )
+
+def display_financial_strength_metrics(info, ticker_obj):
+    """Display comprehensive financial strength metrics"""
+    st.markdown("### Financial Strength Analysis")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Debt metrics
+        debt_to_equity = info.get('debtToEquity', None)
+        total_debt = info.get('totalDebt', None)
+        
+        st.metric(
+            label="Debt-to-Equity",
+            value=f"{debt_to_equity:.2f}" if debt_to_equity and not pd.isna(debt_to_equity) else "N/A",
+            help="Total debt to equity ratio"
+        )
+        
+        if total_debt:
+            if total_debt >= 1e9:
+                debt_display = f"${total_debt/1e9:.2f}B"
+            else:
+                debt_display = f"${total_debt/1e6:.2f}M"
+            
+            st.metric(
+                label="Total Debt",
+                value=debt_display,
+                help="Total debt amount"
+            )
+    
+    with col2:
+        # Liquidity metrics
+        current_ratio = info.get('currentRatio', None)
+        quick_ratio = info.get('quickRatio', None)
+        
+        st.metric(
+            label="Current Ratio",
+            value=f"{current_ratio:.2f}" if current_ratio and not pd.isna(current_ratio) else "N/A",
+            help="Current assets to current liabilities"
+        )
+        
+        st.metric(
+            label="Quick Ratio",
+            value=f"{quick_ratio:.2f}" if quick_ratio and not pd.isna(quick_ratio) else "N/A",
+            help="Quick assets to current liabilities"
+        )
+    
+    with col3:
+        # Cash metrics
+        total_cash = info.get('totalCash', None)
+        cash_per_share = info.get('totalCashPerShare', None)
+        
+        if total_cash:
+            if total_cash >= 1e9:
+                cash_display = f"${total_cash/1e9:.2f}B"
+            else:
+                cash_display = f"${total_cash/1e6:.2f}M"
+            
+            st.metric(
+                label="Total Cash",
+                value=cash_display,
+                help="Total cash and cash equivalents"
+            )
+        
+        st.metric(
+            label="Cash per Share",
+            value=f"${cash_per_share:.2f}" if cash_per_share and not pd.isna(cash_per_share) else "N/A",
+            help="Cash per share outstanding"
+        )
+    
+    with col4:
+        # Other strength metrics
+        book_value = info.get('bookValue', None)
+        beta = info.get('beta', None)
+        
+        st.metric(
+            label="Book Value/Share",
+            value=f"${book_value:.2f}" if book_value and not pd.isna(book_value) else "N/A",
+            help="Book value per share"
+        )
+        
+        st.metric(
+            label="Beta",
+            value=f"{beta:.2f}" if beta and not pd.isna(beta) else "N/A",
+            help="Stock volatility relative to market"
+        )
+
+def display_growth_metrics(info, ticker_obj):
+    """Display comprehensive growth metrics"""
+    st.markdown("### Growth Analysis")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        # Revenue growth
+        revenue_growth = info.get('revenueGrowth', None)
+        quarterly_revenue_growth = info.get('quarterlyRevenueGrowth', None)
+        
+        st.metric(
+            label="Revenue Growth (YoY)",
+            value=f"{revenue_growth*100:.2f}%" if revenue_growth and not pd.isna(revenue_growth) else "N/A",
+            help="Year-over-year revenue growth"
+        )
+        
+        st.metric(
+            label="Quarterly Revenue Growth",
+            value=f"{quarterly_revenue_growth*100:.2f}%" if quarterly_revenue_growth and not pd.isna(quarterly_revenue_growth) else "N/A",
+            help="Quarterly revenue growth year-over-year"
+        )
+    
+    with col2:
+        # Earnings growth
+        earnings_growth = info.get('earningsGrowth', None)
+        quarterly_earnings_growth = info.get('quarterlyEarningsGrowth', None)
+        
+        st.metric(
+            label="Earnings Growth (YoY)",
+            value=f"{earnings_growth*100:.2f}%" if earnings_growth and not pd.isna(earnings_growth) else "N/A",
+            help="Year-over-year earnings growth"
+        )
+        
+        st.metric(
+            label="Quarterly Earnings Growth",
+            value=f"{quarterly_earnings_growth*100:.2f}%" if quarterly_earnings_growth and not pd.isna(quarterly_earnings_growth) else "N/A",
+            help="Quarterly earnings growth year-over-year"
+        )
+    
+    with col3:
+        # Target and recommendation
+        target_high = info.get('targetHighPrice', None)
+        target_mean = info.get('targetMeanPrice', None)
+        
+        st.metric(
+            label="Target High Price",
+            value=f"${target_high:.2f}" if target_high and not pd.isna(target_high) else "N/A",
+            help="Analyst target high price"
+        )
+        
+        st.metric(
+            label="Target Mean Price",
+            value=f"${target_mean:.2f}" if target_mean and not pd.isna(target_mean) else "N/A",
+            help="Analyst target mean price"
+        )
+    
+    with col4:
+        # Analyst metrics
+        recommendation = info.get('recommendationMean', None)
+        num_analysts = info.get('numberOfAnalystOpinions', None)
+        
+        if recommendation:
+            rec_text = ["Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"]
+            rec_index = min(int(recommendation - 1), 4)
+            rec_display = rec_text[rec_index] if rec_index >= 0 else "N/A"
+        else:
+            rec_display = "N/A"
+        
+        st.metric(
+            label="Analyst Recommendation",
+            value=rec_display,
+            help="Average analyst recommendation (1=Strong Buy, 5=Strong Sell)"
+        )
+        
+        st.metric(
+            label="Number of Analysts",
+            value=f"{num_analysts}" if num_analysts and not pd.isna(num_analysts) else "N/A",
+            help="Number of analysts covering the stock"
+        )
+    
+    # Additional growth insights
+    st.markdown("---")
+    st.markdown("#### Growth Insights")
+    
+    insights_col1, insights_col2 = st.columns(2)
+    
+    with insights_col1:
+        # Calculate growth score
+        growth_factors = [
+            ("Revenue Growth", revenue_growth),
+            ("Earnings Growth", earnings_growth),
+            ("ROE", info.get('returnOnEquity', None)),
+            ("Profit Margin", info.get('profitMargins', None))
+        ]
+        
+        positive_factors = sum(1 for name, value in growth_factors 
+                             if value and not pd.isna(value) and value > 0)
+        
+        st.info(f"""
+        **Growth Score: {positive_factors}/4 positive factors**
+        
+        Positive growth indicators found in {positive_factors} out of 4 key metrics:
+        - Revenue Growth, Earnings Growth, ROE, Profit Margin
+        """)
+    
+    with insights_col2:
+        # Valuation vs Growth analysis
+        pe_ratio = info.get('trailingPE', None)
+        peg_ratio = info.get('pegRatio', None)
+        
+        valuation_insight = "N/A"
+        if pe_ratio and peg_ratio and not pd.isna(pe_ratio) and not pd.isna(peg_ratio):
+            if peg_ratio < 1:
+                valuation_insight = "Potentially undervalued relative to growth"
+            elif peg_ratio < 1.5:
+                valuation_insight = "Fairly valued relative to growth"
+            else:
+                valuation_insight = "Premium valuation relative to growth"
+        
+        st.info(f"""
+        **Valuation vs Growth Assessment:**
+        
+        {valuation_insight}
+        
+        PEG Ratio: {peg_ratio:.2f if peg_ratio and not pd.isna(peg_ratio) else 'N/A'}
+        """)
+
 def get_dividend_info(ticker_obj, ticker_info, market="US"):
     """
     Extract dividend information from ticker object and info
@@ -2761,6 +3167,40 @@ def gurufocus_tab():
     
     elif symbol_guru and not st.session_state.get('guru_analyze_clicked', False):
         st.info("👆 Click 'Analyze Earnings' to start the detailed analysis")
+    
+    # Add institutional-grade financial metrics section
+    st.markdown("---")
+    st.subheader("🏦 Institutional-Grade Financial Metrics")
+    
+    # Create metrics input section
+    col_metrics1, col_metrics2 = st.columns([3, 1])
+    
+    with col_metrics1:
+        symbol_metrics = st.text_input(
+            "Enter Symbol for Financial Analysis:",
+            value="AAPL",
+            placeholder="e.g., AAPL, GOOGL, MSFT",
+            help="Enter US stock symbol for comprehensive financial metrics",
+            key="guru_metrics_symbol"
+        )
+    
+    with col_metrics2:
+        if st.button("📊 Get Metrics", key="guru_metrics", type="primary"):
+            st.session_state.guru_metrics_clicked = True
+    
+    # Financial metrics analysis
+    if st.session_state.get('guru_metrics_clicked', False) and symbol_metrics:
+        with st.spinner(f"Fetching institutional-grade financial metrics for {symbol_metrics.upper()}..."):
+            data, info, ticker_obj = fetch_stock_data(symbol_metrics.upper(), period="1y", market="US")
+            
+            if data is not None and info is not None:
+                # Display comprehensive financial metrics
+                display_institutional_financial_metrics(info, ticker_obj, symbol_metrics.upper())
+            else:
+                st.error(f"Unable to fetch financial data for {symbol_metrics.upper()}. Please verify the symbol is correct.")
+    
+    elif symbol_metrics and not st.session_state.get('guru_metrics_clicked', False):
+        st.info("👆 Click 'Get Metrics' to display comprehensive financial analysis")
 
 if __name__ == "__main__":
     main()

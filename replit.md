@@ -6,7 +6,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 **1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
-**2. GuruFocus Version:** Available as a tab within the main Yahoo Finance app. Currently shows placeholder content with planned features for institutional-quality data integration.
+**2. GuruFocus Version:** Available as a tab within the main Yahoo Finance app. Features detailed earnings performance analysis for up to 8 quarters and comprehensive institutional-grade financial metrics including valuation ratios, profitability analysis, financial strength indicators, and growth metrics.
 
 **3. Landing Page (landing.html):** Static HTML main entry point with clear URL navigation allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, copy-to-clipboard URL buttons, and seamless navigation between applications without WebSocket conflicts.
 
@@ -20,6 +20,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
 - **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
 - **Streamlined Navigation:** App now opens directly on Yahoo Finance tab with GuruFocus available as secondary tab
+- **Enhanced GuruFocus Tab:** Added detailed 8-quarter earnings performance analysis with advanced charts and institutional-grade financial metrics including valuation, profitability, financial strength, and growth analysis
 
 ## User Preferences
 
