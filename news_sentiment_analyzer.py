@@ -1064,7 +1064,7 @@ AI-powered analysis"""
         
         # Create URLs
         twitter_url = f"https://twitter.com/intent/tweet?text={urllib.parse.quote(share_text)}"
-        linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url={urllib.parse.quote('https://replit.com')}&summary={urllib.parse.quote(share_text)}"
+        linkedin_url = f"https://www.linkedin.com/feed/?shareActive=true&text={urllib.parse.quote(share_text)}"
         email_subject = "News Sentiment Analysis Results"
         email_url = f"mailto:?subject={urllib.parse.quote(email_subject)}&body={urllib.parse.quote(share_text)}"
         
