@@ -79,7 +79,7 @@ def get_beta_value(ticker_info):
     except:
         return "N/A"
 
-def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
+def create_shareable_insight(symbol, data, metrics, privacy_level="public", fibonacci_data=None):
     """
     Create a shareable investment insight with customizable privacy
     
@@ -88,6 +88,7 @@ def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
         data (pd.DataFrame): Stock price data
         metrics (dict): Key stock metrics
         privacy_level (str): Privacy level ("public", "private", "anonymized")
+        fibonacci_data (dict): Fibonacci analysis data
     
     Returns:
         dict: Shareable insight data
@@ -104,9 +105,36 @@ def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
             "analysis_type": "technical_analysis"
         }
         
+        # Process Fibonacci data if available
+        fib_summary = None
+        if fibonacci_data:
+            trend_dir = fibonacci_data.get('trend_direction', 'unknown')
+            swing_high = fibonacci_data.get('swing_high', 0)
+            swing_low = fibonacci_data.get('swing_low', 0)
+            price_range = swing_high - swing_low
+            
+            # Find closest Fibonacci level
+            uptrend_levels = fibonacci_data.get('uptrend_levels', {})
+            closest_fib_level = None
+            closest_distance = float('inf')
+            
+            for level_name, level_price in uptrend_levels.items():
+                if level_name != 'Current Price':
+                    distance = abs(latest_price - level_price)
+                    if distance < closest_distance:
+                        closest_distance = distance
+                        closest_fib_level = level_name
+            
+            fib_summary = {
+                "trend_direction": trend_dir,
+                "swing_range": f"${price_range:.2f}",
+                "closest_fib_level": closest_fib_level,
+                "near_support_resistance": closest_fib_level is not None and closest_distance < (price_range * 0.02)
+            }
+        
         if privacy_level == "public":
             # Full public sharing
-            insight.update({
+            public_data = {
                 "symbol": symbol,
                 "company_name": metrics.get('longName', symbol),
                 "current_price": f"${latest_price:.2f}",
@@ -115,15 +143,26 @@ def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
                     "rsi": metrics.get('RSI', 'N/A'),
                     "ma_50_signal": metrics.get('Price vs 50-Day MA (%)', 'N/A'),
                     "ma_200_signal": metrics.get('Price vs 200-Day MA (%)', 'N/A'),
-                    "volume": metrics.get('Volume', 'N/A')
+                    "volume": metrics.get('Volume', 'N/A'),
+                    "beta": metrics.get('Beta', 'N/A')
                 },
-                "recommendation": generate_simple_recommendation(metrics),
+                "recommendation": generate_advanced_recommendation(metrics, fib_summary),
                 "risk_level": assess_risk_level(metrics)
-            })
+            }
+            
+            if fib_summary:
+                public_data["fibonacci_analysis"] = {
+                    "trend": fib_summary["trend_direction"].title(),
+                    "swing_range": fib_summary["swing_range"],
+                    "key_level": fib_summary["closest_fib_level"] or "No nearby levels",
+                    "near_key_level": fib_summary["near_support_resistance"]
+                }
+            
+            insight.update(public_data)
             
         elif privacy_level == "anonymized":
             # Anonymized - no symbol or company name
-            insight.update({
+            anon_data = {
                 "symbol": "***",
                 "company_name": "Anonymized Stock",
                 "current_price": f"${latest_price:.2f}",
@@ -133,16 +172,24 @@ def create_shareable_insight(symbol, data, metrics, privacy_level="public"):
                     "ma_50_signal": metrics.get('Price vs 50-Day MA (%)', 'N/A'),
                     "ma_200_signal": metrics.get('Price vs 200-Day MA (%)', 'N/A')
                 },
-                "recommendation": generate_simple_recommendation(metrics),
+                "recommendation": generate_advanced_recommendation(metrics, fib_summary),
                 "note": "Stock identity hidden for privacy"
-            })
+            }
+            
+            if fib_summary:
+                anon_data["fibonacci_analysis"] = {
+                    "trend": fib_summary["trend_direction"].title(),
+                    "key_level": fib_summary["closest_fib_level"] or "No nearby levels"
+                }
+            
+            insight.update(anon_data)
             
         else:  # private
             # Private sharing - limited info
             insight.update({
                 "symbol": symbol,
-                "analysis_summary": "Private technical analysis completed",
-                "recommendation": generate_simple_recommendation(metrics),
+                "analysis_summary": "Private technical analysis with Fibonacci levels completed",
+                "recommendation": generate_advanced_recommendation(metrics, fib_summary),
                 "shared_with": "Private analysis - limited details"
             })
         
@@ -181,6 +228,54 @@ def generate_simple_recommendation(metrics):
     except:
         return "➡️ Analysis Available - Review Details"
 
+def generate_advanced_recommendation(metrics, fib_summary=None):
+    """Generate advanced investment recommendation including Fibonacci analysis"""
+    try:
+        rsi_text = metrics.get('RSI', '50')
+        if rsi_text != 'N/A':
+            rsi = float(rsi_text)
+        else:
+            rsi = 50
+            
+        ma_50_text = metrics.get('Price vs 50-Day MA (%)', '0')
+        if ma_50_text != 'N/A':
+            ma_50_signal = float(ma_50_text.replace('%', ''))
+        else:
+            ma_50_signal = 0
+            
+        # Base recommendation from technical indicators
+        base_rec = ""
+        if rsi > 70:
+            base_rec = "⚠️ Overbought"
+        elif rsi < 30:
+            base_rec = "📈 Oversold Entry Zone"
+        elif ma_50_signal > 5:
+            base_rec = "📈 Bullish Trend"
+        elif ma_50_signal < -5:
+            base_rec = "📉 Bearish Trend"
+        else:
+            base_rec = "➡️ Neutral"
+            
+        # Enhance with Fibonacci analysis
+        if fib_summary:
+            trend_dir = fib_summary.get("trend_direction", "unknown")
+            near_key_level = fib_summary.get("near_support_resistance", False)
+            
+            if near_key_level:
+                if trend_dir == "uptrend":
+                    base_rec += " + Near Fib Support"
+                elif trend_dir == "downtrend":
+                    base_rec += " + Near Fib Resistance"
+                else:
+                    base_rec += " + At Key Fib Level"
+            else:
+                base_rec += f" ({trend_dir.title()} Pattern)"
+        
+        return base_rec
+            
+    except:
+        return "➡️ Advanced Analysis Available"
+
 def assess_risk_level(metrics):
     """Assess risk level based on key metrics"""
     try:
@@ -215,11 +310,19 @@ def create_share_urls(insight):
     recommendation = insight.get('recommendation', 'Analysis available')
     
     if insight['privacy_level'] == 'public':
-        share_text = f"📊 {symbol} Analysis: {recommendation}. Current: {insight.get('current_price', 'N/A')} ({insight.get('daily_change', 'N/A')}). Risk: {insight.get('risk_level', 'N/A')}"
+        fib_info = ""
+        if 'fibonacci_analysis' in insight:
+            fib_data = insight['fibonacci_analysis']
+            fib_info = f" Trend: {fib_data['trend']}. Key Level: {fib_data['key_level']}."
+        share_text = f"📊 {symbol} Analysis: {recommendation}. Current: {insight.get('current_price', 'N/A')} ({insight.get('daily_change', 'N/A')}). Risk: {insight.get('risk_level', 'N/A')}.{fib_info}"
     elif insight['privacy_level'] == 'anonymized':
-        share_text = f"📊 Stock Analysis: {recommendation}. Daily change: {insight.get('daily_change', 'N/A')}. Technical indicators suggest monitoring for opportunities."
+        fib_info = ""
+        if 'fibonacci_analysis' in insight:
+            fib_data = insight['fibonacci_analysis']
+            fib_info = f" Trend: {fib_data['trend']}."
+        share_text = f"📊 Stock Analysis: {recommendation}. Daily change: {insight.get('daily_change', 'N/A')}.{fib_info} Technical indicators suggest monitoring for opportunities."
     else:
-        share_text = f"📊 Completed technical analysis with recommendation: {recommendation}"
+        share_text = f"📊 Completed advanced technical analysis with Fibonacci levels: {recommendation}"
     
     hashtags = "#StockAnalysis #TechnicalAnalysis #Investing"
     
@@ -2688,8 +2791,11 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                 'Volume': f"{data['Volume'].iloc[-1]:,.0f}" if 'Volume' in data.columns else "N/A"
             }
             
+            # Get Fibonacci analysis data
+            fib_data = calculate_fibonacci_retracements(data)
+            
             # Create shareable insight
-            insight = create_shareable_insight(symbol, data, share_metrics, privacy_level)
+            insight = create_shareable_insight(symbol, data, share_metrics, privacy_level, fib_data)
             
             if 'error' not in insight:
                 # Display the generated insight
@@ -2710,12 +2816,36 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                             st.metric("vs 50-Day MA", insight['key_metrics']['ma_50_signal'])
                         with col_ma200:
                             st.metric("vs 200-Day MA", insight['key_metrics']['ma_200_signal'])
+                        
+                        # Show Fibonacci analysis if available
+                        if 'fibonacci_analysis' in insight:
+                            st.markdown("**📈 Fibonacci Analysis:**")
+                            fib_data = insight['fibonacci_analysis']
+                            col_trend, col_level, col_range = st.columns(3)
+                            with col_trend:
+                                trend_emoji = "📈" if fib_data['trend'] == "Uptrend" else "📉" if fib_data['trend'] == "Downtrend" else "➡️"
+                                st.metric("Trend", f"{trend_emoji} {fib_data['trend']}")
+                            with col_level:
+                                level_status = "🎯" if fib_data.get('near_key_level') else "📊"
+                                st.metric("Key Level", f"{level_status} {fib_data['key_level']}")
+                            with col_range:
+                                st.metric("Swing Range", fib_data['swing_range'])
                     
                     elif privacy_level == "anonymized":
                         st.markdown(f"**📊 Anonymous Stock Analysis**")
                         st.markdown(f"**Current Price:** {insight['current_price']} ({insight['daily_change']})")
                         st.markdown(f"**Recommendation:** {insight['recommendation']}")
                         st.info(insight['note'])
+                        
+                        # Show Fibonacci analysis if available
+                        if 'fibonacci_analysis' in insight:
+                            fib_data = insight['fibonacci_analysis']
+                            col_anon_trend, col_anon_level = st.columns(2)
+                            with col_anon_trend:
+                                trend_emoji = "📈" if fib_data['trend'] == "Uptrend" else "📉" if fib_data['trend'] == "Downtrend" else "➡️"
+                                st.metric("Trend Pattern", f"{trend_emoji} {fib_data['trend']}")
+                            with col_anon_level:
+                                st.metric("Near Key Level", fib_data['key_level'])
                     
                     else:  # private
                         st.markdown(f"**📊 Private Analysis for {insight['symbol']}**")
