@@ -4272,64 +4272,14 @@ def display_news_sentiment_analysis(symbol):
             """)
             return
         
-        # Initialize sentiment analyzer
+        # Use the enhanced news sentiment analyzer with multiple sources
         try:
-            from news_sentiment_analyzer import NewsSentimentAnalyzer
-            analyzer = NewsSentimentAnalyzer()
-            
-            with st.spinner(f"Analyzing news sentiment for {symbol}..."):
-                
-                # Demo articles for analysis (in real implementation, these would be fetched from news APIs)
-                demo_articles = [
-                    {
-                        "title": f"{symbol} Reports Strong Q3 Earnings, Beats Analyst Expectations",
-                        "content": f"{symbol} announced robust quarterly results with revenue growth of 15% year-over-year. The company exceeded analyst expectations on both earnings per share and revenue guidance. Management cited strong demand across all product lines and successful market expansion initiatives.",
-                        "source": "Financial News Today",
-                        "date": "2025-01-15"
-                    },
-                    {
-                        "title": f"Market Volatility Impacts {symbol} Trading Volume",
-                        "content": f"Recent market uncertainty has led to increased trading volume for {symbol} shares. Technical analysts note key support levels holding, while institutional investors appear to be maintaining their positions despite broader market concerns.",
-                        "source": "Market Analysis Weekly",
-                        "date": "2025-01-14"
-                    },
-                    {
-                        "title": f"{symbol} Announces Strategic Partnership and Innovation Initiative",
-                        "content": f"{symbol} revealed a new strategic partnership aimed at enhancing technological capabilities and market reach. The initiative includes significant R&D investment and is expected to drive long-term growth opportunities in emerging markets.",
-                        "source": "Business Wire",
-                        "date": "2025-01-13"
-                    }
-                ]
-                
-                # Analyze sentiment for each article
-                analysis_results = []
-                
-                for article in demo_articles:
-                    try:
-                        result = analyzer.analyze_article_sentiment(
-                            article["title"], 
-                            article["content"],
-                            symbol
-                        )
-                        result.update({
-                            "source": article["source"],
-                            "date": article["date"]
-                        })
-                        analysis_results.append(result)
-                    except Exception as e:
-                        st.error(f"Error analyzing article: {str(e)}")
-                        continue
-                
-                if analysis_results:
-                    # Display comprehensive results
-                    analyzer.display_sentiment_analysis(analysis_results, symbol)
-                else:
-                    st.error("Unable to analyze sentiment. Please check your OpenAI API key and try again.")
-        
-        except ImportError:
-            st.error("News sentiment analyzer module not found. Please ensure all required dependencies are installed.")
+            from news_sentiment_analyzer import display_news_sentiment_analysis
+            display_news_sentiment_analysis(symbol)
+                    
         except Exception as e:
-            st.error(f"Error initializing sentiment analysis: {str(e)}")
+            st.error(f"Error loading sentiment analysis: {str(e)}")
+            st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
 
 
 if __name__ == "__main__":

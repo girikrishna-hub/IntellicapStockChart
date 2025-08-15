@@ -8,6 +8,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
 from trafilatura import fetch_url, extract
+import feedparser
+from newsapi import NewsApiClient
+from alpha_vantage.timeseries import TimeSeries
 import time
 
 # Initialize OpenAI client
@@ -23,68 +26,209 @@ def get_openai_client():
     
     return OpenAI(api_key=OPENAI_API_KEY)
 
-def fetch_financial_news(symbol, days_back=7, max_articles=10):
+def fetch_from_yahoo_finance(symbol, max_articles=5):
+    """Fetch news from Yahoo Finance RSS feed"""
+    try:
+        # Yahoo Finance RSS feed for stock news
+        yahoo_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={symbol}&region=US&lang=en-US"
+        feed = feedparser.parse(yahoo_url)
+        
+        articles = []
+        for entry in feed.entries[:max_articles]:
+            articles.append({
+                "title": entry.title,
+                "summary": entry.get('summary', entry.get('description', '')),
+                "url": entry.link,
+                "published_date": entry.get('published', ''),
+                "source": "Yahoo Finance"
+            })
+        return articles
+    except Exception as e:
+        print(f"Yahoo Finance error: {e}")
+        return []
+
+def fetch_from_newsapi(symbol, api_key, max_articles=5):
+    """Fetch news from NewsAPI"""
+    try:
+        if not api_key:
+            return []
+        
+        newsapi = NewsApiClient(api_key=api_key)
+        
+        # Get company name for better search results
+        company_names = {
+            'AAPL': 'Apple',
+            'GOOGL': 'Google', 
+            'MSFT': 'Microsoft',
+            'TSLA': 'Tesla',
+            'AMZN': 'Amazon',
+            'META': 'Meta',
+            'NVDA': 'NVIDIA'
+        }
+        
+        search_query = f"{symbol} OR {company_names.get(symbol, symbol)}"
+        
+        articles = newsapi.get_everything(
+            q=search_query,
+            language='en',
+            sort_by='publishedAt',
+            from_param=(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+            to=(datetime.now()).strftime('%Y-%m-%d'),
+            page_size=max_articles
+        )
+        
+        formatted_articles = []
+        for article in articles.get('articles', []):
+            formatted_articles.append({
+                "title": article['title'],
+                "summary": article['description'] or '',
+                "url": article['url'],
+                "published_date": article['publishedAt'],
+                "source": f"NewsAPI ({article['source']['name']})"
+            })
+        
+        return formatted_articles
+    except Exception as e:
+        print(f"NewsAPI error: {e}")
+        return []
+
+def fetch_from_google_news(symbol, max_articles=5):
+    """Fetch news from Google News RSS feed"""
+    try:
+        # Google News RSS feed
+        google_url = f"https://news.google.com/rss/search?q={symbol}+stock&hl=en-US&gl=US&ceid=US:en"
+        feed = feedparser.parse(google_url)
+        
+        articles = []
+        for entry in feed.entries[:max_articles]:
+            articles.append({
+                "title": entry.title,
+                "summary": entry.get('summary', ''),
+                "url": entry.link,
+                "published_date": entry.get('published', ''),
+                "source": "Google News"
+            })
+        return articles
+    except Exception as e:
+        print(f"Google News error: {e}")
+        return []
+
+def fetch_from_alpha_vantage(symbol, api_key, max_articles=5):
+    """Fetch news from Alpha Vantage News & Sentiment API"""
+    try:
+        if not api_key:
+            return []
+        
+        url = f"https://www.alphavantage.co/query"
+        params = {
+            'function': 'NEWS_SENTIMENT',
+            'tickers': symbol,
+            'apikey': api_key,
+            'limit': max_articles
+        }
+        
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        articles = []
+        for item in data.get('feed', []):
+            articles.append({
+                "title": item['title'],
+                "summary": item['summary'],
+                "url": item['url'],
+                "published_date": item['time_published'],
+                "source": f"Alpha Vantage ({item.get('source', 'Unknown')})"
+            })
+        
+        return articles
+    except Exception as e:
+        print(f"Alpha Vantage error: {e}")
+        return []
+
+def fetch_financial_news(symbol, selected_sources, days_back=7, max_articles=10):
     """
-    Fetch financial news articles for a given stock symbol
+    Fetch financial news articles for a given stock symbol from multiple sources
     
     Args:
         symbol (str): Stock symbol
+        selected_sources (list): List of selected news sources
         days_back (int): Number of days to look back for news
         max_articles (int): Maximum number of articles to fetch
     
     Returns:
         list: List of news articles with metadata
     """
+    all_articles = []
+    articles_per_source = max(1, max_articles // len(selected_sources)) if selected_sources else max_articles
+    
     try:
-        # Using Alpha Vantage News & Sentiment API (free tier available)
-        # Alternative: NewsAPI, Financial Modeling Prep, or web scraping
+        # Fetch from each selected source
+        if "Yahoo Finance" in selected_sources:
+            yahoo_articles = fetch_from_yahoo_finance(symbol, articles_per_source)
+            all_articles.extend(yahoo_articles)
         
-        # For demo purposes, we'll use a combination of sources
-        articles = []
+        if "Google News" in selected_sources:
+            google_articles = fetch_from_google_news(symbol, articles_per_source)
+            all_articles.extend(google_articles)
         
-        # Search terms related to the stock
-        search_terms = [
-            f"{symbol} stock",
-            f"{symbol} earnings",
-            f"{symbol} financial results",
-            f"{symbol} quarterly report"
-        ]
+        if "NewsAPI" in selected_sources:
+            # Check if NewsAPI key is available
+            newsapi_key = os.environ.get('NEWSAPI_API_KEY')
+            if newsapi_key:
+                newsapi_articles = fetch_from_newsapi(symbol, newsapi_key, articles_per_source)
+                all_articles.extend(newsapi_articles)
         
-        # Simulate fetching news (in real implementation, you'd use actual news APIs)
-        # For now, we'll create a framework that can be easily extended
+        if "Alpha Vantage" in selected_sources:
+            # Check if Alpha Vantage key is available
+            av_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+            if av_key:
+                av_articles = fetch_from_alpha_vantage(symbol, av_key, articles_per_source)
+                all_articles.extend(av_articles)
         
-        # You can integrate with:
-        # 1. Alpha Vantage News & Sentiment API
-        # 2. NewsAPI
-        # 3. Financial Modeling Prep
-        # 4. Yahoo Finance News
-        # 5. Web scraping from financial news sites
+        # If no articles found from selected sources, provide fallback sample
+        if not all_articles:
+            sample_articles = [
+                {
+                    "title": f"{symbol} Reports Strong Q3 Earnings, Beats Expectations",
+                    "summary": f"{symbol} announced quarterly earnings that exceeded analyst expectations, driven by strong revenue growth and improved margins.",
+                    "url": "#",
+                    "published_date": (datetime.now() - timedelta(days=1)).isoformat(),
+                    "source": "Sample News"
+                },
+                {
+                    "title": f"Analysts Upgrade {symbol} Price Target Following Recent Developments", 
+                    "summary": f"Several Wall Street analysts have raised their price targets for {symbol} citing positive market trends and strong fundamentals.",
+                    "url": "#",
+                    "published_date": (datetime.now() - timedelta(days=2)).isoformat(),
+                    "source": "Sample News"
+                },
+                {
+                    "title": f"{symbol} Faces Headwinds as Market Conditions Worsen",
+                    "summary": f"Industry experts express concerns about {symbol}'s ability to maintain growth amid challenging market conditions and increased competition.",
+                    "url": "#", 
+                    "published_date": (datetime.now() - timedelta(days=3)).isoformat(),
+                    "source": "Sample News"
+                }
+            ]
+            all_articles = sample_articles
         
-        sample_articles = [
-            {
-                "title": f"{symbol} Reports Strong Q3 Earnings, Beats Expectations",
-                "summary": f"{symbol} announced quarterly earnings that exceeded analyst expectations, driven by strong revenue growth and improved margins.",
-                "url": "https://example.com/news1",
-                "published_date": (datetime.now() - timedelta(days=1)).isoformat(),
-                "source": "Financial News Today"
-            },
-            {
-                "title": f"Analysts Upgrade {symbol} Price Target Following Recent Developments",
-                "summary": f"Several Wall Street analysts have raised their price targets for {symbol} citing positive market trends and strong fundamentals.",
-                "url": "https://example.com/news2",
-                "published_date": (datetime.now() - timedelta(days=2)).isoformat(),
-                "source": "Market Watch"
-            },
-            {
-                "title": f"{symbol} Faces Headwinds as Market Conditions Worsen",
-                "summary": f"Industry experts express concerns about {symbol}'s ability to maintain growth amid challenging market conditions and increased competition.",
-                "url": "https://example.com/news3",
-                "published_date": (datetime.now() - timedelta(days=3)).isoformat(),
-                "source": "Investment Daily"
-            }
-        ]
+        # Remove duplicates and sort by date
+        unique_articles = []
+        seen_titles = set()
         
-        return sample_articles[:max_articles]
+        for article in all_articles:
+            title_key = article['title'].lower().strip()
+            if title_key not in seen_titles:
+                seen_titles.add(title_key)
+                unique_articles.append(article)
+        
+        # Sort by publication date (most recent first)
+        try:
+            unique_articles.sort(key=lambda x: x['published_date'], reverse=True)
+        except:
+            pass  # Keep original order if date sorting fails
+        
+        return unique_articles[:max_articles]
         
     except Exception as e:
         st.error(f"Error fetching news for {symbol}: {str(e)}")
@@ -371,7 +515,76 @@ def display_news_sentiment_analysis(symbol):
         st.error("Invalid OpenAI API key format. Please check your API key.")
         return
     
+    # News source selection
+    st.markdown("### 🌐 Select News Sources")
+    st.markdown("Choose which news sources to analyze for comprehensive sentiment coverage:")
+    
+    # Available news sources with descriptions
+    news_sources = {
+        "Yahoo Finance": "📈 Real-time financial news and analysis",
+        "Google News": "🔍 Comprehensive news aggregation from multiple sources", 
+        "NewsAPI": "📰 Professional news API (requires API key)",
+        "Alpha Vantage": "💼 Financial data provider (requires API key)"
+    }
+    
+    # Create columns for source selection
+    col_src1, col_src2 = st.columns(2)
+    
+    selected_sources = []
+    
+    with col_src1:
+        if st.checkbox("Yahoo Finance", value=True, help=news_sources["Yahoo Finance"]):
+            selected_sources.append("Yahoo Finance")
+        if st.checkbox("NewsAPI", value=False, help=news_sources["NewsAPI"]):
+            # Check if API key is available
+            newsapi_key = os.environ.get('NEWSAPI_API_KEY')
+            if newsapi_key:
+                selected_sources.append("NewsAPI")
+                st.success("✅ API Key Found")
+            else:
+                st.warning("⚠️ API Key Missing")
+                st.caption("Add NEWSAPI_API_KEY to environment to use this source")
+    
+    with col_src2:
+        if st.checkbox("Google News", value=True, help=news_sources["Google News"]):
+            selected_sources.append("Google News")
+        if st.checkbox("Alpha Vantage", value=False, help=news_sources["Alpha Vantage"]):
+            # Check if API key is available
+            av_key = os.environ.get('ALPHA_VANTAGE_API_KEY')
+            if av_key:
+                selected_sources.append("Alpha Vantage")
+                st.success("✅ API Key Found")
+            else:
+                st.warning("⚠️ API Key Missing")
+                st.caption("Add ALPHA_VANTAGE_API_KEY to environment to use this source")
+    
+    if not selected_sources:
+        st.error("Please select at least one news source to continue.")
+        return
+    
+    # Show API key setup instructions if premium sources are selected
+    premium_sources = [s for s in selected_sources if s in ['NewsAPI', 'Alpha Vantage']]
+    if premium_sources:
+        with st.expander("🔑 API Key Setup Instructions"):
+            st.markdown("""
+            **To use premium news sources, you'll need API keys:**
+            
+            **NewsAPI** (Free tier: 1,000 requests/month):
+            1. Visit [newsapi.org](https://newsapi.org)
+            2. Sign up for a free account
+            3. Copy your API key
+            4. Add it to environment variables as `NEWSAPI_API_KEY`
+            
+            **Alpha Vantage** (Free tier: 25 requests/day):
+            1. Visit [alphavantage.co](https://www.alphavantage.co/support/#api-key)
+            2. Get your free API key
+            3. Add it to environment variables as `ALPHA_VANTAGE_API_KEY`
+            """)
+    
+    st.success(f"Selected sources: {', '.join(selected_sources)}")
+    
     # Configuration options
+    st.markdown("### ⚙️ Analysis Settings")
     col_config1, col_config2 = st.columns(2)
     
     with col_config1:
@@ -391,9 +604,12 @@ def display_news_sentiment_analysis(symbol):
         )
     
     if st.button("🔍 Analyze News Sentiment", type="primary"):
-        with st.spinner("Fetching and analyzing financial news..."):
-            # Fetch news articles
-            articles = fetch_financial_news(symbol, days_back, max_articles)
+        with st.spinner(f"Fetching news from {len(selected_sources)} source(s) and analyzing sentiment..."):
+            # Display progress information
+            st.info(f"📡 Fetching articles from: {', '.join(selected_sources)}")
+            
+            # Fetch news articles from selected sources
+            articles = fetch_financial_news(symbol, selected_sources, days_back, max_articles)
             
             if not articles:
                 st.warning(f"No recent news articles found for {symbol}. This could be due to:")
@@ -412,6 +628,18 @@ def display_news_sentiment_analysis(symbol):
             aggregate_metrics = calculate_aggregate_sentiment(analyzed_articles)
             
             if aggregate_metrics:
+                # Show source breakdown
+                source_counts = {}
+                for article in analyzed_articles:
+                    source = article.get('source', 'Unknown')
+                    source_counts[source] = source_counts.get(source, 0) + 1
+                
+                st.markdown("### 📡 Sources Used")
+                col_sources = st.columns(len(source_counts))
+                for i, (source, count) in enumerate(source_counts.items()):
+                    with col_sources[i]:
+                        st.metric(source, f"{count} articles")
+                
                 # Display summary metrics
                 st.markdown("### 📊 Sentiment Summary")
                 

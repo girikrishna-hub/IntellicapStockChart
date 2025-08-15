@@ -4,7 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "alpha-vantage>=3.0.0",
+    "anthropic>=0.64.0",
+    "feedparser>=6.0.11",
+    "google-genai>=1.30.0",
     "kaleido>=1.0.0",
+    "newsapi-python>=0.2.7",
     "numpy>=2.3.2",
     "openai>=1.99.9",
     "openpyxl>=3.1.5",
