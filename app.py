@@ -476,7 +476,7 @@ def get_earnings_info(ticker_obj, ticker_info):
 
 def get_earnings_performance_analysis(ticker_obj, data, market="US"):
     """
-    Analyze stock performance after earnings for the last 8 quarters
+    Analyze stock performance after earnings for the last 4 quarters
     
     Args:
         ticker_obj: yfinance Ticker object
@@ -492,14 +492,14 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
         if earnings is None or earnings.empty:
             return None
         
-        # Get the last 8 earnings dates
+        # Get the last 4 earnings dates
         earnings_dates = earnings.index.tolist()
         earnings_dates.sort(reverse=True)  # Most recent first
-        last_8_earnings = earnings_dates[:8]
+        last_4_earnings = earnings_dates[:4]
         
         analysis_data = []
         
-        for earnings_date in last_8_earnings:
+        for earnings_date in last_4_earnings:
             try:
                 # Convert to timezone-naive for comparison
                 earnings_date_naive = earnings_date.tz_localize(None) if earnings_date.tz else earnings_date
@@ -818,7 +818,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Beta': beta_value,
             'CTP -12.5%': format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
             'CTP +12.5%': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-            'Earnings Performance (8Q)': earnings_summary
+            'Earnings Performance (4Q)': earnings_summary
         }
         
     except Exception as e:
@@ -851,7 +851,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Beta': 'Error',
             'CTP -12.5%': 'Error',
             'CTP +12.5%': 'Error',
-            'Earnings Performance (8Q)': 'Error'
+            'Earnings Performance (4Q)': 'Error'
         }
 
 def create_excel_report(stock_metrics_list, period_label="1 Year"):
@@ -2119,7 +2119,7 @@ def main():
                 st.plotly_chart(cmf_fig, use_container_width=True)
                 
                 # Earnings Performance Analysis
-                st.subheader("📊 Earnings Performance Analysis (Last 8 Quarters)")
+                st.subheader("📊 Earnings Performance Analysis (Last 4 Quarters)")
                 st.markdown("""
                 **Track how the stock performed after each earnings announcement:**
                 - **Overnight Change**: Price movement from close before earnings to open after earnings
@@ -2181,7 +2181,7 @@ def main():
                 else:
                     st.info("📋 Earnings performance data not available for this stock. This could be due to:")
                     st.markdown("""
-                    - Limited earnings history (less than 8 quarters)
+                    - Limited earnings history (less than 4 quarters)
                     - Data availability issues
                     - Stock may be relatively new to the market
                     """)
