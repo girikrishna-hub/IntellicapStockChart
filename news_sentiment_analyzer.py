@@ -915,7 +915,7 @@ class NewsSentimentAnalyzer:
                     st.markdown("**Share your analysis:**")
                     
                     # Create sharing buttons with direct links
-                    col_whatsapp, col_linkedin, col_copy, col_email = st.columns(4)
+                    col_whatsapp, col_linkedin, col_email = st.columns(3)
                     
                     with col_whatsapp:
                         st.markdown(f"""
@@ -944,11 +944,6 @@ class NewsSentimentAnalyzer:
                             width: 100%;
                         ">💼 Share on LinkedIn</a>
                         """, unsafe_allow_html=True)
-                    
-                    with col_copy:
-                        if st.button("📋 Copy Text", key=f"copy_sentiment_{symbol}"):
-                            st.code(insight['formatted_text'], language=None)
-                            st.success("Text ready to copy!")
                     
                     with col_email:
                         st.markdown(f"""
