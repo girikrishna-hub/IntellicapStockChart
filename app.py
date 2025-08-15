@@ -695,11 +695,12 @@ def get_earnings_info(ticker_obj, ticker_info):
                 ]
                 
                 if not current_year_earnings.empty:
-                    # Found earnings from current year (2025)
-                    last_earnings = current_year_earnings.index[-1]
+                    # Sort by date to ensure we get the most recent (last in chronological order)
+                    current_year_earnings_sorted = current_year_earnings.sort_index()
+                    last_earnings = current_year_earnings_sorted.index[-1]
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-                    print(f"Found last earnings (current year): {earnings_info['last_earnings_formatted']}")
+                    print(f"Found last earnings (current year): {earnings_info['last_earnings_formatted']} from {len(current_year_earnings)} 2025 earnings dates")
                 else:
                     # Fallback to most recent within 12 months (more aggressive cutoff)
                     cutoff_date_tz = current_date_tz - pd.Timedelta(days=365)  # 12 months
