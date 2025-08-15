@@ -420,8 +420,14 @@ def get_earnings_info(ticker_obj, ticker_info):
             if earnings_dates is not None and not earnings_dates.empty:
                 print(f"Found {len(earnings_dates)} earnings dates from earnings_dates")
                 
+                # Convert current_date to match earnings_dates timezone
+                if hasattr(earnings_dates.index[0], 'tz') and earnings_dates.index[0].tz:
+                    current_date_tz = current_date.tz_localize(earnings_dates.index[0].tz)
+                else:
+                    current_date_tz = current_date
+                
                 # Get the most recent past earnings date
-                past_earnings = earnings_dates[earnings_dates.index <= current_date]
+                past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
                 if not past_earnings.empty:
                     last_earnings = past_earnings.index[-1]
                     earnings_info['last_earnings'] = last_earnings
@@ -429,7 +435,7 @@ def get_earnings_info(ticker_obj, ticker_info):
                     print(f"Found last earnings: {earnings_info['last_earnings_formatted']}")
                 
                 # Get next upcoming earnings
-                future_earnings = earnings_dates[earnings_dates.index > current_date]
+                future_earnings = earnings_dates[earnings_dates.index > current_date_tz]
                 if not future_earnings.empty:
                     next_earnings = future_earnings.index[0]
                     earnings_info['next_earnings'] = next_earnings
@@ -442,11 +448,22 @@ def get_earnings_info(ticker_obj, ticker_info):
         if earnings_info['next_earnings'] is None:
             try:
                 calendar = ticker_obj.calendar
-                if calendar is not None and not calendar.empty:
-                    next_earnings = calendar.index[0]
-                    earnings_info['next_earnings'] = next_earnings
-                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-                    print(f"Found next earnings from calendar: {earnings_info['next_earnings_formatted']}")
+                if calendar is not None:
+                    # Handle both DataFrame and dict calendar formats
+                    if hasattr(calendar, 'empty') and not calendar.empty:
+                        next_earnings = calendar.index[0]
+                        earnings_info['next_earnings'] = next_earnings
+                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                        print(f"Found next earnings from calendar: {earnings_info['next_earnings_formatted']}")
+                    elif isinstance(calendar, dict) and calendar:
+                        # Handle dict format calendar
+                        for key, dates in calendar.items():
+                            if dates and len(dates) > 0:
+                                next_earnings = pd.to_datetime(dates[0])
+                                earnings_info['next_earnings'] = next_earnings
+                                earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                                print(f"Found next earnings from calendar dict: {earnings_info['next_earnings_formatted']}")
+                                break
             except Exception as e:
                 print(f"Calendar error: {e}")
         
@@ -497,13 +514,24 @@ def get_earnings_info(ticker_obj, ticker_info):
         if earnings_info['next_earnings'] is None and earnings_info['last_earnings'] is not None:
             try:
                 # Estimate next earnings as ~90 days after last earnings
-                estimated_next = earnings_info['last_earnings'] + pd.DateOffset(days=90)
-                if estimated_next > current_date:
+                last_earnings_date = earnings_info['last_earnings']
+                if hasattr(last_earnings_date, 'tz') and last_earnings_date.tz:
+                    # Keep timezone-aware
+                    estimated_next = last_earnings_date + pd.DateOffset(days=90)
+                else:
+                    # Handle timezone-naive dates
+                    estimated_next = last_earnings_date + pd.DateOffset(days=90)
+                
+                # Check if estimated date is in the future
+                current_check = current_date.tz_localize(None) if hasattr(current_date, 'tz') and current_date.tz else current_date
+                estimated_check = estimated_next.tz_localize(None) if hasattr(estimated_next, 'tz') and estimated_next.tz else estimated_next
+                
+                if estimated_check > current_check:
                     earnings_info['next_earnings'] = estimated_next
                     earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')}"
                     print(f"Estimated next earnings: {earnings_info['next_earnings_formatted']}")
-            except:
-                pass
+            except Exception as e:
+                print(f"Estimation error: {e}")
                 
     except Exception as e:
         print(f"General earnings info error: {e}")
@@ -1423,11 +1451,36 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         if earnings_info['last_earnings'] is not None:
             try:
                 earnings_date = earnings_info['last_earnings']
-                mask = data.index >= earnings_date
-                if mask.any():
-                    earnings_day_price = data[mask]['Close'].iloc[0]
+                
+                # Handle timezone compatibility for comparison
+                if hasattr(data.index[0], 'tz') and data.index[0].tz:
+                    # Data has timezone, ensure earnings_date has the same timezone
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_tz = earnings_date
+                    else:
+                        earnings_date_tz = earnings_date.tz_localize(data.index[0].tz)
+                else:
+                    # Data is timezone-naive, make earnings_date naive too
+                    if hasattr(earnings_date, 'tz') and earnings_date.tz:
+                        earnings_date_tz = earnings_date.tz_localize(None)
+                    else:
+                        earnings_date_tz = earnings_date
+                
+                # Find the trading day closest to or after earnings
+                post_earnings_mask = data.index >= earnings_date_tz
+                if post_earnings_mask.any():
+                    earnings_day_price = data[post_earnings_mask]['Close'].iloc[0]
                     earnings_performance = ((latest_price - earnings_day_price) / earnings_day_price) * 100
-            except:
+                    print(f"Earnings performance calculated: {earnings_performance:.2f}%")
+                else:
+                    # Try finding pre-earnings data and use that as baseline
+                    pre_earnings_mask = data.index <= earnings_date_tz
+                    if pre_earnings_mask.any():
+                        pre_earnings_price = data[pre_earnings_mask]['Close'].iloc[-1]
+                        earnings_performance = ((latest_price - pre_earnings_price) / pre_earnings_price) * 100
+                        print(f"Earnings performance (pre-earnings baseline): {earnings_performance:.2f}%")
+            except Exception as e:
+                print(f"Earnings performance error: {e}")
                 pass
         
         # Latest indicator values
