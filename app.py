@@ -2774,9 +2774,10 @@ def yahoo_finance_tab():
         analyze_button = False
         selected_period = "1 Year"
         period_code = "1y"
+        auto_refresh = False  # No auto-refresh in bulk mode
     
-    # Auto-refresh functionality
-    if auto_refresh and symbol:
+    # Auto-refresh functionality (only for single stock mode)
+    if analysis_mode == "Single Stock Analysis" and auto_refresh and symbol:
         # Initialize refresh state
         if 'last_refresh_time' not in st.session_state:
             st.session_state.last_refresh_time = time.time()
@@ -2828,7 +2829,7 @@ def yahoo_finance_tab():
                 support_level, resistance_level = calculate_support_resistance(data)
                 
                 # Display auto-refresh status and timestamp
-                if auto_refresh:
+                if analysis_mode == "Single Stock Analysis" and auto_refresh:
                     col_status1, col_status2, col_status3 = st.columns([2, 1, 1])
                     with col_status1:
                         st.success(f"✅ Live tracking {symbol} - Updates every 10 minutes")
