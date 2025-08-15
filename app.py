@@ -3891,6 +3891,7 @@ def display_news_sentiment_analysis(symbol):
     if st.session_state.get(f'analyze_sentiment_{symbol}', False):
         
         # Check if OpenAI API key is available
+        import os
         openai_key = os.environ.get("OPENAI_API_KEY")
         if not openai_key:
             st.error("""
