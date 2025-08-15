@@ -18,35 +18,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "install_dependencies"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Landing Page Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Yahoo Finance App Clean"
-
-[[workflows.workflow]]
-name = "install_dependencies"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "uv add yfinance plotly"
-
-[[workflows.workflow]]
-name = "Landing Page Server"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python simple_server.py"
-waitForPort = 3000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[workflows.workflow]]
 name = "Yahoo Finance App Clean"
