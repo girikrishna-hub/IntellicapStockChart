@@ -57,6 +57,53 @@ def fetch_stock_data(symbol, period="1y", market="US"):
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None, None, None
 
+def get_beta_value(ticker_info):
+    """
+    Get the beta value for a stock
+    
+    Args:
+        ticker_info (dict): Stock information from yfinance
+    
+    Returns:
+        str: Beta value formatted as string
+    """
+    try:
+        beta = ticker_info.get('beta', None)
+        if beta is not None and not pd.isna(beta):
+            return f"{beta:.2f}"
+        else:
+            return "N/A"
+    except:
+        return "N/A"
+
+def calculate_ctp_levels(current_price):
+    """
+    Calculate +/- 12.5% CTP (Close to Price) levels
+    
+    Args:
+        current_price (float): Current stock price
+    
+    Returns:
+        dict: Dictionary with upper and lower CTP levels
+    """
+    try:
+        upper_ctp = current_price * 1.125  # +12.5%
+        lower_ctp = current_price * 0.875  # -12.5%
+        
+        return {
+            'upper_ctp': upper_ctp,
+            'lower_ctp': lower_ctp,
+            'upper_percentage': '+12.5%',
+            'lower_percentage': '-12.5%'
+        }
+    except:
+        return {
+            'upper_ctp': None,
+            'lower_ctp': None,
+            'upper_percentage': 'N/A',
+            'lower_percentage': 'N/A'
+        }
+
 def get_after_market_data(symbol, market="US"):
     """
     Get after-market trading data for a stock
@@ -632,6 +679,10 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             except:
                 pass
         
+        # Beta value and CTP levels
+        beta_value = get_beta_value(ticker_info)
+        ctp_levels = calculate_ctp_levels(latest_price)
+        
         # Return comprehensive metrics with proper currency formatting
         currency_symbol = get_currency_symbol(market)
         return {
@@ -658,7 +709,10 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Dividend Yield (%)': dividend_info['dividend_yield'],
             'Forward Dividend': dividend_info['forward_dividend'],
             'Payout Ratio (%)': dividend_info['payout_ratio'],
-            'Est. Next Dividend Date': next_dividend_estimate
+            'Est. Next Dividend Date': next_dividend_estimate,
+            'Beta': beta_value,
+            'CTP -12.5%': format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
+            'CTP +12.5%': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"
         }
         
     except Exception as e:
@@ -687,7 +741,10 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Dividend Yield (%)': 'Error',
             'Forward Dividend': 'Error',
             'Payout Ratio (%)': 'Error',
-            'Est. Next Dividend Date': 'Error'
+            'Est. Next Dividend Date': 'Error',
+            'Beta': 'Error',
+            'CTP -12.5%': 'Error',
+            'CTP +12.5%': 'Error'
         }
 
 def create_excel_report(stock_metrics_list, period_label="1 Year"):
@@ -1110,7 +1167,7 @@ def create_chaikin_chart(data, symbol, cmf, period_label="1 Year", market="US"):
     
     return fig
 
-def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level, market="US"):
+def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_obj, support_level, resistance_level, market="US"):
     """
     Display comprehensive key metrics about the stock
     
@@ -1216,25 +1273,71 @@ def display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, su
     
     with col8:
         st.metric(
-            label="Last Earnings",
-            value=earnings_info['last_earnings_formatted'],
-            help="Most recent earnings announcement date (sourced from earnings calendar when available)"
-        )
-    
-    with col9:
-        st.metric(
-            label="Next Earnings",
-            value=earnings_info['next_earnings_formatted'],
-            help="Expected next earnings date (from earnings calendar when available)"
-        )
-    
-    with col10:
-        st.metric(
             label="Since Earnings",
             value=earnings_performance,
             help="Price change since last earnings"
         )
     
+    with col9:
+        latest_rsi = rsi.iloc[-1] if not rsi.empty else None
+        st.metric(
+            label="RSI (14)",
+            value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
+            help="Relative Strength Index (14-period)"
+        )
+    
+    with col10:
+        # Get beta value
+        beta_value = get_beta_value(ticker_info)
+        st.metric(
+            label="Beta",
+            value=beta_value,
+            help="Stock's volatility relative to the market (1.0 = market average)"
+        )
+    
+    # New row for CTP levels and earnings info
+    st.markdown("**🎯 Price Targets & Earnings Data**")
+    col_ctp1, col_ctp2, col_ctp3, col_ctp4, col_ctp5 = st.columns(5)
+    
+    with col_ctp1:
+        # CTP -12.5% level
+        ctp_levels = calculate_ctp_levels(latest_price)
+        st.metric(
+            label="CTP -12.5%",
+            value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
+            help="Support target at -12.5% from current level"
+        )
+    
+    with col_ctp2:
+        # Current price for reference
+        st.metric(
+            label="Current Level",
+            value=format_currency(latest_price, market),
+            help="Reference point for CTP calculations"
+        )
+    
+    with col_ctp3:
+        # CTP +12.5% level (duplicate from above for better layout)
+        st.metric(
+            label="CTP +12.5%",
+            value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
+            help="Resistance target at +12.5% from current level"
+        )
+    
+    with col_ctp4:
+        st.metric(
+            label="Last Earnings",
+            value=earnings_info['last_earnings_formatted'],
+            help="Most recent earnings announcement date"
+        )
+    
+    with col_ctp5:
+        st.metric(
+            label="Next Earnings",
+            value=earnings_info['next_earnings_formatted'],
+            help="Expected next earnings date"
+        )
+
     # After-market data section
     after_market = get_after_market_data(symbol, market)
     if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
@@ -1868,7 +1971,7 @@ def main():
                 
                 # Display key metrics
                 st.subheader(f"Key Metrics for {symbol}")
-                display_key_metrics(data, symbol, ma_50, ma_200, ticker_info, ticker_obj, support_level, resistance_level, market)
+                display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_obj, support_level, resistance_level, market)
                 
                 # Create and display price chart
                 st.subheader(f"Price Chart with Moving Averages")

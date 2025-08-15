@@ -14,6 +14,8 @@ This project includes two comprehensive Streamlit-based web applications for adv
 
 - **Fixed Dividend Display Bug:** Corrected dividend yield calculations that were showing inflated percentages (e.g., 45.00% instead of 0.45%)
 - **Added Fibonacci Analysis:** Integrated comprehensive Fibonacci retracement analysis for both uptrends and downtrends with visual chart overlays and detailed metrics display
+- **Added Beta Value:** Integrated stock beta calculation showing volatility relative to market
+- **Added CTP Levels:** Added +/- 12.5% Close to Price target levels for support and resistance analysis
 - **Resolved WebSocket Issues:** Replaced Streamlit landing page with static HTML to eliminate WebSocket connection errors
 - **Improved Navigation:** Added clear URL display with copy buttons instead of confusing port change instructions
 - **Streamlined GuruFocus:** Created minimal working version to avoid DataFrame processing hangs
