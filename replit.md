@@ -4,9 +4,9 @@
 
 This project includes two comprehensive Streamlit-based web applications for advanced stock analysis:
 
-**1. Yahoo Finance Version (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
+**1. Fundamental Analysis Tab (app.py):** Advanced technical analysis with interactive charts, real-time tracking, and bulk analysis. Features multiple technical indicators (50-day and 200-day moving averages, MACD, RSI, Chaikin Money Flow), Fibonacci retracement analysis for uptrends and downtrends, comprehensive financial metrics (52-week positions, earnings data, dividend information), support/resistance levels, professional Excel report generation, saved stock list management, and auto-refresh functionality for live market tracking.
 
-**2. GuruFocus Version:** Available as a tab within the main Yahoo Finance app. Features detailed earnings performance analysis for up to 8 quarters and comprehensive institutional-grade financial metrics including valuation ratios, profitability analysis, financial strength indicators, and growth metrics.
+**2. Advanced Analysis Tab:** Available as the second main tab within the application. Features detailed earnings performance analysis for up to 8 quarters and comprehensive institutional-grade financial metrics including valuation ratios, profitability analysis, financial strength indicators, and growth metrics.
 
 **3. Landing Page (landing.html):** Static HTML main entry point with clear URL navigation allowing users to choose between Yahoo Finance and GuruFocus versions. Features detailed comparisons, copy-to-clipboard URL buttons, and seamless navigation between applications without WebSocket conflicts.
 
@@ -28,6 +28,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Implemented Chart Export Functionality:** Added comprehensive chart export capabilities supporting PNG and PDF formats for all charts including price charts, technical indicators (MACD, RSI, Chaikin), and earnings performance charts with high-resolution output and professional PDF formatting
 - **AI-Powered Financial News Sentiment Analysis:** Integrated OpenAI-powered sentiment analysis of financial news articles with comprehensive metrics including sentiment scoring, confidence levels, investment impact assessment, key themes identification, risk factor analysis, and interactive visualizations
 - **Added Extended Hours Trading Information:** Restored comprehensive after-market data display in Price Action tab including pre-market changes, after-hours changes, regular session close prices, and real-time market status indicators (Open/Pre-Market/After-Hours) for complete trading day coverage
+- **Renamed Main Navigation Tabs:** Updated tab names for better clarity - "Yahoo Finance Analysis" to "Fundamental Analysis" and "GuruFocus Analysis" to "Advanced Analysis" to better reflect the content and purpose of each section
 
 ## User Preferences
 
