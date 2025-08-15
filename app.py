@@ -760,89 +760,56 @@ def calculate_support_resistance(data, window=20):
     
     return recent_support, recent_resistance
 
-def calculate_fibonacci_retracements(data, period=50):
+def calculate_fibonacci_retracement(data, lookback_period=50):
     """
-    Calculate Fibonacci retracement levels for uptrends and downtrends
+    Calculate Fibonacci retracement levels
     
     Args:
         data (pd.DataFrame): Stock price data
-        period (int): Period to look back for swing high/low (default 50)
+        lookback_period (int): Period to look back for swing high/low
     
     Returns:
-        dict: Dictionary containing Fibonacci levels and trend direction
+        list: List of tuples (level, price, label) for Fibonacci levels
     """
-    fibonacci_ratios = [0.0, 0.236, 0.382, 0.5, 0.618, 0.786, 1.0]
-    
     try:
-        # Get recent data for analysis
-        recent_data = data.tail(period)
+        # Get recent period data
+        recent_data = data.tail(lookback_period)
         
-        # Find swing high and low within the period
+        # Find swing high and low
         swing_high = recent_data['High'].max()
         swing_low = recent_data['Low'].min()
         
-        # Get the dates for swing high and low
-        swing_high_date = recent_data['High'].idxmax()
-        swing_low_date = recent_data['Low'].idxmin()
+        # Calculate the range
+        price_range = swing_high - swing_low
         
-        # Determine trend direction based on recent price movement
-        # Get the current price and compare with swing levels
-        current_price = data['Close'].iloc[-1]
+        # Fibonacci levels (as decimal percentages)
+        fib_levels = [0.0, 0.236, 0.382, 0.500, 0.618, 0.786, 1.0]
+        fib_labels = ["0%", "23.6%", "38.2%", "50%", "61.8%", "78.6%", "100%"]
         
-        # Calculate distance from swing points to determine trend
-        distance_from_high = abs(current_price - swing_high) / swing_high
-        distance_from_low = abs(current_price - swing_low) / swing_low
+        # Calculate retracement levels
+        fibonacci_data = []
         
-        # Also consider which came more recently
-        recent_trend_period = min(10, len(recent_data) // 2)
-        recent_data_slice = data.tail(recent_trend_period)
-        price_change = (recent_data_slice['Close'].iloc[-1] - recent_data_slice['Close'].iloc[0]) / recent_data_slice['Close'].iloc[0]
+        for level, label in zip(fib_levels, fib_labels):
+            # For uptrend: Start from high and retrace down
+            # For downtrend: Start from low and extend up
+            current_price = data['Close'].iloc[-1]
+            
+            if current_price > (swing_high + swing_low) / 2:
+                # Likely uptrend - calculate retracement from high
+                fib_price = swing_high - (price_range * level)
+            else:
+                # Likely downtrend - calculate extension from low
+                fib_price = swing_low + (price_range * level)
+            
+            fibonacci_data.append((level, fib_price, f"Fib {label}"))
         
-        # Determine trend: if price is closer to high and trending up, it's uptrend
-        if distance_from_high < distance_from_low and price_change >= 0:
-            trend_direction = "uptrend"
-            base_level = swing_low
-            target_level = swing_high
-        elif distance_from_low < distance_from_high and price_change < 0:
-            trend_direction = "downtrend"
-            base_level = swing_high
-            target_level = swing_low
-        elif swing_low_date > swing_high_date:
-            # Recent swing low after swing high suggests downtrend
-            trend_direction = "downtrend"
-            base_level = swing_high
-            target_level = swing_low
-        else:
-            # Recent swing high after swing low suggests uptrend
-            trend_direction = "uptrend"
-            base_level = swing_low
-            target_level = swing_high
-        
-        # Calculate Fibonacci levels
-        price_range = abs(target_level - base_level)
-        fib_levels = {}
-        
-        if trend_direction == "uptrend":
-            # For uptrend, retracements go down from the high
-            for ratio in fibonacci_ratios:
-                fib_levels[f"{ratio*100:.1f}%"] = swing_high - (price_range * ratio)
-        else:
-            # For downtrend, retracements go up from the low
-            for ratio in fibonacci_ratios:
-                fib_levels[f"{ratio*100:.1f}%"] = swing_low + (price_range * ratio)
-        
-        return {
-            'trend_direction': trend_direction,
-            'swing_high': swing_high,
-            'swing_low': swing_low,
-            'swing_high_date': swing_high_date,
-            'swing_low_date': swing_low_date,
-            'fib_levels': fib_levels,
-            'price_range': price_range
-        }
+        return fibonacci_data
         
     except Exception as e:
+        print(f"Error calculating Fibonacci retracement: {str(e)}")
         return None
+
+
 
 def get_earnings_info(ticker_obj, ticker_info):
     """
