@@ -78,13 +78,13 @@ def get_beta_value(ticker_info):
 
 def calculate_ctp_levels(current_price):
     """
-    Calculate +/- 12.5% CTP (Close to Price) levels
+    Calculate Safe Level High and Low reference levels
     
     Args:
         current_price (float): Current stock price
     
     Returns:
-        dict: Dictionary with upper and lower CTP levels
+        dict: Dictionary with upper and lower safe levels
     """
     try:
         upper_ctp = current_price * 1.125  # +12.5%
@@ -1416,7 +1416,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             except:
                 pass
         
-        # Beta value and CTP levels
+        # Beta value and Safe Levels
         beta_value = get_beta_value(ticker_info)
         ctp_levels = calculate_ctp_levels(latest_price)
         
@@ -1462,8 +1462,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Payout Ratio (%)': dividend_info['payout_ratio'],
             'Est. Next Dividend Date': next_dividend_estimate,
             'Beta': beta_value,
-            'CTP -12.5%': format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            'CTP +12.5%': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
+            'Safe Level Low': format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
+            'Safe Level High': format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
             'Earnings Performance (4Q)': earnings_summary
         }
         
@@ -1495,8 +1495,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             'Payout Ratio (%)': 'Error',
             'Est. Next Dividend Date': 'Error',
             'Beta': 'Error',
-            'CTP -12.5%': 'Error',
-            'CTP +12.5%': 'Error',
+            'Safe Level Low': 'Error',
+            'Safe Level High': 'Error',
             'Earnings Performance (4Q)': 'Error'
         }
 
@@ -2048,17 +2048,17 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             help="Stock's volatility relative to the market (1.0 = market average)"
         )
     
-    # New row for CTP levels and earnings info
+    # New row for Safe Levels and earnings info
     st.markdown("**🎯 Price Targets & Earnings Data**")
     col_ctp1, col_ctp2, col_ctp3, col_ctp4, col_ctp5 = st.columns(5)
     
     with col_ctp1:
-        # CTP -12.5% level
+        # Safe Level Low
         ctp_levels = calculate_ctp_levels(latest_price)
         st.metric(
-            label="CTP -12.5%",
+            label="Safe Level Low",
             value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            help="Support target at -12.5% from current level"
+            help="Lower support reference level"
         )
     
     with col_ctp2:
@@ -2066,15 +2066,15 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         st.metric(
             label="Current Level",
             value=format_currency(latest_price, market),
-            help="Reference point for CTP calculations"
+            help="Current market price reference point"
         )
     
     with col_ctp3:
-        # CTP +12.5% level (duplicate from above for better layout)
+        # Safe Level High
         st.metric(
-            label="CTP +12.5%",
+            label="Safe Level High",
             value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-            help="Resistance target at +12.5% from current level"
+            help="Upper resistance reference level"
         )
     
     with col_ctp4:
