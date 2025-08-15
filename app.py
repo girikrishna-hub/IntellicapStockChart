@@ -394,7 +394,7 @@ def calculate_fibonacci_retracements(data, period=50):
 
 def get_earnings_info(ticker_obj, ticker_info):
     """
-    Extract earnings information from ticker object and info with improved accuracy
+    Extract earnings information from ticker object and info with improved accuracy and multiple fallback sources
     
     Args:
         ticker_obj: yfinance Ticker object
@@ -410,68 +410,105 @@ def get_earnings_info(ticker_obj, ticker_info):
         'next_earnings_formatted': 'N/A'
     }
     
+    current_date = pd.Timestamp.now()
+    print(f"Gathering earnings info...")
+    
     try:
-        # Try to get earnings calendar first (most accurate for next earnings)
-        try:
-            calendar = ticker_obj.calendar
-            if calendar is not None and not calendar.empty:
-                # Get the most recent upcoming earnings date
-                next_earnings = calendar.index[0]
-                earnings_info['next_earnings'] = next_earnings
-                earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-        except:
-            pass
-        
-        # Try to get earnings history for last earnings
+        # Method 1: Try earnings_dates (most comprehensive source)
         try:
             earnings_dates = ticker_obj.earnings_dates
             if earnings_dates is not None and not earnings_dates.empty:
+                print(f"Found {len(earnings_dates)} earnings dates from earnings_dates")
+                
                 # Get the most recent past earnings date
-                current_date = pd.Timestamp.now()
                 past_earnings = earnings_dates[earnings_dates.index <= current_date]
                 if not past_earnings.empty:
                     last_earnings = past_earnings.index[-1]
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                    print(f"Found last earnings: {earnings_info['last_earnings_formatted']}")
                 
-                # If we don't have next earnings from calendar, try from earnings_dates
-                if earnings_info['next_earnings'] is None:
-                    future_earnings = earnings_dates[earnings_dates.index > current_date]
-                    if not future_earnings.empty:
-                        next_earnings = future_earnings.index[0]
-                        earnings_info['next_earnings'] = next_earnings
-                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-        except:
-            pass
+                # Get next upcoming earnings
+                future_earnings = earnings_dates[earnings_dates.index > current_date]
+                if not future_earnings.empty:
+                    next_earnings = future_earnings.index[0]
+                    earnings_info['next_earnings'] = next_earnings
+                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                    print(f"Found next earnings: {earnings_info['next_earnings_formatted']}")
+        except Exception as e:
+            print(f"Earnings dates error: {e}")
         
-        # Fallback to ticker_info if earnings_dates/calendar unavailable
+        # Method 2: Try earnings calendar for next earnings
+        if earnings_info['next_earnings'] is None:
+            try:
+                calendar = ticker_obj.calendar
+                if calendar is not None and not calendar.empty:
+                    next_earnings = calendar.index[0]
+                    earnings_info['next_earnings'] = next_earnings
+                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                    print(f"Found next earnings from calendar: {earnings_info['next_earnings_formatted']}")
+            except Exception as e:
+                print(f"Calendar error: {e}")
+        
+        # Method 3: Try earnings history for past earnings
         if earnings_info['last_earnings'] is None:
             try:
-                if 'lastFiscalYearEnd' in ticker_info and ticker_info['lastFiscalYearEnd']:
-                    last_earnings = pd.to_datetime(ticker_info['lastFiscalYearEnd'], unit='s')
-                    earnings_info['last_earnings'] = last_earnings
-                    earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-            except:
-                pass
+                earnings_history = ticker_obj.earnings
+                if earnings_history is not None and not earnings_history.empty:
+                    # Convert earnings history index to datetime
+                    last_earnings_date = earnings_history.index[-1]
+                    earnings_info['last_earnings'] = last_earnings_date
+                    earnings_info['last_earnings_formatted'] = last_earnings_date.strftime('%Y-%m-%d')
+                    print(f"Found last earnings from history: {earnings_info['last_earnings_formatted']}")
+            except Exception as e:
+                print(f"Earnings history error: {e}")
         
-        # Fallback for next earnings
+        # Method 4: Fallback to ticker_info fields
         if earnings_info['next_earnings'] is None:
             try:
                 if 'earningsDate' in ticker_info and ticker_info['earningsDate']:
-                    if isinstance(ticker_info['earningsDate'], list) and ticker_info['earningsDate']:
-                        next_earnings = pd.to_datetime(ticker_info['earningsDate'][0], unit='s')
-                        earnings_info['next_earnings'] = next_earnings
-                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-                    elif not isinstance(ticker_info['earningsDate'], list):
-                        next_earnings = pd.to_datetime(ticker_info['earningsDate'], unit='s')
-                        earnings_info['next_earnings'] = next_earnings
-                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                    earnings_date = ticker_info['earningsDate']
+                    if isinstance(earnings_date, list) and earnings_date:
+                        next_earnings = pd.to_datetime(earnings_date[0], unit='s')
+                    else:
+                        next_earnings = pd.to_datetime(earnings_date, unit='s')
+                    
+                    earnings_info['next_earnings'] = next_earnings
+                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                    print(f"Found next earnings from ticker info: {earnings_info['next_earnings_formatted']}")
+            except Exception as e:
+                print(f"Ticker info earnings date error: {e}")
+        
+        # Method 5: Try additional ticker_info fields for last earnings
+        if earnings_info['last_earnings'] is None:
+            try:
+                # Try multiple possible fields
+                for field in ['lastFiscalYearEnd', 'mostRecentQuarter', 'lastQuarterEnd']:
+                    if field in ticker_info and ticker_info[field]:
+                        last_earnings = pd.to_datetime(ticker_info[field], unit='s')
+                        earnings_info['last_earnings'] = last_earnings
+                        earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                        print(f"Found last earnings from {field}: {earnings_info['last_earnings_formatted']}")
+                        break
+            except Exception as e:
+                print(f"Ticker info fallback error: {e}")
+        
+        # Method 6: Estimate next earnings based on last earnings (quarterly companies)
+        if earnings_info['next_earnings'] is None and earnings_info['last_earnings'] is not None:
+            try:
+                # Estimate next earnings as ~90 days after last earnings
+                estimated_next = earnings_info['last_earnings'] + pd.DateOffset(days=90)
+                if estimated_next > current_date:
+                    earnings_info['next_earnings'] = estimated_next
+                    earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')}"
+                    print(f"Estimated next earnings: {earnings_info['next_earnings_formatted']}")
             except:
                 pass
                 
     except Exception as e:
-        pass
+        print(f"General earnings info error: {e}")
     
+    print(f"Final earnings info - Last: {earnings_info['last_earnings_formatted']}, Next: {earnings_info['next_earnings_formatted']}")
     return earnings_info
 
 def get_earnings_performance_analysis(ticker_obj, data, market="US"):
