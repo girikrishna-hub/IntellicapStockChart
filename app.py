@@ -807,19 +807,9 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         beta_value = get_beta_value(ticker_info)
         ctp_levels = calculate_ctp_levels(latest_price)
         
-        # Earnings performance analysis summary
-        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
-        earnings_summary = "N/A"
-        if earnings_analysis is not None and not earnings_analysis.empty:
-            try:
-                # Calculate summary statistics
-                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
-                if week_changes:
-                    avg_week = sum(week_changes) / len(week_changes)
-                    positive_week = sum(1 for x in week_changes if x > 0)
-                    earnings_summary = f"{positive_week}/{len(week_changes)} positive (avg: {avg_week:+.1f}%)"
-            except:
-                pass
+        # Note: Earnings performance analysis temporarily disabled
+        # Will be implemented with GuruFocus API integration
+        earnings_summary = "Available with GuruFocus"
         
         # Return comprehensive metrics with proper currency formatting
         currency_symbol = get_currency_symbol(market)
@@ -2151,91 +2141,8 @@ def main():
                 cmf_fig = create_chaikin_chart(data, symbol, cmf, selected_period, market)
                 st.plotly_chart(cmf_fig, use_container_width=True)
                 
-                # Earnings Performance Analysis
-                earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
-                st.subheader(f"📊 Earnings Performance Analysis ({quarters_found} Quarter{'s' if quarters_found != 1 else ''} Available)")
-                st.markdown("""
-                **Track how the stock performed after each earnings announcement:**
-                - **Overnight Change**: Price movement from close before earnings to open after earnings
-                - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
-                """)
-                
-                if earnings_analysis is not None and not earnings_analysis.empty:
-                    # Display summary statistics
-                    col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
-                    
-                    # Calculate summary stats
-                    overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
-                    week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
-                    
-                    if overnight_changes:
-                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
-                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
-                        
-                    if week_changes:
-                        avg_week = sum(week_changes) / len(week_changes)
-                        positive_week = sum(1 for x in week_changes if x > 0)
-                    
-                    with col_stats1:
-                        st.metric(
-                            label="Avg Overnight Change",
-                            value=f"{avg_overnight:+.1f}%" if overnight_changes else "N/A",
-                            help="Average overnight change after earnings"
-                        )
-                    
-                    with col_stats2:
-                        st.metric(
-                            label="Positive Overnight",
-                            value=f"{positive_overnight}/{len(overnight_changes)}" if overnight_changes else "N/A",
-                            help="Number of positive overnight reactions"
-                        )
-                    
-                    with col_stats3:
-                        st.metric(
-                            label="Avg Week Performance",
-                            value=f"{avg_week:+.1f}%" if week_changes else "N/A",
-                            help="Average week performance after earnings"
-                        )
-                    
-                    with col_stats4:
-                        st.metric(
-                            label="Positive Weeks",
-                            value=f"{positive_week}/{len(week_changes)}" if week_changes else "N/A",
-                            help="Number of positive week outcomes"
-                        )
-                    
-                    # Display the detailed table
-                    st.markdown("**Detailed Earnings Performance:**")
-                    st.dataframe(
-                        earnings_analysis,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                else:
-                    st.info("📋 Earnings performance data not available for this stock. This could be due to:")
-                    st.markdown("""
-                    - No earnings history found in available data sources
-                    - Stock may be relatively new to the market
-                    - Data availability issues with yfinance API
-                    - Company may not report regular quarterly earnings
-                    """)
-                    
-                    # Debug information for troubleshooting
-                    with st.expander("🔍 Debug Information"):
-                        try:
-                            earnings_dates = ticker_obj.earnings_dates
-                            calendar = ticker_obj.calendar
-                            earnings_history = ticker_obj.earnings
-                            
-                            st.write(f"**Earnings Dates Available:** {len(earnings_dates) if earnings_dates is not None and not earnings_dates.empty else 0}")
-                            st.write(f"**Calendar Available:** {len(calendar) if calendar is not None and not calendar.empty else 0}")
-                            st.write(f"**Earnings History Available:** {len(earnings_history) if earnings_history is not None and not earnings_history.empty else 0}")
-                            
-                            if earnings_dates is not None and not earnings_dates.empty:
-                                st.write("**Recent Earnings Dates:**")
-                                st.write(earnings_dates.head())
-                        except Exception as e:
-                            st.write(f"Debug error: {str(e)}")
+                # Note: Earnings Performance Analysis temporarily disabled
+                # Will be implemented with GuruFocus API integration for accurate earnings data
                 
                 # Additional information
                 st.subheader("Chart Information")
