@@ -686,23 +686,38 @@ def get_earnings_info(ticker_obj, ticker_info):
                 else:
                     current_date_tz = current_date
                 
-                # Get the most recent past earnings date (within reasonable timeframe)
-                cutoff_date_tz = current_date_tz - pd.Timedelta(days=540)  # 18 months
-                recent_past_earnings = earnings_dates[
+                # Look for the most recent past earnings (prioritize 2025 data)
+                # First try to find earnings from current year (2025)
+                current_year = current_date_tz.year
+                current_year_earnings = earnings_dates[
                     (earnings_dates.index <= current_date_tz) & 
-                    (earnings_dates.index >= cutoff_date_tz)
+                    (earnings_dates.index.year == current_year)
                 ]
-                if not recent_past_earnings.empty:
-                    last_earnings = recent_past_earnings.index[-1]
+                
+                if not current_year_earnings.empty:
+                    # Found earnings from current year (2025)
+                    last_earnings = current_year_earnings.index[-1]
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-                    print(f"Found last earnings: {earnings_info['last_earnings_formatted']}")
+                    print(f"Found last earnings (current year): {earnings_info['last_earnings_formatted']}")
                 else:
-                    # If no recent earnings, check if we have any past earnings and show as old
-                    all_past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
-                    if not all_past_earnings.empty:
-                        old_earnings = all_past_earnings.index[-1]
-                        print(f"Found old earnings (skipped): {old_earnings.strftime('%Y-%m-%d')}")
+                    # Fallback to most recent within 12 months (more aggressive cutoff)
+                    cutoff_date_tz = current_date_tz - pd.Timedelta(days=365)  # 12 months
+                    recent_past_earnings = earnings_dates[
+                        (earnings_dates.index <= current_date_tz) & 
+                        (earnings_dates.index >= cutoff_date_tz)
+                    ]
+                    if not recent_past_earnings.empty:
+                        last_earnings = recent_past_earnings.index[-1]
+                        earnings_info['last_earnings'] = last_earnings
+                        earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                        print(f"Found last earnings (within 12 months): {earnings_info['last_earnings_formatted']}")
+                    else:
+                        # Check if we have any past earnings and show as old
+                        all_past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
+                        if not all_past_earnings.empty:
+                            old_earnings = all_past_earnings.index[-1]
+                            print(f"Found old earnings (skipped): {old_earnings.strftime('%Y-%m-%d')}")
                 
                 # Get next upcoming earnings
                 future_earnings = earnings_dates[earnings_dates.index > current_date_tz]
