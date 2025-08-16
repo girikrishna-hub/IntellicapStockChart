@@ -615,14 +615,20 @@ def run_sentiment_analysis(symbol):
         run_analysis = st.button("🔍 Analyze News Sentiment", type="primary")
     
     with col_refresh:
-        if st.session_state[cache_key] is not None:
-            if st.button("🔄 Refresh", help="Run new analysis with fresh data"):
+        # Always show refresh button if we have cached results
+        if st.session_state.get(cache_key) is not None:
+            if st.button("🔄 Refresh Analysis", help="Run new analysis with fresh data", key=f"refresh_{symbol}"):
                 run_analysis = True
                 st.session_state[cache_key] = None
+                st.rerun()
+    
+    # Debug info for cache status
+    if st.session_state.get(cache_key) is not None:
+        st.success("✅ Cached results available - showing below")
     
     # Show cached results or run new analysis
-    if st.session_state[cache_key] is not None:
-        st.info("📊 Showing cached results. Click 'Refresh' for updated data.")
+    if st.session_state.get(cache_key) is not None:
+        st.info("📊 Showing cached results. Click 'Refresh Analysis' for updated data.")
         _display_sentiment_results(st.session_state[cache_key], symbol)
     elif run_analysis:
         with st.spinner(f"Fetching news from {len(selected_sources)} source(s) and analyzing sentiment..."):
