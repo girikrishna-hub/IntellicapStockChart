@@ -3319,6 +3319,8 @@ def yahoo_finance_tab():
             # Update session state when symbol changes
             if symbol != st.session_state.current_symbol:
                 st.session_state.current_symbol = symbol
+                # Also store the current market for Advanced Analysis sync
+                st.session_state.current_market = market
                 
             # For Indian market, ensure .NS suffix for proper data fetching
             if market == "India" and symbol and not symbol.endswith('.NS') and not symbol.endswith('.BO'):
@@ -3658,8 +3660,25 @@ def gurufocus_tab():
     # Analysis section
     if st.session_state.get('guru_analyze_clicked', False) and symbol_guru:
         with st.spinner(f"Analyzing {quarters_count} quarters of earnings data for {symbol_guru.upper()}..."):
-            # Auto-detect market based on symbol
-            if '.NS' in symbol_guru or '.BO' in symbol_guru:
+            # Auto-detect market based on symbol and sync with fundamental analysis market selection
+            # Check if we have market info from the synced symbol context
+            fundamental_market = st.session_state.get('current_market', None)
+            
+            # Common Indian stock symbols (major companies)
+            indian_symbols = {
+                'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ICICIBANK', 'BHARTIARTL', 'ITC', 
+                'LT', 'HCLTECH', 'KOTAKBANK', 'AXISBANK', 'ASIANPAINT', 'MARUTI',
+                'TITAN', 'NESTLEIND', 'ULTRACEMCO', 'POWERGRID', 'NTPC', 'COALINDIA',
+                'ONGC', 'TECHM', 'TATAMOTORS', 'TATASTEEL', 'HINDUNILVR', 'WIPRO',
+                'DRREDDY', 'EICHERMOT', 'BAJFINANCE', 'BAJAJFINSV', 'BRITANNIA',
+                'CIPLA', 'DIVISLAB', 'HEROMOTOCO', 'HINDALCO', 'INDUSINDBK',
+                'JSWSTEEL', 'M&M', 'SBIN', 'SUNPHARMA', 'GRASIM'
+            }
+            
+            # Detect market based on multiple factors
+            if ('.NS' in symbol_guru or '.BO' in symbol_guru or 
+                symbol_guru.replace('.NS', '').replace('.BO', '') in indian_symbols or
+                fundamental_market == "India"):
                 detected_market = "India"
                 # For Indian stocks, add .NS suffix if not present
                 if not symbol_guru.endswith('.NS') and not symbol_guru.endswith('.BO'):
