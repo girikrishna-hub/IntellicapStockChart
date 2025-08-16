@@ -3319,6 +3319,12 @@ def yahoo_finance_tab():
             # Update session state when symbol changes
             if symbol != st.session_state.current_symbol:
                 st.session_state.current_symbol = symbol
+                
+            # For Indian market, ensure .NS suffix for proper data fetching
+            if market == "India" and symbol and not symbol.endswith('.NS') and not symbol.endswith('.BO'):
+                symbol_for_fetching = f"{symbol}.NS"
+            else:
+                symbol_for_fetching = symbol
         
         with col2:
             period_options = {
@@ -3355,7 +3361,7 @@ def yahoo_finance_tab():
         if symbol:
             # Pre-fetch data to determine if tabs should be shown
             with st.spinner(f'Fetching data for {symbol.upper()}...'):
-                data, ticker_info, ticker_obj = fetch_stock_data(symbol.upper(), period=period_code, market=market)
+                data, ticker_info, ticker_obj = fetch_stock_data(symbol_for_fetching, period=period_code, market=market)
             
             if data is not None and ticker_info is not None and ticker_obj is not None and not data.empty:
                 # Create sub-tabs for better organization
@@ -3627,8 +3633,8 @@ def gurufocus_tab():
         symbol_guru = st.text_input(
             "Enter Stock Symbol:",
             value=default_guru_symbol,
-            placeholder="e.g., AAPL, GOOGL, TSLA",
-            help="Enter US stock symbols for detailed earnings analysis (synced with Fundamental Analysis)",
+            placeholder="e.g., AAPL, GOOGL, TSLA (US) or RELIANCE.NS, TCS.NS (India)",
+            help="Enter stock symbols for detailed earnings analysis (synced with Fundamental Analysis) - supports both US and Indian markets",
             key="gurufocus_symbol"
         ).upper().strip()
         
@@ -3652,13 +3658,27 @@ def gurufocus_tab():
     # Analysis section
     if st.session_state.get('guru_analyze_clicked', False) and symbol_guru:
         with st.spinner(f"Analyzing {quarters_count} quarters of earnings data for {symbol_guru.upper()}..."):
+            # Auto-detect market based on symbol
+            if '.NS' in symbol_guru or '.BO' in symbol_guru:
+                detected_market = "India"
+                # For Indian stocks, add .NS suffix if not present
+                if not symbol_guru.endswith('.NS') and not symbol_guru.endswith('.BO'):
+                    symbol_for_analysis = f"{symbol_guru}.NS"
+                else:
+                    symbol_for_analysis = symbol_guru
+            else:
+                detected_market = "US"
+                symbol_for_analysis = symbol_guru
+            
+            st.info(f"🌍 Detected market: {detected_market}")
+            
             # Fetch extended earnings data
-            data, info, ticker_obj = fetch_stock_data(symbol_guru.upper(), period="3y", market="US")
+            data, info, ticker_obj = fetch_stock_data(symbol_for_analysis, period="3y", market=detected_market)
             
             if data is not None and ticker_obj is not None:
                 # Get detailed earnings performance analysis
                 earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
-                    ticker_obj, data, market="US", max_quarters=quarters_count
+                    ticker_obj, data, market=detected_market, max_quarters=quarters_count
                 )
                 
                 if earnings_analysis is not None and not earnings_analysis.empty:
@@ -3678,6 +3698,11 @@ def gurufocus_tab():
                         balance_sheet = ticker_obj.balance_sheet
                         income_stmt = ticker_obj.income_stmt
                         cash_flow = ticker_obj.cash_flow
+                        
+                        # Currency symbol based on market
+                        currency = "₹" if detected_market == "India" else "$"
+                        currency_suffix = "Cr" if detected_market == "India" else "B"
+                        divisor = 1e7 if detected_market == "India" else 1e9
                         
                         # Valuation Metrics
                         st.markdown("### 💰 Valuation Ratios")
@@ -3709,7 +3734,7 @@ def gurufocus_tab():
                             enterprise_value = info.get('enterpriseValue')
                             ev_ebitda = info.get('enterpriseToEbitda')
                             if enterprise_value:
-                                st.metric("Enterprise Value", f"${enterprise_value/1e9:.2f}B")
+                                st.metric("Enterprise Value", f"{currency}{enterprise_value/divisor:.2f}{currency_suffix}")
                             else:
                                 st.metric("Enterprise Value", "N/A")
                             st.metric("EV/EBITDA", f"{ev_ebitda:.2f}" if ev_ebitda else "N/A")
@@ -3743,8 +3768,8 @@ def gurufocus_tab():
                             # Revenue per share and Book value
                             revenue_per_share = info.get('revenuePerShare')
                             book_value = info.get('bookValue')
-                            st.metric("Revenue/Share", f"${revenue_per_share:.2f}" if revenue_per_share else "N/A")
-                            st.metric("Book Value/Share", f"${book_value:.2f}" if book_value else "N/A")
+                            st.metric("Revenue/Share", f"{currency}{revenue_per_share:.2f}" if revenue_per_share else "N/A")
+                            st.metric("Book Value/Share", f"{currency}{book_value:.2f}" if book_value else "N/A")
                         
                         # Financial Strength
                         st.markdown("### 💪 Financial Strength")
@@ -3763,7 +3788,7 @@ def gurufocus_tab():
                             total_cash = info.get('totalCash')
                             st.metric("Quick Ratio", f"{quick_ratio:.2f}" if quick_ratio else "N/A")
                             if total_cash:
-                                st.metric("Total Cash", f"${total_cash/1e9:.2f}B")
+                                st.metric("Total Cash", f"{currency}{total_cash/divisor:.2f}{currency_suffix}")
                             else:
                                 st.metric("Total Cash", "N/A")
                         
@@ -3771,9 +3796,9 @@ def gurufocus_tab():
                             # Cash per share and Free cash flow
                             cash_per_share = info.get('totalCashPerShare')
                             free_cashflow = info.get('freeCashflow')
-                            st.metric("Cash/Share", f"${cash_per_share:.2f}" if cash_per_share else "N/A")
+                            st.metric("Cash/Share", f"{currency}{cash_per_share:.2f}" if cash_per_share else "N/A")
                             if free_cashflow:
-                                st.metric("Free Cash Flow", f"${free_cashflow/1e9:.2f}B")
+                                st.metric("Free Cash Flow", f"{currency}{free_cashflow/divisor:.2f}{currency_suffix}")
                             else:
                                 st.metric("Free Cash Flow", "N/A")
                         
@@ -3782,11 +3807,11 @@ def gurufocus_tab():
                             operating_cashflow = info.get('operatingCashflow')
                             total_debt = info.get('totalDebt')
                             if operating_cashflow:
-                                st.metric("Operating Cash Flow", f"${operating_cashflow/1e9:.2f}B")
+                                st.metric("Operating Cash Flow", f"{currency}{operating_cashflow/divisor:.2f}{currency_suffix}")
                             else:
                                 st.metric("Operating Cash Flow", "N/A")
                             if total_debt:
-                                st.metric("Total Debt", f"${total_debt/1e9:.2f}B")
+                                st.metric("Total Debt", f"{currency}{total_debt/divisor:.2f}{currency_suffix}")
                             else:
                                 st.metric("Total Debt", "N/A")
                         
@@ -3812,8 +3837,8 @@ def gurufocus_tab():
                             # EPS estimates
                             target_high_price = info.get('targetHighPrice')
                             target_low_price = info.get('targetLowPrice')
-                            st.metric("Target High Price", f"${target_high_price:.2f}" if target_high_price else "N/A")
-                            st.metric("Target Low Price", f"${target_low_price:.2f}" if target_low_price else "N/A")
+                            st.metric("Target High Price", f"{currency}{target_high_price:.2f}" if target_high_price else "N/A")
+                            st.metric("Target Low Price", f"{currency}{target_low_price:.2f}" if target_low_price else "N/A")
                         
                         with growth_col4:
                             # Analyst recommendations

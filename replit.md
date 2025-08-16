@@ -33,6 +33,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Added Automatic Symbol Uppercase Conversion:** All stock symbol inputs now automatically convert to uppercase regardless of how users enter them, ensuring consistent formatting throughout the application for single analysis, bulk analysis, advanced analysis tabs, and sentiment analysis
 - **Restored Institutional Financial Parameters:** Enhanced Advanced Analysis tab with comprehensive professional-grade financial metrics including valuation ratios (P/E, P/B, PEG, EV/EBITDA), profitability analysis (margins, ROE, ROA), financial strength indicators (debt ratios, liquidity ratios, cash flow), growth metrics (revenue/earnings growth rates), and analyst recommendations for institutional-level stock analysis
 - **Added Cross-Tab Symbol Synchronization:** Stock symbols are now automatically synced between Fundamental Analysis and Advanced Analysis tabs, so entering a symbol in one tab automatically populates it in the other for seamless navigation and analysis workflow
+- **Enhanced Advanced Analysis for Indian Stocks:** Advanced Analysis tab now supports both US and Indian markets with automatic market detection, proper currency formatting (₹ for Indian stocks, $ for US stocks), and automatic .NS suffix handling for Indian stock symbols to ensure proper data retrieval
 
 ## User Preferences
 
