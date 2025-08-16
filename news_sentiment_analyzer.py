@@ -26,11 +26,17 @@ def get_openai_client():
     
     return OpenAI(api_key=OPENAI_API_KEY)
 
-def fetch_from_yahoo_finance(symbol, max_articles=5):
+def fetch_from_yahoo_finance(symbol, max_articles=5, market="US"):
     """Fetch news from Yahoo Finance RSS feed"""
     try:
-        # Yahoo Finance RSS feed for stock news
-        yahoo_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={symbol}&region=US&lang=en-US"
+        # Adjust URLs based on market
+        if market == "India":
+            # For Indian stocks, use region-specific URLs
+            yahoo_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={symbol}.NS&region=IN&lang=en-IN"
+        else:
+            # US market URLs
+            yahoo_url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={symbol}&region=US&lang=en-US"
+        
         feed = feedparser.parse(yahoo_url)
         
         articles = []
@@ -40,14 +46,14 @@ def fetch_from_yahoo_finance(symbol, max_articles=5):
                 "summary": entry.get('summary', entry.get('description', '')),
                 "url": entry.link,
                 "published_date": entry.get('published', ''),
-                "source": "Yahoo Finance"
+                "source": f"Yahoo Finance ({market})"
             })
         return articles
     except Exception as e:
         print(f"Yahoo Finance error: {e}")
         return []
 
-def fetch_from_newsapi(symbol, api_key, max_articles=5):
+def fetch_from_newsapi(symbol, api_key, max_articles=5, market="US"):
     """Fetch news from NewsAPI"""
     try:
         if not api_key:
@@ -55,18 +61,31 @@ def fetch_from_newsapi(symbol, api_key, max_articles=5):
         
         newsapi = NewsApiClient(api_key=api_key)
         
-        # Get company name for better search results
-        company_names = {
-            'AAPL': 'Apple',
-            'GOOGL': 'Google', 
-            'MSFT': 'Microsoft',
-            'TSLA': 'Tesla',
-            'AMZN': 'Amazon',
-            'META': 'Meta',
-            'NVDA': 'NVIDIA'
-        }
-        
-        search_query = f"{symbol} OR {company_names.get(symbol, symbol)}"
+        # Get company name for better search results based on market
+        if market == "India":
+            company_names = {
+                'RELIANCE': 'Reliance Industries',
+                'TCS': 'Tata Consultancy Services',
+                'INFY': 'Infosys',
+                'HDFC': 'HDFC Bank',
+                'ICICIBANK': 'ICICI Bank',
+                'BEL': 'Bharat Electronics',
+                'BEML': 'BEML Limited',
+                'BHEL': 'Bharat Heavy Electricals',
+                'HAL': 'Hindustan Aeronautics'
+            }
+            search_query = f"{symbol} OR {company_names.get(symbol, symbol)} India NSE BSE"
+        else:
+            company_names = {
+                'AAPL': 'Apple',
+                'GOOGL': 'Google', 
+                'MSFT': 'Microsoft',
+                'TSLA': 'Tesla',
+                'AMZN': 'Amazon',
+                'META': 'Meta',
+                'NVDA': 'NVIDIA'
+            }
+            search_query = f"{symbol} OR {company_names.get(symbol, symbol)}"
         
         articles = newsapi.get_everything(
             q=search_query,
@@ -84,7 +103,7 @@ def fetch_from_newsapi(symbol, api_key, max_articles=5):
                 "summary": article['description'] or '',
                 "url": article['url'],
                 "published_date": article['publishedAt'],
-                "source": f"NewsAPI ({article['source']['name']})"
+                "source": f"NewsAPI ({market}) - {article['source']['name']}"
             })
         
         return formatted_articles
@@ -92,11 +111,17 @@ def fetch_from_newsapi(symbol, api_key, max_articles=5):
         print(f"NewsAPI error: {e}")
         return []
 
-def fetch_from_google_news(symbol, max_articles=5):
+def fetch_from_google_news(symbol, max_articles=5, market="US"):
     """Fetch news from Google News RSS feed"""
     try:
-        # Google News RSS feed
-        google_url = f"https://news.google.com/rss/search?q={symbol}+stock&hl=en-US&gl=US&ceid=US:en"
+        # Adjust search terms based on market
+        if market == "India":
+            search_term = f"{symbol}+stock+India+NSE+BSE"
+            google_url = f"https://news.google.com/rss/search?q={search_term}&hl=en-IN&gl=IN&ceid=IN:en"
+        else:
+            search_term = f"{symbol}+stock"
+            google_url = f"https://news.google.com/rss/search?q={search_term}&hl=en-US&gl=US&ceid=US:en"
+        
         feed = feedparser.parse(google_url)
         
         articles = []
@@ -106,7 +131,7 @@ def fetch_from_google_news(symbol, max_articles=5):
                 "summary": entry.get('summary', ''),
                 "url": entry.link,
                 "published_date": entry.get('published', ''),
-                "source": "Google News"
+                "source": f"Google News ({market})"
             })
         return articles
     except Exception as e:
@@ -145,7 +170,7 @@ def fetch_from_alpha_vantage(symbol, api_key, max_articles=5):
         print(f"Alpha Vantage error: {e}")
         return []
 
-def fetch_financial_news(symbol, selected_sources, days_back=7, max_articles=10):
+def fetch_financial_news(symbol, selected_sources, days_back=7, max_articles=10, market="US"):
     """
     Fetch financial news articles for a given stock symbol from multiple sources
     
@@ -154,6 +179,7 @@ def fetch_financial_news(symbol, selected_sources, days_back=7, max_articles=10)
         selected_sources (list): List of selected news sources
         days_back (int): Number of days to look back for news
         max_articles (int): Maximum number of articles to fetch
+        market (str): Market type ("US" or "India")
     
     Returns:
         list: List of news articles with metadata
@@ -162,20 +188,20 @@ def fetch_financial_news(symbol, selected_sources, days_back=7, max_articles=10)
     articles_per_source = max(1, max_articles // len(selected_sources)) if selected_sources else max_articles
     
     try:
-        # Fetch from each selected source
+        # Fetch from each selected source with market context
         if "Yahoo Finance" in selected_sources:
-            yahoo_articles = fetch_from_yahoo_finance(symbol, articles_per_source)
+            yahoo_articles = fetch_from_yahoo_finance(symbol, articles_per_source, market)
             all_articles.extend(yahoo_articles)
         
         if "Google News" in selected_sources:
-            google_articles = fetch_from_google_news(symbol, articles_per_source)
+            google_articles = fetch_from_google_news(symbol, articles_per_source, market)
             all_articles.extend(google_articles)
         
         if "NewsAPI" in selected_sources:
             # Check if NewsAPI key is available
             newsapi_key = os.environ.get('NEWSAPI_API_KEY')
             if newsapi_key:
-                newsapi_articles = fetch_from_newsapi(symbol, newsapi_key, articles_per_source)
+                newsapi_articles = fetch_from_newsapi(symbol, newsapi_key, articles_per_source, market)
                 all_articles.extend(newsapi_articles)
         
         if "Alpha Vantage" in selected_sources:
@@ -496,14 +522,16 @@ def create_sentiment_charts(aggregate_metrics, analyzed_articles):
     
     return sentiment_fig, impact_fig, confidence_fig
 
-def run_sentiment_analysis(symbol):
+def run_sentiment_analysis(symbol, market="US"):
     """
     Main function to display news sentiment analysis for a stock
     
     Args:
         symbol (str): Stock symbol
+        market (str): Market type ("US" or "India")
     """
-    st.subheader(f"📰 AI-Powered News Sentiment Analysis for {symbol.upper()}")
+    market_info = "🇮🇳 Indian Market" if market == "India" else "🇺🇸 US Market"
+    st.subheader(f"📰 AI-Powered News Sentiment Analysis for {symbol.upper()} ({market_info})")
     
     # Check if OpenAI API key is available
     if not OPENAI_API_KEY:
@@ -638,7 +666,7 @@ def run_sentiment_analysis(symbol):
             st.info(f"📡 Fetching articles from: {', '.join(selected_sources)}")
             
             # Fetch news articles from selected sources
-            articles = fetch_financial_news(symbol, selected_sources, days_back, max_articles)
+            articles = fetch_financial_news(symbol, selected_sources, days_back, max_articles, market)
             
             if not articles:
                 st.warning(f"No recent news articles found for {symbol}. This could be due to:")

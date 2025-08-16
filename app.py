@@ -4456,7 +4456,32 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
 def display_news_sentiment_analysis(symbol):
     """Display AI-powered news sentiment analysis"""
     
-    st.subheader(f"📰 AI-Powered News Sentiment Analysis for {symbol}")
+    # Detect market for proper symbol handling
+    indian_symbols = {
+        'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ICICIBANK', 'BHARTIARTL', 'ITC', 
+        'LT', 'HCLTECH', 'KOTAKBANK', 'AXISBANK', 'ASIANPAINT', 'MARUTI',
+        'TITAN', 'NESTLEIND', 'ULTRACEMCO', 'POWERGRID', 'NTPC', 'COALINDIA',
+        'ONGC', 'TECHM', 'TATAMOTORS', 'TATASTEEL', 'HINDUNILVR', 'WIPRO',
+        'DRREDDY', 'EICHERMOT', 'BAJFINANCE', 'BAJAJFINSV', 'BRITANNIA',
+        'CIPLA', 'DIVISLAB', 'HEROMOTOCO', 'HINDALCO', 'INDUSINDBK',
+        'JSWSTEEL', 'M&M', 'SBIN', 'SUNPHARMA', 'GRASIM', 'BEL', 'BEML',
+        'BHEL', 'HAL', 'SAIL', 'NMDC', 'GAIL', 'IOC', 'BPCL', 'HPCL'
+    }
+    
+    # Detect market based on symbol
+    base_symbol = symbol.replace('.NS', '').replace('.BO', '')
+    if ('.NS' in symbol or '.BO' in symbol or 
+        base_symbol in indian_symbols or
+        st.session_state.get('current_market') == "India"):
+        detected_market = "India"
+        display_symbol = base_symbol
+        st.info(f"🇮🇳 Analyzing Indian market news for {display_symbol}")
+    else:
+        detected_market = "US"
+        display_symbol = symbol
+        st.info(f"🇺🇸 Analyzing US market news for {display_symbol}")
+    
+    st.subheader(f"📰 AI-Powered News Sentiment Analysis for {display_symbol}")
     st.markdown("Analyze financial news sentiment using advanced AI to gauge market sentiment and potential impact on stock performance.")
     
     # Create analyze button
@@ -4499,7 +4524,7 @@ def display_news_sentiment_analysis(symbol):
         # Use the enhanced news sentiment analyzer with multiple sources
         try:
             from news_sentiment_analyzer import run_sentiment_analysis
-            run_sentiment_analysis(symbol.upper().strip())
+            run_sentiment_analysis(display_symbol.upper().strip(), detected_market)
                     
         except Exception as e:
             st.error(f"Error loading sentiment analysis: {str(e)}")
