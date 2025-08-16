@@ -952,38 +952,40 @@ def _display_sentiment_results(cached_data, symbol):
     st.plotly_chart(confidence_fig, use_container_width=True)
     
     # Display detailed article analysis
+    st.markdown("### 📄 Detailed Article Analysis")
     if analyzed_articles:
-        with st.expander("📄 Detailed Article Analysis", expanded=False):
-            for i, article in enumerate(analyzed_articles, 1):
-                st.markdown(f"**Article {i}: {article.get('title', 'No title')}**")
+        for i, article in enumerate(analyzed_articles, 1):
+            st.markdown(f"**Article {i}: {article.get('title', 'No title')}**")
+            
+            col_details, col_metrics = st.columns([2, 1])
+            
+            with col_details:
+                if article.get('url'):
+                    st.markdown(f"🔗 [Read Article]({article['url']})")
                 
-                col_details, col_metrics = st.columns([2, 1])
+                if article.get('published_date'):
+                    st.write(f"📅 **Published:** {article['published_date']}")
                 
-                with col_details:
-                    if article.get('url'):
-                        st.markdown(f"🔗 [Read Article]({article['url']})")
-                    
-                    if article.get('published_date'):
-                        st.write(f"📅 **Published:** {article['published_date']}")
-                    
-                    if article.get('source'):
-                        st.write(f"📡 **Source:** {article['source']}")
+                if article.get('source'):
+                    st.write(f"📡 **Source:** {article['source']}")
+            
+            with col_metrics:
+                sentiment = article.get('sentiment', 'Unknown')
+                confidence = article.get('confidence', 0)
+                impact = article.get('investment_impact', 'Unknown')
                 
-                with col_metrics:
-                    sentiment = article.get('sentiment', 'Unknown')
-                    confidence = article.get('confidence', 0)
-                    impact = article.get('investment_impact', 'Unknown')
-                    
-                    sentiment_emoji = "🟢" if sentiment == "Positive" else "🔴" if sentiment == "Negative" else "⚪"
-                    st.write(f"{sentiment_emoji} **{sentiment}**")
-                    
-                    st.metric("Confidence", f"{confidence:.1%}")
-                    st.write(f"**Impact:** {impact}")
+                sentiment_emoji = "🟢" if sentiment == "Positive" else "🔴" if sentiment == "Negative" else "⚪"
+                st.write(f"{sentiment_emoji} **{sentiment}**")
                 
-                if article.get('reasoning'):
-                    st.write(f"**Analysis:** {article['reasoning']}")
+                st.metric("Confidence", f"{confidence:.1%}")
+                st.write(f"**Impact:** {impact}")
+            
+            if article.get('reasoning'):
+                st.write(f"**Analysis:** {article['reasoning']}")
+                
+            st.markdown("---")  # Separator between articles
         
-        # Add social sharing section for cached results
+    # Add social sharing section for cached results
         st.markdown("---")
         st.markdown("### 📤 Share Your Sentiment Analysis")
         st.markdown("Share your AI-powered sentiment insights with customizable privacy settings")
