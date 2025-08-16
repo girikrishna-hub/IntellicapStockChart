@@ -611,13 +611,16 @@ def run_sentiment_analysis(symbol):
     # Analysis button with refresh option
     col_btn, col_refresh = st.columns([3, 1])
     
+    run_analysis = False
+    
     with col_btn:
-        run_analysis = st.button("🔍 Analyze News Sentiment", type="primary")
+        if st.button("🔍 Analyze News Sentiment", type="primary"):
+            run_analysis = True
     
     with col_refresh:
-        # Always show refresh button if we have cached results
+        # Show refresh button if we have cached results
         if st.session_state.get(cache_key) is not None:
-            if st.button("🔄 Refresh Analysis", help="Run new analysis with fresh data", key=f"refresh_{symbol}", disabled=False):
+            if st.button("🔄 Refresh Analysis", help="Run new analysis with fresh data", key=f"refresh_btn_{symbol}"):
                 st.session_state[cache_key] = None
                 run_analysis = True
     
