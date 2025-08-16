@@ -879,6 +879,8 @@ def run_sentiment_analysis(symbol):
                     'selected_sources': selected_sources,
                     'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
+                st.success(f"✅ Results cached successfully! Cache key: {cache_key}")
+                st.rerun()  # Force rerun to show cached results
                 
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
