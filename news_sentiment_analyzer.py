@@ -603,7 +603,28 @@ def run_sentiment_analysis(symbol):
             help="Maximum number of articles to analyze"
         )
     
-    if st.button("🔍 Analyze News Sentiment", type="primary"):
+    # Initialize session state for persistent results
+    cache_key = f"sentiment_cache_{symbol}"
+    if cache_key not in st.session_state:
+        st.session_state[cache_key] = None
+    
+    # Analysis button with refresh option
+    col_btn, col_refresh = st.columns([3, 1])
+    
+    with col_btn:
+        run_analysis = st.button("🔍 Analyze News Sentiment", type="primary")
+    
+    with col_refresh:
+        if st.session_state[cache_key] is not None:
+            if st.button("🔄 Refresh", help="Run new analysis with fresh data"):
+                run_analysis = True
+                st.session_state[cache_key] = None
+    
+    # Show cached results or run new analysis
+    if st.session_state[cache_key] is not None:
+        st.info("📊 Showing cached results. Click 'Refresh' for updated data.")
+        _display_sentiment_results(st.session_state[cache_key], symbol)
+    elif run_analysis:
         with st.spinner(f"Fetching news from {len(selected_sources)} source(s) and analyzing sentiment..."):
             # Display progress information
             st.info(f"📡 Fetching articles from: {', '.join(selected_sources)}")
@@ -844,8 +865,190 @@ def run_sentiment_analysis(symbol):
                     st.markdown("**📋 Or copy this text to share manually:**")
                     st.code(formatted_text, language=None)
             
+                # Cache the results for persistence
+                st.session_state[cache_key] = {
+                    'analyzed_articles': analyzed_articles,
+                    'aggregate_metrics': aggregate_metrics,
+                    'source_counts': source_counts,
+                    'selected_sources': selected_sources,
+                    'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
+
+def _display_sentiment_results(cached_data, symbol):
+    """Display cached sentiment analysis results"""
+    
+    analyzed_articles = cached_data['analyzed_articles']
+    aggregate_metrics = cached_data['aggregate_metrics']
+    source_counts = cached_data['source_counts']
+    timestamp = cached_data['timestamp']
+    
+    # Show when analysis was performed
+    st.caption(f"📅 Analysis performed at: {timestamp}")
+    
+    # Show source breakdown
+    st.markdown("### 📡 Sources Used")
+    col_sources = st.columns(len(source_counts))
+    for i, (source, count) in enumerate(source_counts.items()):
+        with col_sources[i]:
+            st.metric(source, f"{count} articles")
+    
+    # Display summary metrics
+    st.markdown("### 📊 Sentiment Summary")
+    
+    # Create metrics columns
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        sentiment_score = aggregate_metrics['sentiment_score']
+        sentiment_color = "#2E8B57" if sentiment_score > 0 else "#DC143C" if sentiment_score < 0 else "#808080"
+        st.metric("Overall Sentiment", f"{sentiment_score:+.2f}", delta=None)
+        
+    with col2:
+        st.metric("Confidence", f"{aggregate_metrics['avg_confidence']:.1%}")
+        
+    with col3:
+        st.metric("Articles Analyzed", aggregate_metrics['total_articles'])
+        
+    with col4:
+        investment_impact = aggregate_metrics['overall_impact']
+        impact_color = "#2E8B57" if "positive" in investment_impact.lower() else "#DC143C" if "negative" in investment_impact.lower() else "#808080"
+        st.markdown(f"**Investment Impact**")
+        st.markdown(f"<span style='color: {impact_color}'>{investment_impact}</span>", unsafe_allow_html=True)
+    
+    # Create visualizations
+    st.markdown("### 📈 Sentiment Analysis Charts")
+    sentiment_fig, impact_fig, confidence_fig = create_sentiment_charts(analyzed_articles, aggregate_metrics)
+    
+    col_chart1, col_chart2 = st.columns(2)
+    with col_chart1:
+        st.plotly_chart(sentiment_fig, use_container_width=True)
+    with col_chart2:
+        st.plotly_chart(impact_fig, use_container_width=True)
+        
+    st.plotly_chart(confidence_fig, use_container_width=True)
+    
+    # Display detailed article analysis
+    if analyzed_articles:
+        with st.expander("📄 Detailed Article Analysis", expanded=False):
+            for i, article in enumerate(analyzed_articles, 1):
+                st.markdown(f"**Article {i}: {article.get('title', 'No title')}**")
+                
+                col_details, col_metrics = st.columns([2, 1])
+                
+                with col_details:
+                    if article.get('url'):
+                        st.markdown(f"🔗 [Read Article]({article['url']})")
+                    
+                    if article.get('published_date'):
+                        st.write(f"📅 **Published:** {article['published_date']}")
+                    
+                    if article.get('source'):
+                        st.write(f"📡 **Source:** {article['source']}")
+                
+                with col_metrics:
+                    sentiment = article.get('sentiment', 'Unknown')
+                    confidence = article.get('confidence', 0)
+                    impact = article.get('investment_impact', 'Unknown')
+                    
+                    sentiment_emoji = "🟢" if sentiment == "Positive" else "🔴" if sentiment == "Negative" else "⚪"
+                    st.write(f"{sentiment_emoji} **{sentiment}**")
+                    
+                    st.metric("Confidence", f"{confidence:.1%}")
+                    st.write(f"**Impact:** {impact}")
+                
+                if article.get('reasoning'):
+                    st.write(f"**Analysis:** {article['reasoning']}")
+        
+        # Add social sharing section for cached results
+        st.markdown("---")
+        st.markdown("### 📤 Share Your Sentiment Analysis")
+        st.markdown("Share your AI-powered sentiment insights with customizable privacy settings")
+        
+        # Simplified sharing without complex session state
+        privacy_level = st.selectbox(
+            "Privacy Level:",
+            ["public", "anonymized", "private"],
+            format_func=lambda x: {
+                "public": "🌐 Public - Full Details",
+                "anonymized": "🔒 Anonymized - No Stock Name", 
+                "private": "🔐 Private - Limited Info"
+            }.get(x, x),
+            help="Choose how much information to include when sharing",
+            key=f"cached_sentiment_privacy_{symbol}"
+        )
+        
+        # Generate sharing content
+        sentiment_score = aggregate_metrics['sentiment_score']
+        overall_impact = aggregate_metrics['overall_impact']
+        avg_confidence = aggregate_metrics['avg_confidence']
+        total_articles = aggregate_metrics['total_articles']
+        
+        # Determine sentiment description
+        if sentiment_score > 0.3:
+            sentiment_desc = "Very Positive"
+        elif sentiment_score > 0.1:
+            sentiment_desc = "Positive"
+        elif sentiment_score > -0.1:
+            sentiment_desc = "Neutral"
+        elif sentiment_score > -0.3:
+            sentiment_desc = "Negative"
+        else:
+            sentiment_desc = "Very Negative"
+        
+        if privacy_level == "public":
+            formatted_text = f"""📰 News Sentiment Analysis for {symbol.upper()}:
+• Overall Sentiment: {sentiment_desc} ({sentiment_score:+.2f})
+• Investment Outlook: {overall_impact}
+• Confidence Level: {avg_confidence:.1%}
+• Articles Analyzed: {total_articles}
+
+#StockAnalysis #SentimentAnalysis #Investing"""
+        elif privacy_level == "anonymized":
+            formatted_text = f"""📰 Stock News Sentiment Analysis:
+• Overall Sentiment: {sentiment_desc}
+• Investment Outlook: {overall_impact}  
+• Confidence Level: {avg_confidence:.1%}
+• Articles Analyzed: {total_articles}
+
+#StockAnalysis #SentimentAnalysis"""
+        else:  # private
+            formatted_text = f"""📰 News Sentiment Analysis Complete:
+• Analysis shows {sentiment_desc.lower()} sentiment
+• {total_articles} articles analyzed with {avg_confidence:.1%} confidence  
+• Investment outlook: {overall_impact}"""
+        
+        # Create sharing URLs with proper encoding
+        import urllib.parse
+        
+        email_subject = f"Stock Sentiment Analysis - {symbol.upper() if privacy_level == 'public' else 'Investment Analysis'}"
+        email_url = f"mailto:?subject={urllib.parse.quote(email_subject)}&body={urllib.parse.quote(formatted_text)}"
+        
+        st.markdown("**🔗 Share Your Analysis:**")
+        
+        # Direct app sharing with URL links that open apps
+        col_share1, col_share2, col_share3 = st.columns(3)
+        
+        with col_share1:
+            st.markdown("**📱 WhatsApp**")
+            whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(formatted_text)}"
+            st.markdown(f'<a href="{whatsapp_url}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">📱 Share on WhatsApp</a>', unsafe_allow_html=True)
+        
+        with col_share2:
+            st.markdown("**💼 LinkedIn**") 
+            linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url=&text={urllib.parse.quote(formatted_text)}"
+            st.markdown(f'<a href="{linkedin_url}" target="_blank" style="background-color: #0077B5; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">💼 Share on LinkedIn</a>', unsafe_allow_html=True)
+        
+        with col_share3:
+            st.markdown("**📧 Email**")
+            st.markdown(f'<a href="{email_url}" target="_blank" style="background-color: #D44638; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">📧 Send via Email</a>', unsafe_allow_html=True)
+        
+        # Also provide copy option for manual sharing
+        st.markdown("---")
+        st.markdown("**📋 Or copy this text to share manually:**")
+        st.code(formatted_text, language=None)
 
 def create_sentiment_insight(symbol, analyzed_articles, sentiment_score, overall_impact, avg_confidence, total_articles, privacy_level):
     """
