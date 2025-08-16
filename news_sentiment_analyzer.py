@@ -822,26 +822,24 @@ def run_sentiment_analysis(symbol):
                     
                     st.markdown("**🔗 Share Your Analysis:**")
                     
-                    # Simple text display with copy buttons (most reliable method)
+                    # Display sharing text with stable interface (no buttons that cause reruns)
+                    st.markdown("**📋 Copy this text to share:**")
+                    st.code(formatted_text, language=None)
+                    
+                    # Sharing instructions without rerun-causing buttons
                     col_share1, col_share2, col_share3 = st.columns(3)
                     
                     with col_share1:
                         st.markdown("**📱 WhatsApp**")
-                        if st.button("📋 Copy WhatsApp Text", key=f"copy_wa_{symbol}"):
-                            st.code(formatted_text, language=None)
-                            st.success("Copy this text and paste in WhatsApp!")
+                        st.markdown("Copy the text above and paste in WhatsApp")
                     
                     with col_share2:
                         st.markdown("**💼 LinkedIn**") 
-                        if st.button("📋 Copy LinkedIn Text", key=f"copy_li_{symbol}"):
-                            st.code(formatted_text, language=None)
-                            st.success("Copy this text and paste in LinkedIn!")
+                        st.markdown("Copy the text above and paste in LinkedIn")
                     
                     with col_share3:
                         st.markdown("**📧 Email**")
-                        if st.button("📋 Copy Email Text", key=f"copy_email_{symbol}"):
-                            st.code(formatted_text, language=None)
-                            st.success("Copy this text and paste in your email!")
+                        st.markdown("Copy the text above and paste in your email")
             
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
