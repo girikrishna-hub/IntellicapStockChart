@@ -3304,12 +3304,21 @@ def yahoo_finance_tab():
                 help_text = "Enter US stock symbols (e.g., AAPL for Apple, GOOGL for Google, TSLA for Tesla)"
                 default_symbol = "AAPL"
             
+            # Initialize session state for symbol syncing
+            if 'current_symbol' not in st.session_state:
+                st.session_state.current_symbol = default_symbol
+            
             symbol = st.text_input(
                 f"Enter {market_selection} Symbol:",
-                value=default_symbol,
+                value=st.session_state.current_symbol,
                 placeholder=placeholder_text,
-                help=help_text
+                help=help_text,
+                key="fundamental_symbol"
             ).upper().strip()
+            
+            # Update session state when symbol changes
+            if symbol != st.session_state.current_symbol:
+                st.session_state.current_symbol = symbol
         
         with col2:
             period_options = {
@@ -3612,13 +3621,20 @@ def gurufocus_tab():
     col1, col2, col3 = st.columns([3, 2, 1])
     
     with col1:
+        # Use synced symbol from session state, or default to AAPL if not set
+        default_guru_symbol = st.session_state.get('current_symbol', 'AAPL')
+        
         symbol_guru = st.text_input(
             "Enter Stock Symbol:",
-            value="AAPL",
+            value=default_guru_symbol,
             placeholder="e.g., AAPL, GOOGL, TSLA",
-            help="Enter US stock symbols for detailed earnings analysis",
+            help="Enter US stock symbols for detailed earnings analysis (synced with Fundamental Analysis)",
             key="gurufocus_symbol"
         ).upper().strip()
+        
+        # Update session state when symbol changes in Advanced Analysis
+        if symbol_guru != st.session_state.get('current_symbol', ''):
+            st.session_state.current_symbol = symbol_guru
     
     with col2:
         quarters_selection = st.selectbox(
