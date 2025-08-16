@@ -3649,8 +3649,170 @@ def gurufocus_tab():
                     # Display earnings analysis results
                     st.subheader(f"📊 Earnings Performance Analysis - {quarters_found} Quarter{'s' if quarters_found != 1 else ''}")
                     
-                    # Show the analysis details (rest of the GuruFocus functionality remains unchanged)
+                    # Show the earnings analysis table
                     st.dataframe(earnings_analysis, use_container_width=True)
+                    
+                    # Add comprehensive institutional financial metrics
+                    st.divider()
+                    st.subheader("🏛️ Institutional Financial Parameters")
+                    
+                    # Get comprehensive financial data
+                    try:
+                        # Fetch detailed financial information
+                        balance_sheet = ticker_obj.balance_sheet
+                        income_stmt = ticker_obj.income_stmt
+                        cash_flow = ticker_obj.cash_flow
+                        
+                        # Valuation Metrics
+                        st.markdown("### 💰 Valuation Ratios")
+                        val_col1, val_col2, val_col3, val_col4 = st.columns(4)
+                        
+                        with val_col1:
+                            # P/E Ratio
+                            pe_ratio = info.get('trailingPE')
+                            forward_pe = info.get('forwardPE')
+                            st.metric("P/E Ratio (TTM)", f"{pe_ratio:.2f}" if pe_ratio else "N/A")
+                            st.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A")
+                        
+                        with val_col2:
+                            # Price-to-Book and Price-to-Sales
+                            pb_ratio = info.get('priceToBook')
+                            ps_ratio = info.get('priceToSalesTrailing12Months')
+                            st.metric("Price-to-Book", f"{pb_ratio:.2f}" if pb_ratio else "N/A")
+                            st.metric("Price-to-Sales", f"{ps_ratio:.2f}" if ps_ratio else "N/A")
+                        
+                        with val_col3:
+                            # PEG and Enterprise Value ratios
+                            peg_ratio = info.get('pegRatio')
+                            ev_revenue = info.get('enterpriseToRevenue')
+                            st.metric("PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio else "N/A")
+                            st.metric("EV/Revenue", f"{ev_revenue:.2f}" if ev_revenue else "N/A")
+                        
+                        with val_col4:
+                            # Enterprise Value and EBITDA
+                            enterprise_value = info.get('enterpriseValue')
+                            ev_ebitda = info.get('enterpriseToEbitda')
+                            if enterprise_value:
+                                st.metric("Enterprise Value", f"${enterprise_value/1e9:.2f}B")
+                            else:
+                                st.metric("Enterprise Value", "N/A")
+                            st.metric("EV/EBITDA", f"{ev_ebitda:.2f}" if ev_ebitda else "N/A")
+                        
+                        # Profitability Analysis
+                        st.markdown("### 📈 Profitability Analysis")
+                        prof_col1, prof_col2, prof_col3, prof_col4 = st.columns(4)
+                        
+                        with prof_col1:
+                            # Margin metrics
+                            gross_margin = info.get('grossMargins')
+                            operating_margin = info.get('operatingMargins')
+                            st.metric("Gross Margin", f"{gross_margin*100:.1f}%" if gross_margin else "N/A")
+                            st.metric("Operating Margin", f"{operating_margin*100:.1f}%" if operating_margin else "N/A")
+                        
+                        with prof_col2:
+                            # Profit margins
+                            profit_margin = info.get('profitMargins')
+                            ebitda_margin = info.get('ebitdaMargins')
+                            st.metric("Profit Margin", f"{profit_margin*100:.1f}%" if profit_margin else "N/A")
+                            st.metric("EBITDA Margin", f"{ebitda_margin*100:.1f}%" if ebitda_margin else "N/A")
+                        
+                        with prof_col3:
+                            # Return metrics
+                            roe = info.get('returnOnEquity')
+                            roa = info.get('returnOnAssets')
+                            st.metric("Return on Equity", f"{roe*100:.1f}%" if roe else "N/A")
+                            st.metric("Return on Assets", f"{roa*100:.1f}%" if roa else "N/A")
+                        
+                        with prof_col4:
+                            # Revenue per share and Book value
+                            revenue_per_share = info.get('revenuePerShare')
+                            book_value = info.get('bookValue')
+                            st.metric("Revenue/Share", f"${revenue_per_share:.2f}" if revenue_per_share else "N/A")
+                            st.metric("Book Value/Share", f"${book_value:.2f}" if book_value else "N/A")
+                        
+                        # Financial Strength
+                        st.markdown("### 💪 Financial Strength")
+                        strength_col1, strength_col2, strength_col3, strength_col4 = st.columns(4)
+                        
+                        with strength_col1:
+                            # Debt ratios
+                            debt_to_equity = info.get('debtToEquity')
+                            current_ratio = info.get('currentRatio')
+                            st.metric("Debt-to-Equity", f"{debt_to_equity:.2f}" if debt_to_equity else "N/A")
+                            st.metric("Current Ratio", f"{current_ratio:.2f}" if current_ratio else "N/A")
+                        
+                        with strength_col2:
+                            # Quick ratio and cash
+                            quick_ratio = info.get('quickRatio')
+                            total_cash = info.get('totalCash')
+                            st.metric("Quick Ratio", f"{quick_ratio:.2f}" if quick_ratio else "N/A")
+                            if total_cash:
+                                st.metric("Total Cash", f"${total_cash/1e9:.2f}B")
+                            else:
+                                st.metric("Total Cash", "N/A")
+                        
+                        with strength_col3:
+                            # Cash per share and Free cash flow
+                            cash_per_share = info.get('totalCashPerShare')
+                            free_cashflow = info.get('freeCashflow')
+                            st.metric("Cash/Share", f"${cash_per_share:.2f}" if cash_per_share else "N/A")
+                            if free_cashflow:
+                                st.metric("Free Cash Flow", f"${free_cashflow/1e9:.2f}B")
+                            else:
+                                st.metric("Free Cash Flow", "N/A")
+                        
+                        with strength_col4:
+                            # Operating cash flow and Total debt
+                            operating_cashflow = info.get('operatingCashflow')
+                            total_debt = info.get('totalDebt')
+                            if operating_cashflow:
+                                st.metric("Operating Cash Flow", f"${operating_cashflow/1e9:.2f}B")
+                            else:
+                                st.metric("Operating Cash Flow", "N/A")
+                            if total_debt:
+                                st.metric("Total Debt", f"${total_debt/1e9:.2f}B")
+                            else:
+                                st.metric("Total Debt", "N/A")
+                        
+                        # Growth Metrics
+                        st.markdown("### 🚀 Growth Analysis")
+                        growth_col1, growth_col2, growth_col3, growth_col4 = st.columns(4)
+                        
+                        with growth_col1:
+                            # Revenue growth
+                            revenue_growth = info.get('revenueGrowth')
+                            earnings_growth = info.get('earningsGrowth')
+                            st.metric("Revenue Growth", f"{revenue_growth*100:.1f}%" if revenue_growth else "N/A")
+                            st.metric("Earnings Growth", f"{earnings_growth*100:.1f}%" if earnings_growth else "N/A")
+                        
+                        with growth_col2:
+                            # Quarterly growth
+                            quarterly_revenue_growth = info.get('revenueQuarterlyGrowth')
+                            quarterly_earnings_growth = info.get('earningsQuarterlyGrowth')
+                            st.metric("Q Revenue Growth", f"{quarterly_revenue_growth*100:.1f}%" if quarterly_revenue_growth else "N/A")
+                            st.metric("Q Earnings Growth", f"{quarterly_earnings_growth*100:.1f}%" if quarterly_earnings_growth else "N/A")
+                        
+                        with growth_col3:
+                            # EPS estimates
+                            target_high_price = info.get('targetHighPrice')
+                            target_low_price = info.get('targetLowPrice')
+                            st.metric("Target High Price", f"${target_high_price:.2f}" if target_high_price else "N/A")
+                            st.metric("Target Low Price", f"${target_low_price:.2f}" if target_low_price else "N/A")
+                        
+                        with growth_col4:
+                            # Analyst recommendations
+                            recommendation_mean = info.get('recommendationMean')
+                            number_of_analyst_opinions = info.get('numberOfAnalystOpinions')
+                            if recommendation_mean:
+                                rec_text = ["Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"][min(4, max(0, int(recommendation_mean)-1))]
+                                st.metric("Analyst Rating", f"{rec_text} ({recommendation_mean:.1f})")
+                            else:
+                                st.metric("Analyst Rating", "N/A")
+                            st.metric("# of Analysts", f"{number_of_analyst_opinions}" if number_of_analyst_opinions else "N/A")
+                        
+                    except Exception as e:
+                        st.warning(f"Some institutional metrics may not be available: {str(e)}")
+                        
                 else:
                     st.warning(f"No earnings data available for {symbol_guru.upper()} in the selected period")
             else:

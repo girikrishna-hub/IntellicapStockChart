@@ -31,6 +31,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Renamed Main Navigation Tabs:** Updated tab names for better clarity - "Yahoo Finance Analysis" to "Fundamental Analysis" and "GuruFocus Analysis" to "Advanced Analysis" to better reflect the content and purpose of each section
 - **Enhanced Multi-Source News Sentiment Analysis:** Upgraded sentiment analysis to support 4 different news sources (Yahoo Finance, Google News, NewsAPI, Alpha Vantage) with user selection interface, API key status indicators, comprehensive source management, and real-time article fetching from RSS feeds and professional APIs
 - **Added Automatic Symbol Uppercase Conversion:** All stock symbol inputs now automatically convert to uppercase regardless of how users enter them, ensuring consistent formatting throughout the application for single analysis, bulk analysis, advanced analysis tabs, and sentiment analysis
+- **Restored Institutional Financial Parameters:** Enhanced Advanced Analysis tab with comprehensive professional-grade financial metrics including valuation ratios (P/E, P/B, PEG, EV/EBITDA), profitability analysis (margins, ROE, ROA), financial strength indicators (debt ratios, liquidity ratios, cash flow), growth metrics (revenue/earnings growth rates), and analyst recommendations for institutional-level stock analysis
 
 ## User Preferences
 
