@@ -17,7 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as Re
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from news_sentiment_analyzer import display_news_sentiment_analysis, get_sentiment_summary_for_sharing
+from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
 
 # Set page configuration
 st.set_page_config(
@@ -4274,8 +4274,8 @@ def display_news_sentiment_analysis(symbol):
         
         # Use the enhanced news sentiment analyzer with multiple sources
         try:
-            from news_sentiment_analyzer import display_news_sentiment_analysis
-            display_news_sentiment_analysis(symbol)
+            from news_sentiment_analyzer import run_sentiment_analysis
+            run_sentiment_analysis(symbol)
                     
         except Exception as e:
             st.error(f"Error loading sentiment analysis: {str(e)}")

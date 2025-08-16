@@ -496,7 +496,7 @@ def create_sentiment_charts(aggregate_metrics, analyzed_articles):
     
     return sentiment_fig, impact_fig, confidence_fig
 
-def display_news_sentiment_analysis(symbol):
+def run_sentiment_analysis(symbol):
     """
     Main function to display news sentiment analysis for a stock
     
