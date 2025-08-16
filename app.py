@@ -3309,7 +3309,7 @@ def yahoo_finance_tab():
                 value=default_symbol,
                 placeholder=placeholder_text,
                 help=help_text
-            )
+            ).upper().strip()
         
         with col2:
             period_options = {
@@ -3441,7 +3441,7 @@ def yahoo_finance_tab():
             if 'bulk_stock_input' not in st.session_state:
                 st.session_state.bulk_stock_input = ""
             
-            stock_list = st.text_area(
+            stock_list_raw = st.text_area(
                 f"Enter {market_selection} Symbols (one per line or comma-separated)",
                 value=st.session_state.bulk_stock_input,
                 placeholder=bulk_placeholder,
@@ -3449,6 +3449,8 @@ def yahoo_finance_tab():
                 help=bulk_help,
                 key="stock_list_input"
             )
+            # Convert to uppercase for consistency
+            stock_list = stock_list_raw.upper()
             
             # Update session state when input changes
             if stock_list != st.session_state.bulk_stock_input:
@@ -3616,7 +3618,7 @@ def gurufocus_tab():
             placeholder="e.g., AAPL, GOOGL, TSLA",
             help="Enter US stock symbols for detailed earnings analysis",
             key="gurufocus_symbol"
-        )
+        ).upper().strip()
     
     with col2:
         quarters_selection = st.selectbox(
@@ -4275,7 +4277,7 @@ def display_news_sentiment_analysis(symbol):
         # Use the enhanced news sentiment analyzer with multiple sources
         try:
             from news_sentiment_analyzer import run_sentiment_analysis
-            run_sentiment_analysis(symbol)
+            run_sentiment_analysis(symbol.upper().strip())
                     
         except Exception as e:
             st.error(f"Error loading sentiment analysis: {str(e)}")

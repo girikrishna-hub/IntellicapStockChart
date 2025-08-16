@@ -30,6 +30,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Added Extended Hours Trading Information:** Restored comprehensive after-market data display in Price Action tab including pre-market changes, after-hours changes, regular session close prices, and real-time market status indicators (Open/Pre-Market/After-Hours) for complete trading day coverage
 - **Renamed Main Navigation Tabs:** Updated tab names for better clarity - "Yahoo Finance Analysis" to "Fundamental Analysis" and "GuruFocus Analysis" to "Advanced Analysis" to better reflect the content and purpose of each section
 - **Enhanced Multi-Source News Sentiment Analysis:** Upgraded sentiment analysis to support 4 different news sources (Yahoo Finance, Google News, NewsAPI, Alpha Vantage) with user selection interface, API key status indicators, comprehensive source management, and real-time article fetching from RSS feeds and professional APIs
+- **Added Automatic Symbol Uppercase Conversion:** All stock symbol inputs now automatically convert to uppercase regardless of how users enter them, ensuring consistent formatting throughout the application for single analysis, bulk analysis, advanced analysis tabs, and sentiment analysis
 
 ## User Preferences
 
