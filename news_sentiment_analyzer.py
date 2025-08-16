@@ -935,7 +935,7 @@ def _display_sentiment_results(cached_data, symbol):
     # Create visualizations
     st.markdown("### 📈 Sentiment Analysis Charts")
     try:
-        sentiment_fig, impact_fig, confidence_fig = create_sentiment_charts(analyzed_articles, aggregate_metrics)
+        sentiment_fig, impact_fig, confidence_fig = create_sentiment_charts(aggregate_metrics, analyzed_articles)
     except Exception as e:
         st.error(f"Error creating charts: {str(e)}")
         return
