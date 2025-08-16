@@ -617,10 +617,9 @@ def run_sentiment_analysis(symbol):
     with col_refresh:
         # Always show refresh button if we have cached results
         if st.session_state.get(cache_key) is not None:
-            if st.button("🔄 Refresh Analysis", help="Run new analysis with fresh data", key=f"refresh_{symbol}"):
-                run_analysis = True
+            if st.button("🔄 Refresh Analysis", help="Run new analysis with fresh data", key=f"refresh_{symbol}", disabled=False):
                 st.session_state[cache_key] = None
-                st.rerun()
+                run_analysis = True
     
     # Debug info for cache status
     if st.session_state.get(cache_key) is not None:
@@ -888,20 +887,27 @@ def run_sentiment_analysis(symbol):
 def _display_sentiment_results(cached_data, symbol):
     """Display cached sentiment analysis results"""
     
-    analyzed_articles = cached_data['analyzed_articles']
-    aggregate_metrics = cached_data['aggregate_metrics']
-    source_counts = cached_data['source_counts']
-    timestamp = cached_data['timestamp']
+    try:
+        analyzed_articles = cached_data['analyzed_articles']
+        aggregate_metrics = cached_data['aggregate_metrics']
+        source_counts = cached_data['source_counts']
+        timestamp = cached_data['timestamp']
+    except (KeyError, TypeError) as e:
+        st.error(f"Error loading cached data: {str(e)}")
+        return
     
     # Show when analysis was performed
     st.caption(f"📅 Analysis performed at: {timestamp}")
     
     # Show source breakdown
     st.markdown("### 📡 Sources Used")
-    col_sources = st.columns(len(source_counts))
-    for i, (source, count) in enumerate(source_counts.items()):
-        with col_sources[i]:
-            st.metric(source, f"{count} articles")
+    if source_counts and len(source_counts) > 0:
+        col_sources = st.columns(len(source_counts))
+        for i, (source, count) in enumerate(source_counts.items()):
+            with col_sources[i]:
+                st.metric(source, f"{count} articles")
+    else:
+        st.warning("No source information available")
     
     # Display summary metrics
     st.markdown("### 📊 Sentiment Summary")
@@ -928,7 +934,11 @@ def _display_sentiment_results(cached_data, symbol):
     
     # Create visualizations
     st.markdown("### 📈 Sentiment Analysis Charts")
-    sentiment_fig, impact_fig, confidence_fig = create_sentiment_charts(analyzed_articles, aggregate_metrics)
+    try:
+        sentiment_fig, impact_fig, confidence_fig = create_sentiment_charts(analyzed_articles, aggregate_metrics)
+    except Exception as e:
+        st.error(f"Error creating charts: {str(e)}")
+        return
     
     col_chart1, col_chart2 = st.columns(2)
     with col_chart1:
