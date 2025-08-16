@@ -754,27 +754,21 @@ def run_sentiment_analysis(symbol):
                 st.markdown("### 📤 Share Your Sentiment Analysis")
                 st.markdown("Share your AI-powered sentiment insights with customizable privacy settings")
                 
-                col_privacy, col_generate = st.columns([1, 1])
+                # Simplified sharing without complex session state
+                privacy_level = st.selectbox(
+                    "Privacy Level:",
+                    ["public", "anonymized", "private"],
+                    format_func=lambda x: {
+                        "public": "🌐 Public - Full Details",
+                        "anonymized": "🔒 Anonymized - No Stock Name", 
+                        "private": "🔐 Private - Limited Info"
+                    }.get(x, x),
+                    help="Choose how much information to include when sharing",
+                    key=f"sentiment_privacy_{symbol}"
+                )
                 
-                with col_privacy:
-                    privacy_level = st.selectbox(
-                        "Privacy Level:",
-                        ["public", "anonymized", "private"],
-                        format_func=lambda x: {
-                            "public": "🌐 Public - Full Details",
-                            "anonymized": "🔒 Anonymized - No Stock Name", 
-                            "private": "🔐 Private - Limited Info"
-                        }.get(x, x),
-                        help="Choose how much information to include when sharing",
-                        key=f"sentiment_privacy_{symbol}"
-                    )
-                
-                with col_generate:
-                    if st.button("🚀 Generate Shareable Insight", type="primary", key=f"sentiment_share_{symbol}"):
-                        st.session_state[f'sentiment_sharing_{symbol}'] = True
-                
-                # Display sharing options if button clicked
-                if st.session_state.get(f'sentiment_sharing_{symbol}', False):
+                # Always show sharing options (simplified approach)
+                if True:  # Always show sharing section after analysis
                     # Create formatted sharing text
                     sentiment_score = aggregate_metrics['sentiment_score']
                     overall_impact = aggregate_metrics['overall_impact']
@@ -815,10 +809,7 @@ def run_sentiment_analysis(symbol):
 • {total_articles} articles analyzed with {avg_confidence:.1%} confidence  
 • Investment outlook: {overall_impact}"""
                     
-                    st.success("✅ Shareable insight generated!")
-                    
-                    # Display preview
-                    st.markdown("**📋 Sharing Preview:**")
+                    st.markdown("**📋 Ready to Share:**")
                     st.info(formatted_text)
                     
                     # Create sharing URLs with proper encoding
