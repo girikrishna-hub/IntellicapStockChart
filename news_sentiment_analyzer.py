@@ -822,24 +822,27 @@ def run_sentiment_analysis(symbol):
                     
                     st.markdown("**🔗 Share Your Analysis:**")
                     
-                    # Display sharing text with stable interface (no buttons that cause reruns)
-                    st.markdown("**📋 Copy this text to share:**")
-                    st.code(formatted_text, language=None)
-                    
-                    # Sharing instructions without rerun-causing buttons
+                    # Direct app sharing with URL links that open apps
                     col_share1, col_share2, col_share3 = st.columns(3)
                     
                     with col_share1:
                         st.markdown("**📱 WhatsApp**")
-                        st.markdown("Copy the text above and paste in WhatsApp")
+                        whatsapp_url = f"https://wa.me/?text={urllib.parse.quote(formatted_text)}"
+                        st.markdown(f'<a href="{whatsapp_url}" target="_blank" style="background-color: #25D366; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">📱 Share on WhatsApp</a>', unsafe_allow_html=True)
                     
                     with col_share2:
                         st.markdown("**💼 LinkedIn**") 
-                        st.markdown("Copy the text above and paste in LinkedIn")
+                        linkedin_url = f"https://www.linkedin.com/sharing/share-offsite/?url=&text={urllib.parse.quote(formatted_text)}"
+                        st.markdown(f'<a href="{linkedin_url}" target="_blank" style="background-color: #0077B5; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">💼 Share on LinkedIn</a>', unsafe_allow_html=True)
                     
                     with col_share3:
                         st.markdown("**📧 Email**")
-                        st.markdown("Copy the text above and paste in your email")
+                        st.markdown(f'<a href="{email_url}" target="_blank" style="background-color: #D44638; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block;">📧 Send via Email</a>', unsafe_allow_html=True)
+                    
+                    # Also provide copy option for manual sharing
+                    st.markdown("---")
+                    st.markdown("**📋 Or copy this text to share manually:**")
+                    st.code(formatted_text, language=None)
             
             else:
                 st.error("Failed to analyze sentiment. Please try again.")
