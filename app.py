@@ -3319,34 +3319,124 @@ def main():
 def yahoo_finance_tab():
     """Fundamental analysis tab content"""
     
-    # Add global CSS for reduced spacing and smaller fonts
+    # Add comprehensive CSS for significantly reduced spacing and smaller fonts
     st.markdown("""
     <style>
+    /* Reduce metric font sizes */
     .stMetric > div > div > div {
-        font-size: 0.85rem;
+        font-size: 0.75rem !important;
+        line-height: 1.1 !important;
     }
     .stMetric > div > div > div > div {
-        font-size: 1.1rem;
+        font-size: 1.0rem !important;
+        margin-bottom: 0.2rem !important;
     }
-    h1, h2, h3 {
-        margin-top: 0.8rem;
-        margin-bottom: 0.4rem;
+    .stMetric [data-testid="metric-container"] {
+        padding: 0.3rem 0 !important;
     }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 6px;
+    
+    /* Reduce header sizes */
+    h1 {
+        font-size: 1.8rem !important;
+        margin: 0.5rem 0 0.3rem 0 !important;
     }
-    .stDataFrame {
-        font-size: 0.8rem;
+    h2 {
+        font-size: 1.4rem !important;
+        margin: 0.4rem 0 0.2rem 0 !important;
     }
-    .element-container {
-        margin-bottom: 0.4rem;
-    }
-    .stMarkdown p {
-        margin-bottom: 0.5rem;
+    h3 {
+        font-size: 1.2rem !important;
+        margin: 0.3rem 0 0.2rem 0 !important;
     }
     .stSubheader {
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
+        font-size: 1.1rem !important;
+        margin: 0.3rem 0 0.2rem 0 !important;
+    }
+    
+    /* Reduce tab spacing */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 4px !important;
+        margin-bottom: 0.5rem !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.3rem 0.8rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Reduce dataframe and table spacing */
+    .stDataFrame {
+        font-size: 0.75rem !important;
+    }
+    .stDataFrame table {
+        font-size: 0.75rem !important;
+    }
+    .stDataFrame th, .stDataFrame td {
+        padding: 0.2rem 0.4rem !important;
+    }
+    
+    /* Reduce general element spacing */
+    .element-container {
+        margin-bottom: 0.3rem !important;
+    }
+    .stMarkdown p {
+        margin-bottom: 0.3rem !important;
+        font-size: 0.9rem !important;
+    }
+    .stMarkdown ul, .stMarkdown ol {
+        margin-bottom: 0.3rem !important;
+        font-size: 0.85rem !important;
+    }
+    .stMarkdown li {
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Reduce info/warning/success box spacing */
+    .stAlert {
+        padding: 0.4rem 0.6rem !important;
+        margin: 0.3rem 0 !important;
+        font-size: 0.85rem !important;
+    }
+    
+    /* Reduce column spacing */
+    .stColumn {
+        padding: 0 0.2rem !important;
+    }
+    
+    /* Reduce caption sizes */
+    .stCaption {
+        font-size: 0.7rem !important;
+        margin-top: -0.2rem !important;
+    }
+    
+    /* Reduce selectbox and input spacing */
+    .stSelectbox, .stTextInput {
+        margin-bottom: 0.3rem !important;
+    }
+    .stSelectbox label, .stTextInput label {
+        font-size: 0.8rem !important;
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Reduce button spacing */
+    .stButton {
+        margin: 0.2rem 0 !important;
+    }
+    .stButton button {
+        font-size: 0.85rem !important;
+        padding: 0.3rem 0.8rem !important;
+    }
+    
+    /* Reduce checkbox spacing */
+    .stCheckbox {
+        margin: 0.2rem 0 !important;
+    }
+    .stCheckbox label {
+        font-size: 0.8rem !important;
+    }
+    
+    /* Reduce divider spacing */
+    hr {
+        margin: 0.5rem 0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -4437,21 +4527,39 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
 def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market):
     """Display earnings and dividends analysis in a dedicated tab"""
     
-    # Add CSS for reduced spacing and smaller fonts
+    # Apply same comprehensive CSS for consistent styling
     st.markdown("""
     <style>
-    .metric-container {
-        padding: 0.25rem 0;
+    /* Same comprehensive CSS as main tab for consistency */
+    .stMetric > div > div > div {
+        font-size: 0.75rem !important;
+        line-height: 1.1 !important;
     }
-    .metric-label {
-        font-size: 0.8rem;
+    .stMetric > div > div > div > div {
+        font-size: 1.0rem !important;
+        margin-bottom: 0.2rem !important;
     }
-    .metric-value {
-        font-size: 1.1rem;
+    .stMetric [data-testid="metric-container"] {
+        padding: 0.3rem 0 !important;
+    }
+    .stDataFrame {
+        font-size: 0.75rem !important;
+    }
+    .stDataFrame th, .stDataFrame td {
+        padding: 0.2rem 0.4rem !important;
+    }
+    .stAlert {
+        padding: 0.4rem 0.6rem !important;
+        margin: 0.3rem 0 !important;
+        font-size: 0.85rem !important;
+    }
+    .stMarkdown p {
+        margin-bottom: 0.3rem !important;
+        font-size: 0.9rem !important;
     }
     .small-subheader {
-        font-size: 1rem;
-        margin-bottom: 0.5rem;
+        font-size: 1rem !important;
+        margin-bottom: 0.3rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
