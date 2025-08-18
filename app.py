@@ -861,9 +861,9 @@ def get_earnings_info(ticker_obj, ticker_info, symbol):
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
                     
-                    # Check if earnings might be outdated (more than 100 days old or more than 90 days for major quarterly companies)
+                    # Check if earnings might be outdated (more than 100 days old or more than 80 days for major quarterly companies)
                     days_since_last = (current_date_tz - last_earnings).days
-                    quarterly_threshold = 90  # 3 months for major quarterly reporters
+                    quarterly_threshold = 80  # ~2.5 months for major quarterly reporters
                     major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']
                     
                     if symbol.upper() in major_stocks and days_since_last > quarterly_threshold:
