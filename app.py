@@ -859,7 +859,14 @@ def get_earnings_info(ticker_obj, ticker_info):
                     last_earnings = current_year_earnings_sorted.index[-1]
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-                    print(f"Found last earnings (current year): {earnings_info['last_earnings_formatted']} from {len(current_year_earnings)} 2025 earnings dates")
+                    
+                    # Check if earnings might be outdated (more than 100 days old)
+                    days_since_last = (current_date_tz - last_earnings).days
+                    if days_since_last > 100:
+                        print(f"Found last earnings (current year - possibly outdated): {earnings_info['last_earnings_formatted']} ({days_since_last} days ago)")
+                        earnings_info['last_earnings_formatted'] += f" (data may be outdated)"
+                    else:
+                        print(f"Found last earnings (current year): {earnings_info['last_earnings_formatted']} from {len(current_year_earnings)} 2025 earnings dates")
                 else:
                     # Fallback to most recent within 12 months (more aggressive cutoff)
                     cutoff_date_tz = current_date_tz - pd.Timedelta(days=365)  # 12 months
@@ -871,7 +878,14 @@ def get_earnings_info(ticker_obj, ticker_info):
                         last_earnings = recent_past_earnings.index[-1]
                         earnings_info['last_earnings'] = last_earnings
                         earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
-                        print(f"Found last earnings (within 12 months): {earnings_info['last_earnings_formatted']}")
+                        
+                        # Check if this data might be outdated
+                        days_since_last = (current_date_tz - last_earnings).days
+                        if days_since_last > 100:
+                            earnings_info['last_earnings_formatted'] += f" (may be outdated)"
+                            print(f"Found last earnings (within 12 months - possibly outdated): {earnings_info['last_earnings_formatted']} ({days_since_last} days ago)")
+                        else:
+                            print(f"Found last earnings (within 12 months): {earnings_info['last_earnings_formatted']}")
                     else:
                         # Check if we have any past earnings and use the most recent one
                         all_past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
@@ -883,6 +897,10 @@ def get_earnings_info(ticker_obj, ticker_info):
                             print(f"Found last earnings (older): {earnings_info['last_earnings_formatted']}")
                         else:
                             print("No past earnings found at all")
+                            # For major stocks, indicate this might be a data issue
+                            major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA']
+                            if symbol.upper() in major_stocks:
+                                earnings_info['last_earnings_formatted'] = "Data may be incomplete"
                 
                 # Get next upcoming earnings
                 future_earnings = earnings_dates[earnings_dates.index > current_date_tz]
@@ -2707,11 +2725,19 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         )
     
     with col_ctp4:
-        st.metric(
-            label="Last Earnings",
-            value=earnings_info['last_earnings_formatted'],
-            help="Most recent earnings announcement date"
-        )
+        earnings_value = earnings_info['last_earnings_formatted']
+        if "outdated" in earnings_value or "incomplete" in earnings_value:
+            st.metric(
+                label="Last Earnings ⚠️",
+                value=earnings_value,
+                help="Most recent earnings date - Data source may be missing recent announcements"
+            )
+        else:
+            st.metric(
+                label="Last Earnings",
+                value=earnings_value,
+                help="Most recent earnings announcement date"
+            )
     
     with col_ctp5:
         st.metric(

@@ -35,7 +35,7 @@ This project includes two comprehensive Streamlit-based web applications for adv
 - **Added Cross-Tab Symbol Synchronization:** Stock symbols are now automatically synced between Fundamental Analysis and Advanced Analysis tabs, so entering a symbol in one tab automatically populates it in the other for seamless navigation and analysis workflow
 - **Enhanced Advanced Analysis for Indian Stocks:** Advanced Analysis tab now supports both US and Indian markets with automatic market detection, proper currency formatting (₹ for Indian stocks, $ for US stocks), and automatic .NS suffix handling for Indian stock symbols to ensure proper data retrieval
 - **Fixed News Sentiment Analysis for Indian Stocks:** Enhanced news sentiment analysis to properly detect Indian stocks and search for market-specific news using appropriate search terms (India NSE BSE) and region-specific RSS feeds to avoid mixing US and Indian stock results
-- **Improved Earnings Date Accuracy:** Enhanced earnings data processing to ensure recent earnings dates are properly displayed, with robust fallback logic that prioritizes current year data while ensuring no earnings are missed due to overly restrictive date filtering
+- **Improved Earnings Date Accuracy:** Enhanced earnings data processing to ensure recent earnings dates are properly displayed, with robust fallback logic that prioritizes current year data while ensuring no earnings are missed due to overly restrictive date filtering. Added detection for potentially outdated earnings data and user warnings when data sources may be missing recent announcements
 
 ## User Preferences
 
