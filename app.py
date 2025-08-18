@@ -3322,17 +3322,25 @@ def yahoo_finance_tab():
     # Add comprehensive CSS for significantly reduced spacing and smaller fonts
     st.markdown("""
     <style>
-    /* Reduce metric font sizes */
-    .stMetric > div > div > div {
-        font-size: 0.75rem !important;
-        line-height: 1.1 !important;
+    /* Aggressively reduce metric font sizes with multiple selectors */
+    .stMetric > div > div > div,
+    .stMetric [data-testid="metric-container"] > div > div,
+    .stMetric [data-testid="metric-container"] label,
+    .stMetric label {
+        font-size: 0.65rem !important;
+        line-height: 1.0 !important;
     }
-    .stMetric > div > div > div > div {
-        font-size: 1.0rem !important;
-        margin-bottom: 0.2rem !important;
+    .stMetric > div > div > div > div,
+    .stMetric [data-testid="metric-container"] > div > div > div,
+    .stMetric [data-testid="metric-container"] [data-testid="metric-value"],
+    .stMetric [data-testid="metric-value"] {
+        font-size: 0.85rem !important;
+        margin-bottom: 0.1rem !important;
+        font-weight: 600 !important;
     }
     .stMetric [data-testid="metric-container"] {
-        padding: 0.3rem 0 !important;
+        padding: 0.2rem 0 !important;
+        margin-bottom: 0.2rem !important;
     }
     
     /* Reduce header sizes */
@@ -4530,17 +4538,25 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     # Apply same comprehensive CSS for consistent styling
     st.markdown("""
     <style>
-    /* Same comprehensive CSS as main tab for consistency */
-    .stMetric > div > div > div {
-        font-size: 0.75rem !important;
-        line-height: 1.1 !important;
+    /* Same aggressive CSS as main tab for consistency */
+    .stMetric > div > div > div,
+    .stMetric [data-testid="metric-container"] > div > div,
+    .stMetric [data-testid="metric-container"] label,
+    .stMetric label {
+        font-size: 0.65rem !important;
+        line-height: 1.0 !important;
     }
-    .stMetric > div > div > div > div {
-        font-size: 1.0rem !important;
-        margin-bottom: 0.2rem !important;
+    .stMetric > div > div > div > div,
+    .stMetric [data-testid="metric-container"] > div > div > div,
+    .stMetric [data-testid="metric-container"] [data-testid="metric-value"],
+    .stMetric [data-testid="metric-value"] {
+        font-size: 0.85rem !important;
+        margin-bottom: 0.1rem !important;
+        font-weight: 600 !important;
     }
     .stMetric [data-testid="metric-container"] {
-        padding: 0.3rem 0 !important;
+        padding: 0.2rem 0 !important;
+        margin-bottom: 0.2rem !important;
     }
     .stDataFrame {
         font-size: 0.75rem !important;
