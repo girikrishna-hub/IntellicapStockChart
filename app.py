@@ -19,12 +19,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
 
-# Set page configuration
-st.set_page_config(
-    page_title="Stock 50-Day Moving Average Chart",
-    page_icon="📈",
-    layout="wide"
-)
+# Page config moved to main() function
 
 def fetch_stock_data(symbol, period="1y", market="US"):
     """
@@ -3208,6 +3203,70 @@ def main():
     """
     Main application function
     """
+    # Set page config first
+    st.set_page_config(page_title="Stock Technical Analysis", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
+    
+    # Global CSS with maximum specificity to override Streamlit defaults
+    st.markdown("""
+    <style>
+    /* Force all metrics to use smaller fonts */
+    div[data-testid="metric-container"] label {
+        font-size: 0.55rem !important;
+        font-weight: 500 !important;
+        line-height: 1.0 !important;
+        margin-bottom: 0.1rem !important;
+    }
+    
+    div[data-testid="metric-container"] > div > div:nth-child(2) {
+        font-size: 0.75rem !important;
+        font-weight: 600 !important;
+        line-height: 1.1 !important;
+    }
+    
+    .stMetric {
+        padding: 0.1rem 0 !important;
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Make everything more compact */
+    .element-container {
+        margin-bottom: 0.2rem !important;
+    }
+    
+    /* Smaller text everywhere */
+    .stMarkdown p {
+        font-size: 0.8rem !important;
+        margin-bottom: 0.2rem !important;
+    }
+    
+    /* Smaller tables */
+    .stDataFrame {
+        font-size: 0.65rem !important;
+    }
+    
+    .stDataFrame th, .stDataFrame td {
+        padding: 0.1rem 0.2rem !important;
+        font-size: 0.65rem !important;
+    }
+    
+    /* Smaller headers */
+    h1 {
+        font-size: 1.5rem !important;
+        margin: 0.3rem 0 !important;
+    }
+    
+    h2 {
+        font-size: 1.2rem !important;
+        margin: 0.2rem 0 !important;
+    }
+    
+    h3 {
+        font-size: 1.0rem !important;
+        margin: 0.2rem 0 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Custom CSS to make tabs bigger and more visible
     st.markdown("""
     <style>
