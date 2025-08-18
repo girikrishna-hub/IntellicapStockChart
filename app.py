@@ -2860,11 +2860,24 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     with col_ctp4:
         earnings_value = earnings_info['last_earnings_formatted']
         if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
+            # Split the earnings date and warning message
+            if " (likely outdated" in earnings_value:
+                clean_date = earnings_value.split(" (likely outdated")[0]
+                warning_msg = "⚠️ Likely outdated - check company reports"
+            elif " (data may be outdated)" in earnings_value:
+                clean_date = earnings_value.split(" (data may be outdated)")[0]
+                warning_msg = "⚠️ Data may be outdated"
+            else:
+                clean_date = earnings_value
+                warning_msg = "⚠️ Check for recent updates"
+            
             st.metric(
-                label="Last Earnings ⚠️",
-                value=earnings_value,
+                label="Last Earnings",
+                value=clean_date,
                 help="Most recent earnings date - Data source may be missing recent announcements. For major stocks, check company investor relations for latest reports."
             )
+            # Display warning message in smaller font on new line
+            st.markdown(f'<p style="font-size:11px; margin-top:-8px; color:#ff6b6b;">{warning_msg}</p>', unsafe_allow_html=True)
         else:
             st.metric(
                 label="Last Earnings",
@@ -4164,7 +4177,24 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     with col_earnings1:
         if earnings_info['last_earnings_formatted'] != 'N/A':
-            st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
+            earnings_value = earnings_info['last_earnings_formatted']
+            if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
+                # Split the earnings date and warning message
+                if " (likely outdated" in earnings_value:
+                    clean_date = earnings_value.split(" (likely outdated")[0]
+                    warning_msg = "⚠️ Likely outdated - check company reports"
+                elif " (data may be outdated)" in earnings_value:
+                    clean_date = earnings_value.split(" (data may be outdated)")[0]
+                    warning_msg = "⚠️ Data may be outdated"
+                else:
+                    clean_date = earnings_value
+                    warning_msg = "⚠️ Check for recent updates"
+                
+                st.metric("Last Earnings Date", clean_date)
+                # Display warning message in smaller font on new line
+                st.markdown(f'<p style="font-size:11px; margin-top:-8px; color:#ff6b6b;">{warning_msg}</p>', unsafe_allow_html=True)
+            else:
+                st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
         else:
             st.metric("Last Earnings Date", "N/A")
     
