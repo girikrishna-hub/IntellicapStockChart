@@ -19,7 +19,12 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
 
-# Page config moved to main() function
+# Set page configuration
+st.set_page_config(
+    page_title="Stock 50-Day Moving Average Chart",
+    page_icon="📈",
+    layout="wide"
+)
 
 def fetch_stock_data(symbol, period="1y", market="US"):
     """
@@ -3203,80 +3208,6 @@ def main():
     """
     Main application function
     """
-    # Set page config first
-    st.set_page_config(page_title="Stock Technical Analysis", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
-    
-    # Global CSS with aggressive targeting for all metric elements
-    st.markdown("""
-    <style>
-    /* Target all possible metric selectors */
-    [data-testid="metric-container"],
-    [data-testid="metric-container"] *,
-    .stMetric,
-    .stMetric *,
-    .metric,
-    .metric * {
-        font-size: 0.7rem !important;
-    }
-    
-    /* Specifically target metric values with multiple selectors */
-    [data-testid="metric-container"] [data-testid="metric-value"],
-    [data-testid="metric-container"] > div > div:last-child,
-    [data-testid="metric-container"] > div > div > div:last-child,
-    .stMetric > div > div > div:last-child,
-    .stMetric [data-testid="metric-value"] {
-        font-size: 0.9rem !important;
-        transform: scale(0.9) !important;
-        transform-origin: left center !important;
-    }
-    
-    /* Target metric labels */
-    [data-testid="metric-container"] label,
-    [data-testid="metric-container"] > div > div:first-child,
-    .stMetric label,
-    .stMetric > div > div > div:first-child {
-        font-size: 0.75rem !important;
-        transform: scale(0.9) !important;
-        transform-origin: left center !important;
-    }
-    
-    /* Apply moderate transform scaling to make everything smaller but readable */
-    .stMetric {
-        transform: scale(0.9) !important;
-        transform-origin: top left !important;
-        margin-bottom: 0.1rem !important;
-    }
-    
-    /* Force moderately smaller text globally */
-    * {
-        font-size: 0.9rem !important;
-    }
-    
-    /* Override for headers */
-    h1, .stTitle { 
-        font-size: 1.3rem !important; 
-        transform: scale(0.9) !important;
-        transform-origin: left center !important;
-    }
-    h2, .stSubheader { 
-        font-size: 1.0rem !important; 
-        transform: scale(0.9) !important;
-        transform-origin: left center !important;
-    }
-    h3 { 
-        font-size: 0.9rem !important; 
-        transform: scale(0.9) !important;
-        transform-origin: left center !important;
-    }
-    
-    /* Scale down dataframes */
-    .stDataFrame {
-        transform: scale(0.8) !important;
-        transform-origin: top left !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     # Custom CSS to make tabs bigger and more visible
     st.markdown("""
     <style>
@@ -3388,23 +3319,20 @@ def main():
 def yahoo_finance_tab():
     """Fundamental analysis tab content"""
     
-    # Apply same aggressive scaling to tab content
+    # Add comprehensive CSS for significantly reduced spacing and smaller fonts
     st.markdown("""
     <style>
-    /* Scale down all content in this tab moderately */
-    .stMetric {
-        transform: scale(0.9) !important;
-        transform-origin: top left !important;
+    /* Reduce metric font sizes */
+    .stMetric > div > div > div {
+        font-size: 0.75rem !important;
+        line-height: 1.1 !important;
     }
-    
-    [data-testid="metric-container"] {
-        transform: scale(0.9) !important;
-        transform-origin: top left !important;
+    .stMetric > div > div > div > div {
+        font-size: 1.0rem !important;
+        margin-bottom: 0.2rem !important;
     }
-    
-    /* Force moderately smaller fonts on all elements */
-    * {
-        font-size: 0.9rem !important;
+    .stMetric [data-testid="metric-container"] {
+        padding: 0.3rem 0 !important;
     }
     
     /* Reduce header sizes */
@@ -4602,20 +4530,17 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     # Apply same comprehensive CSS for consistent styling
     st.markdown("""
     <style>
-    /* Same moderate scaling as main tab for consistency */
-    .stMetric {
-        transform: scale(0.9) !important;
-        transform-origin: top left !important;
+    /* Same comprehensive CSS as main tab for consistency */
+    .stMetric > div > div > div {
+        font-size: 0.75rem !important;
+        line-height: 1.1 !important;
     }
-    
-    [data-testid="metric-container"] {
-        transform: scale(0.9) !important;
-        transform-origin: top left !important;
+    .stMetric > div > div > div > div {
+        font-size: 1.0rem !important;
+        margin-bottom: 0.2rem !important;
     }
-    
-    /* Moderately smaller fonts */
-    * {
-        font-size: 0.9rem !important;
+    .stMetric [data-testid="metric-container"] {
+        padding: 0.3rem 0 !important;
     }
     .stDataFrame {
         font-size: 0.75rem !important;
