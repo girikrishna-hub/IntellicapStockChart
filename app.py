@@ -3225,8 +3225,8 @@ def main():
     [data-testid="metric-container"] > div > div > div:last-child,
     .stMetric > div > div > div:last-child,
     .stMetric [data-testid="metric-value"] {
-        font-size: 0.8rem !important;
-        transform: scale(0.8) !important;
+        font-size: 0.9rem !important;
+        transform: scale(0.9) !important;
         transform-origin: left center !important;
     }
     
@@ -3235,21 +3235,21 @@ def main():
     [data-testid="metric-container"] > div > div:first-child,
     .stMetric label,
     .stMetric > div > div > div:first-child {
-        font-size: 0.6rem !important;
-        transform: scale(0.8) !important;
+        font-size: 0.75rem !important;
+        transform: scale(0.9) !important;
         transform-origin: left center !important;
     }
     
-    /* Apply transform scaling to make everything smaller */
+    /* Apply moderate transform scaling to make everything smaller but readable */
     .stMetric {
-        transform: scale(0.85) !important;
+        transform: scale(0.9) !important;
         transform-origin: top left !important;
         margin-bottom: 0.1rem !important;
     }
     
-    /* Force smaller text globally */
+    /* Force moderately smaller text globally */
     * {
-        font-size: 0.8rem !important;
+        font-size: 0.9rem !important;
     }
     
     /* Override for headers */
@@ -3391,20 +3391,20 @@ def yahoo_finance_tab():
     # Apply same aggressive scaling to tab content
     st.markdown("""
     <style>
-    /* Scale down all content in this tab */
+    /* Scale down all content in this tab moderately */
     .stMetric {
-        transform: scale(0.85) !important;
+        transform: scale(0.9) !important;
         transform-origin: top left !important;
     }
     
     [data-testid="metric-container"] {
-        transform: scale(0.85) !important;
+        transform: scale(0.9) !important;
         transform-origin: top left !important;
     }
     
-    /* Force smaller fonts on all elements */
+    /* Force moderately smaller fonts on all elements */
     * {
-        font-size: 0.8rem !important;
+        font-size: 0.9rem !important;
     }
     
     /* Reduce header sizes */
@@ -4602,25 +4602,20 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     # Apply same comprehensive CSS for consistent styling
     st.markdown("""
     <style>
-    /* Same aggressive CSS as main tab for consistency */
-    .stMetric > div > div > div,
-    .stMetric [data-testid="metric-container"] > div > div,
-    .stMetric [data-testid="metric-container"] label,
-    .stMetric label {
-        font-size: 0.65rem !important;
-        line-height: 1.0 !important;
+    /* Same moderate scaling as main tab for consistency */
+    .stMetric {
+        transform: scale(0.9) !important;
+        transform-origin: top left !important;
     }
-    .stMetric > div > div > div > div,
-    .stMetric [data-testid="metric-container"] > div > div > div,
-    .stMetric [data-testid="metric-container"] [data-testid="metric-value"],
-    .stMetric [data-testid="metric-value"] {
-        font-size: 0.85rem !important;
-        margin-bottom: 0.1rem !important;
-        font-weight: 600 !important;
+    
+    [data-testid="metric-container"] {
+        transform: scale(0.9) !important;
+        transform-origin: top left !important;
     }
-    .stMetric [data-testid="metric-container"] {
-        padding: 0.2rem 0 !important;
-        margin-bottom: 0.2rem !important;
+    
+    /* Moderately smaller fonts */
+    * {
+        font-size: 0.9rem !important;
     }
     .stDataFrame {
         font-size: 0.75rem !important;
