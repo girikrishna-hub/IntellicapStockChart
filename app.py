@@ -2863,13 +2863,13 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             # Split the earnings date and warning message
             if " (likely outdated" in earnings_value:
                 clean_date = earnings_value.split(" (likely outdated")[0]
-                warning_msg = "⚠️ Likely outdated - check company reports"
+                warning_msg = "⚠️ Likely outdated - Yahoo Finance frequently misses recent earnings announcements"
             elif " (data may be outdated)" in earnings_value:
                 clean_date = earnings_value.split(" (data may be outdated)")[0]
-                warning_msg = "⚠️ Data may be outdated"
+                warning_msg = "⚠️ Data may be outdated - verify on company investor relations page"
             else:
                 clean_date = earnings_value
-                warning_msg = "⚠️ Check for recent updates"
+                warning_msg = "⚠️ Check company investor relations for latest earnings"
             
             st.metric(
                 label="Last Earnings",
@@ -4182,13 +4182,13 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 # Split the earnings date and warning message
                 if " (likely outdated" in earnings_value:
                     clean_date = earnings_value.split(" (likely outdated")[0]
-                    warning_msg = "⚠️ Likely outdated - check company reports"
+                    warning_msg = "⚠️ Likely outdated - Yahoo Finance frequently misses recent earnings announcements"
                 elif " (data may be outdated)" in earnings_value:
                     clean_date = earnings_value.split(" (data may be outdated)")[0]
-                    warning_msg = "⚠️ Data may be outdated"
+                    warning_msg = "⚠️ Data may be outdated - verify on company investor relations page"
                 else:
                     clean_date = earnings_value
-                    warning_msg = "⚠️ Check for recent updates"
+                    warning_msg = "⚠️ Check company investor relations for latest earnings"
                 
                 st.metric("Last Earnings Date", clean_date)
                 # Display warning message in smaller font on new line
@@ -4403,6 +4403,23 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     # Earnings Performance Analysis
     st.markdown("---")
     st.subheader("📊 Earnings Performance Analysis")
+    
+    # Add note about Yahoo Finance earnings data limitations
+    if symbol.upper() in ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']:
+        st.info("""
+        📝 **Data Source Note**: Yahoo Finance often has delayed earnings data for major stocks. 
+        For the most current earnings information, check the company's investor relations page:
+        - **AAPL**: [Apple Investor Relations](https://investor.apple.com/investor-relations/default.aspx)
+        - **MSFT**: [Microsoft Investor Relations](https://www.microsoft.com/en-us/Investor/)
+        - **GOOGL**: [Alphabet Investor Relations](https://abc.xyz/investor/)
+        - **AMZN**: [Amazon Investor Relations](https://ir.aboutamazon.com/)
+        - **TSLA**: [Tesla Investor Relations](https://ir.tesla.com/)
+        - **META**: [Meta Investor Relations](https://investor.fb.com/)
+        - **NVDA**: [NVIDIA Investor Relations](https://investor.nvidia.com/home/default.aspx)
+        - **MSTR**: [MicroStrategy Investor Relations](https://www.microstrategy.com/company/investor-relations)
+        """)
+    else:
+        st.info("📝 **Data Source Note**: Yahoo Finance may have delayed earnings data. For the most current information, check the company's investor relations page.")
     
     try:
         earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
