@@ -860,9 +860,15 @@ def get_earnings_info(ticker_obj, ticker_info):
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
                     
-                    # Check if earnings might be outdated (more than 100 days old)
+                    # Check if earnings might be outdated (more than 100 days old or more than 120 days for quarterly companies)
                     days_since_last = (current_date_tz - last_earnings).days
-                    if days_since_last > 100:
+                    quarterly_threshold = 120  # 4 months for quarterly reporters
+                    major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']
+                    
+                    if symbol.upper() in major_stocks and days_since_last > quarterly_threshold:
+                        print(f"Found last earnings (current year - likely outdated): {earnings_info['last_earnings_formatted']} ({days_since_last} days ago)")
+                        earnings_info['last_earnings_formatted'] += f" (likely outdated - check company reports)"
+                    elif days_since_last > 100:
                         print(f"Found last earnings (current year - possibly outdated): {earnings_info['last_earnings_formatted']} ({days_since_last} days ago)")
                         earnings_info['last_earnings_formatted'] += f" (data may be outdated)"
                     else:
@@ -898,7 +904,7 @@ def get_earnings_info(ticker_obj, ticker_info):
                         else:
                             print("No past earnings found at all")
                             # For major stocks, indicate this might be a data issue
-                            major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA']
+                            major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']
                             if symbol.upper() in major_stocks:
                                 earnings_info['last_earnings_formatted'] = "Data may be incomplete"
                 
@@ -2759,11 +2765,11 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     
     with col_ctp4:
         earnings_value = earnings_info['last_earnings_formatted']
-        if "outdated" in earnings_value or "incomplete" in earnings_value:
+        if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
             st.metric(
                 label="Last Earnings ⚠️",
                 value=earnings_value,
-                help="Most recent earnings date - Data source may be missing recent announcements"
+                help="Most recent earnings date - Data source may be missing recent announcements. For major stocks, check company investor relations for latest reports."
             )
         else:
             st.metric(
