@@ -873,11 +873,16 @@ def get_earnings_info(ticker_obj, ticker_info):
                         earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
                         print(f"Found last earnings (within 12 months): {earnings_info['last_earnings_formatted']}")
                     else:
-                        # Check if we have any past earnings and show as old
+                        # Check if we have any past earnings and use the most recent one
                         all_past_earnings = earnings_dates[earnings_dates.index <= current_date_tz]
                         if not all_past_earnings.empty:
-                            old_earnings = all_past_earnings.index[-1]
-                            print(f"Found old earnings (skipped): {old_earnings.strftime('%Y-%m-%d')}")
+                            # Use the most recent past earnings regardless of age
+                            last_earnings = all_past_earnings.index[-1]
+                            earnings_info['last_earnings'] = last_earnings
+                            earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
+                            print(f"Found last earnings (older): {earnings_info['last_earnings_formatted']}")
+                        else:
+                            print("No past earnings found at all")
                 
                 # Get next upcoming earnings
                 future_earnings = earnings_dates[earnings_dates.index > current_date_tz]
