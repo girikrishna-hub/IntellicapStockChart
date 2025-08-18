@@ -4511,8 +4511,10 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     col_div1, col_div2, col_div3, col_div4 = st.columns(4)
     
     with col_div1:
-        if dividend_info['last_dividend_formatted'] != 'N/A':
-            st.metric("Last Dividend Date", dividend_info['last_dividend_formatted'])
+        if dividend_info['last_dividend_date'] is not None:
+            # Extract just the date part for the Last Dividend Date metric
+            last_div_date = dividend_info['last_dividend_date'].strftime('%Y-%m-%d')
+            st.metric("Last Dividend Date", last_div_date)
         else:
             st.metric("Last Dividend Date", "N/A")
     
