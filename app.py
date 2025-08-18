@@ -3318,6 +3318,39 @@ def main():
 
 def yahoo_finance_tab():
     """Fundamental analysis tab content"""
+    
+    # Add global CSS for reduced spacing and smaller fonts
+    st.markdown("""
+    <style>
+    .stMetric > div > div > div {
+        font-size: 0.85rem;
+    }
+    .stMetric > div > div > div > div {
+        font-size: 1.1rem;
+    }
+    h1, h2, h3 {
+        margin-top: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 6px;
+    }
+    .stDataFrame {
+        font-size: 0.8rem;
+    }
+    .element-container {
+        margin-bottom: 0.4rem;
+    }
+    .stMarkdown p {
+        margin-bottom: 0.5rem;
+    }
+    .stSubheader {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### Real-time stock analysis with comprehensive fundamental metrics")
     
     # Show shared insights history if any exist
@@ -3437,10 +3470,11 @@ def yahoo_finance_tab():
             
             if data is not None and ticker_info is not None and ticker_obj is not None and not data.empty:
                 # Create sub-tabs for better organization
-                tab_price, tab_charts, tab_sentiment = st.tabs([
-                    "📊 Price Action & Metrics", 
-                    "📈 Technical Charts", 
-                    "📰 News Sentiment Analysis"
+                tab_price, tab_charts, tab_earnings, tab_sentiment = st.tabs([
+                    "📊 Price Action", 
+                    "📈 Charts", 
+                    "📅 Earnings & Dividends",
+                    "📰 News Sentiment"
                 ])
                 
                 # Calculate all technical indicators once
@@ -3456,6 +3490,9 @@ def yahoo_finance_tab():
                 
                 with tab_charts:
                     display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market)
+                
+                with tab_earnings:
+                    display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market)
                 
                 with tab_sentiment:
                     display_news_sentiment_analysis(symbol)
@@ -4374,99 +4411,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     else:
         st.info("Fibonacci analysis requires sufficient price history for calculation")
     
-    # Dividend and earnings information
-    st.markdown("---")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("💰 Dividend Information")
-        dividend_yield = ticker_info.get('dividendYield', 0)
-        if dividend_yield and dividend_yield > 0:
-            # Convert to percentage and ensure reasonable display
-            dividend_yield_pct = dividend_yield * 100 if dividend_yield < 1 else dividend_yield
-            st.metric("Dividend Yield", f"{dividend_yield_pct:.2f}%")
-            
-            dividend_rate = ticker_info.get('dividendRate', 0)
-            if dividend_rate:
-                st.caption(f"Annual Rate: {currency}{dividend_rate:.2f}")
-        else:
-            st.info("No dividend information available")
-    
-    with col2:
-        st.subheader("📅 Earnings Information")
-        # Use the same earnings_info that we calculated earlier for consistency
-        if earnings_info['next_earnings_formatted'] != 'N/A':
-            st.metric("Next Earnings", earnings_info['next_earnings_formatted'])
-        else:
-            st.info("Next earnings date not available")
-    
-    # Earnings Performance Analysis
-    st.markdown("---")
-    st.subheader("📊 Earnings Performance Analysis")
-    
-    # Add note about Yahoo Finance earnings data limitations
-    if symbol.upper() in ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']:
-        st.info("""
-        📝 **Data Source Note**: Yahoo Finance often has delayed earnings data for major stocks. 
-        For the most current earnings information, check the company's investor relations page:
-        - **AAPL**: [Apple Investor Relations](https://investor.apple.com/investor-relations/default.aspx)
-        - **MSFT**: [Microsoft Investor Relations](https://www.microsoft.com/en-us/Investor/)
-        - **GOOGL**: [Alphabet Investor Relations](https://abc.xyz/investor/)
-        - **AMZN**: [Amazon Investor Relations](https://ir.aboutamazon.com/)
-        - **TSLA**: [Tesla Investor Relations](https://ir.tesla.com/)
-        - **META**: [Meta Investor Relations](https://investor.fb.com/)
-        - **NVDA**: [NVIDIA Investor Relations](https://investor.nvidia.com/home/default.aspx)
-        - **MSTR**: [MicroStrategy Investor Relations](https://www.microstrategy.com/company/investor-relations)
-        """)
-    else:
-        st.info("📝 **Data Source Note**: Yahoo Finance may have delayed earnings data. For the most current information, check the company's investor relations page.")
-    
-    try:
-        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
-        
-        if earnings_analysis is not None and not earnings_analysis.empty:
-            st.markdown(f"""
-            **Track how the stock performed after each earnings announcement ({quarters_found} quarters available):**
-            - **Overnight Change**: Price movement from close before earnings to open after earnings
-            - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
-            """)
-            
-            # Display earnings analysis
-            st.dataframe(earnings_analysis, use_container_width=True)
-            
-            # Summary statistics
-            col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
-            
-            try:
-                # Calculate summary stats
-                overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
-                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
-                
-                if overnight_changes:
-                    with col_stats1:
-                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
-                        st.metric("Avg Overnight Change", f"{avg_overnight:+.2f}%")
-                    
-                    with col_stats2:
-                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
-                        success_rate_overnight = (positive_overnight / len(overnight_changes)) * 100
-                        st.metric("Overnight Success Rate", f"{success_rate_overnight:.0f}%")
-                
-                if week_changes:
-                    with col_stats3:
-                        avg_week = sum(week_changes) / len(week_changes)
-                        st.metric("Avg Week Performance", f"{avg_week:+.2f}%")
-                    
-                    with col_stats4:
-                        positive_week = sum(1 for x in week_changes if x > 0)
-                        success_rate_week = (positive_week / len(week_changes)) * 100
-                        st.metric("Week Success Rate", f"{success_rate_week:.0f}%")
-            except:
-                pass  # Skip summary stats if parsing fails
-        else:
-            st.info("No recent earnings data available for performance analysis")
-    except Exception as e:
-        st.info(f"Earnings performance analysis not available")
+    # Earnings and dividend information moved to dedicated tab
 
 
 def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market):
@@ -4599,6 +4544,176 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
         st.plotly_chart(rsi_fig, use_container_width=True)
         create_export_buttons(rsi_fig, "RSI_Analysis", symbol)
 
+
+def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market):
+    """Display earnings and dividends analysis in a dedicated tab"""
+    
+    # Add CSS for reduced spacing and smaller fonts
+    st.markdown("""
+    <style>
+    .metric-container {
+        padding: 0.25rem 0;
+    }
+    .metric-label {
+        font-size: 0.8rem;
+    }
+    .metric-value {
+        font-size: 1.1rem;
+    }
+    .small-subheader {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Get earnings and dividend information
+    earnings_info = get_earnings_info(ticker_obj, ticker_info, market)
+    dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
+    next_dividend_info = estimate_next_dividend_date(ticker_obj, dividend_info)
+    
+    # Currency symbol
+    currency = "₹" if market == "India" else "$"
+    
+    # Earnings Information Section
+    st.markdown('<p class="small-subheader">📅 <strong>Earnings Information</strong></p>', unsafe_allow_html=True)
+    
+    col_earnings1, col_earnings2, col_earnings3 = st.columns(3)
+    
+    with col_earnings1:
+        if earnings_info['last_earnings_formatted'] != 'N/A':
+            earnings_value = earnings_info['last_earnings_formatted']
+            if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
+                # Split the earnings date and warning message
+                if " (likely outdated" in earnings_value:
+                    clean_date = earnings_value.split(" (likely outdated")[0]
+                    warning_msg = "⚠️ Likely outdated - Yahoo Finance frequently misses recent earnings announcements"
+                elif " (data may be outdated)" in earnings_value:
+                    clean_date = earnings_value.split(" (data may be outdated)")[0]
+                    warning_msg = "⚠️ Data may be outdated - verify on company investor relations page"
+                else:
+                    clean_date = earnings_value
+                    warning_msg = "⚠️ Check company investor relations for latest earnings"
+                
+                st.metric("Last Earnings Date", clean_date)
+                # Display warning message in smaller font on new line
+                st.markdown(f'<p style="font-size:11px; margin-top:-8px; color:#ff6b6b;">{warning_msg}</p>', unsafe_allow_html=True)
+            else:
+                st.metric("Last Earnings Date", earnings_info['last_earnings_formatted'])
+        else:
+            st.metric("Last Earnings Date", "N/A")
+    
+    with col_earnings2:
+        if earnings_info['next_earnings_formatted'] != 'N/A':
+            st.metric("Next Earnings Date", earnings_info['next_earnings_formatted'])
+        else:
+            st.metric("Next Earnings Date", "N/A")
+    
+    with col_earnings3:
+        performance_since_earnings = earnings_info.get('performance_since_earnings', 'N/A')
+        if performance_since_earnings != 'N/A':
+            st.metric("Performance Since Last Earnings", performance_since_earnings)
+        else:
+            st.metric("Performance Since Last Earnings", "N/A")
+
+    # Dividend Information Section
+    st.markdown('<p class="small-subheader">💰 <strong>Dividend Information</strong></p>', unsafe_allow_html=True)
+    
+    col_div1, col_div2, col_div3, col_div4 = st.columns(4)
+    
+    with col_div1:
+        if dividend_info['last_dividend_formatted'] != 'N/A':
+            st.metric("Last Dividend Date", dividend_info['last_dividend_formatted'])
+        else:
+            st.metric("Last Dividend Date", "N/A")
+    
+    with col_div2:
+        if dividend_info['last_dividend_amount'] > 0:
+            st.metric("Last Dividend Amount", format_currency(dividend_info['last_dividend_amount'], market))
+        else:
+            st.metric("Last Dividend Amount", "N/A")
+    
+    with col_div3:
+        if next_dividend_info['next_dividend_date'] != 'N/A':
+            st.metric("Next Dividend Date", next_dividend_info['next_dividend_date'])
+            if next_dividend_info['estimated']:
+                st.caption("(Estimated)")
+        else:
+            st.metric("Next Dividend Date", "N/A")
+    
+    with col_div4:
+        if dividend_info['dividend_yield'] != 'N/A':
+            st.metric("Dividend Yield", dividend_info['dividend_yield'])
+        else:
+            st.metric("Dividend Yield", "N/A")
+    
+    # Data Source Note
+    if symbol.upper() in ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']:
+        st.info(f"""
+        📝 **Data Source Note**: Yahoo Finance often has delayed earnings data for major stocks. 
+        For the most current earnings information, check the company's investor relations page:
+        - **AAPL**: [Apple Investor Relations](https://investor.apple.com/investor-relations/default.aspx)
+        - **MSFT**: [Microsoft Investor Relations](https://www.microsoft.com/en-us/Investor/)
+        - **GOOGL**: [Alphabet Investor Relations](https://abc.xyz/investor/)
+        - **AMZN**: [Amazon Investor Relations](https://ir.aboutamazon.com/)
+        - **TSLA**: [Tesla Investor Relations](https://ir.tesla.com/)
+        - **META**: [Meta Investor Relations](https://investor.fb.com/)
+        - **NVDA**: [NVIDIA Investor Relations](https://investor.nvidia.com/home/default.aspx)
+        - **MSTR**: [MicroStrategy Investor Relations](https://www.microstrategy.com/company/investor-relations)
+        """)
+    else:
+        st.info("📝 **Data Source Note**: Yahoo Finance may have delayed earnings data. For the most current information, check the company's investor relations page.")
+    
+    # Earnings Performance Analysis
+    st.markdown('<p class="small-subheader">📊 <strong>Earnings Performance Analysis</strong></p>', unsafe_allow_html=True)
+    
+    try:
+        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
+        
+        if earnings_analysis is not None and not earnings_analysis.empty:
+            st.markdown(f"""
+            **Track how the stock performed after each earnings announcement ({quarters_found} quarters available):**
+            - **Overnight Change**: Price movement from close before earnings to open after earnings
+            - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
+            """)
+            
+            # Display earnings analysis
+            st.dataframe(earnings_analysis, use_container_width=True)
+            
+            # Summary statistics
+            col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+            
+            try:
+                # Calculate summary stats
+                overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
+                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                
+                if overnight_changes:
+                    with col_stats1:
+                        avg_overnight = sum(overnight_changes) / len(overnight_changes)
+                        st.metric("Avg Overnight Change", f"{avg_overnight:+.2f}%")
+                    
+                    with col_stats2:
+                        positive_overnight = sum(1 for x in overnight_changes if x > 0)
+                        st.metric("Positive Overnight", f"{positive_overnight}/{len(overnight_changes)}")
+                
+                if week_changes:
+                    with col_stats3:
+                        avg_week = sum(week_changes) / len(week_changes)
+                        st.metric("Avg Week Performance", f"{avg_week:+.2f}%")
+                    
+                    with col_stats4:
+                        positive_week = sum(1 for x in week_changes if x > 0)
+                        st.metric("Positive Week", f"{positive_week}/{len(week_changes)}")
+                        
+            except Exception as e:
+                st.warning("Could not calculate summary statistics")
+                
+        else:
+            st.info("No earnings performance data available for the selected period")
+            
+    except Exception as e:
+        st.error(f"Error analyzing earnings performance: {str(e)}")
 
 def display_news_sentiment_analysis(symbol):
     """Display AI-powered news sentiment analysis"""
