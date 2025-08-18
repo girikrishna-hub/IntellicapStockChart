@@ -924,25 +924,39 @@ def get_earnings_info(ticker_obj, ticker_info):
                         earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
                         print(f"Found next earnings from calendar: {earnings_info['next_earnings_formatted']}")
                     elif isinstance(calendar, dict) and calendar:
-                        # Handle dict format calendar
-                        for key, dates in calendar.items():
-                            if dates:
-                                # Handle single date or list of dates
-                                if hasattr(dates, '__len__') and not isinstance(dates, str):
-                                    # It's a list or array
-                                    if len(dates) > 0:
-                                        next_earnings = pd.to_datetime(dates[0])
+                        # Handle dict format calendar - prioritize 'Earnings Date' key
+                        earnings_date_key = None
+                        for key in ['Earnings Date', 'earnings_date', 'earnings', 'next_earnings']:
+                            if key in calendar:
+                                earnings_date_key = key
+                                break
+                        
+                        if earnings_date_key and calendar[earnings_date_key]:
+                            dates = calendar[earnings_date_key]
+                            # Handle single date or list of dates
+                            if hasattr(dates, '__len__') and not isinstance(dates, str):
+                                # It's a list or array
+                                if len(dates) > 0:
+                                    next_earnings = pd.to_datetime(dates[0])
+                                    # Only use if it's actually in the future
+                                    if next_earnings > current_date:
                                         earnings_info['next_earnings'] = next_earnings
                                         earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
                                         print(f"Found next earnings from calendar dict list: {earnings_info['next_earnings_formatted']}")
-                                        break
-                                else:
-                                    # It's a single date object
-                                    next_earnings = pd.to_datetime(dates)
+                                    else:
+                                        print(f"Calendar earnings date is not in future: {next_earnings.strftime('%Y-%m-%d')}")
+                            else:
+                                # It's a single date object
+                                next_earnings = pd.to_datetime(dates)
+                                # Only use if it's actually in the future
+                                if next_earnings > current_date:
                                     earnings_info['next_earnings'] = next_earnings
                                     earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
                                     print(f"Found next earnings from calendar dict single: {earnings_info['next_earnings_formatted']}")
-                                    break
+                                else:
+                                    print(f"Calendar earnings date is not in future: {next_earnings.strftime('%Y-%m-%d')}")
+                        else:
+                            print("No valid earnings date found in calendar")
             except Exception as e:
                 print(f"Calendar error: {e}")
         
@@ -975,11 +989,30 @@ def get_earnings_info(ticker_obj, ticker_info):
                     else:
                         next_earnings = pd.to_datetime(earnings_date, unit='s')
                     
-                    earnings_info['next_earnings'] = next_earnings
-                    earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
-                    print(f"Found next earnings from ticker info: {earnings_info['next_earnings_formatted']}")
+                    # Only use if it's actually in the future
+                    if next_earnings > current_date:
+                        earnings_info['next_earnings'] = next_earnings
+                        earnings_info['next_earnings_formatted'] = next_earnings.strftime('%Y-%m-%d')
+                        print(f"Found next earnings from ticker info: {earnings_info['next_earnings_formatted']}")
+                    else:
+                        print(f"Ticker info earnings date is not in future: {next_earnings.strftime('%Y-%m-%d')}")
             except Exception as e:
                 print(f"Ticker info earnings date error: {e}")
+        
+        # Final check: If we still don't have next earnings, estimate based on last earnings
+        if earnings_info['next_earnings'] is None and earnings_info['last_earnings'] is not None:
+            try:
+                # Estimate next earnings as roughly 3 months (90 days) after last earnings
+                estimated_next = earnings_info['last_earnings'] + pd.Timedelta(days=90)
+                if estimated_next > current_date:
+                    earnings_info['next_earnings_formatted'] = f"~{estimated_next.strftime('%Y-%m-%d')} (estimated)"
+                    print(f"Estimated next earnings: {earnings_info['next_earnings_formatted']}")
+                else:
+                    earnings_info['next_earnings_formatted'] = "TBD"
+                    print("Cannot estimate future earnings - last earnings too recent or in future")
+            except Exception as e:
+                print(f"Estimation error: {e}")
+                earnings_info['next_earnings_formatted'] = "TBD"
         
         # Method 5: Try additional ticker_info fields for last earnings (with date validation)
         if earnings_info['last_earnings'] is None:
