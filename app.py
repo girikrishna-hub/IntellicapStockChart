@@ -4394,20 +4394,11 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     with col2:
         st.subheader("📅 Earnings Information")
-        # Get earnings dates from ticker info
-        try:
-            # Try to get next earnings date from ticker info
-            next_earnings = ticker_info.get('earningsDate', None)
-            if next_earnings:
-                if isinstance(next_earnings, list) and len(next_earnings) > 0:
-                    next_earnings_date = next_earnings[0]
-                else:
-                    next_earnings_date = next_earnings
-                st.metric("Next Earnings", pd.to_datetime(next_earnings_date).strftime('%Y-%m-%d'))
-            else:
-                st.info("Next earnings date not available")
-        except:
-            st.info("Earnings information not available")
+        # Use the same earnings_info that we calculated earlier for consistency
+        if earnings_info['next_earnings_formatted'] != 'N/A':
+            st.metric("Next Earnings", earnings_info['next_earnings_formatted'])
+        else:
+            st.info("Next earnings date not available")
     
     # Earnings Performance Analysis
     st.markdown("---")
