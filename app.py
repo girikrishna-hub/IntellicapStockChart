@@ -811,13 +811,14 @@ def calculate_fibonacci_retracement(data, lookback_period=50):
 
 
 
-def get_earnings_info(ticker_obj, ticker_info):
+def get_earnings_info(ticker_obj, ticker_info, symbol):
     """
     Extract earnings information from ticker object and info with improved accuracy and multiple fallback sources
     
     Args:
         ticker_obj: yfinance Ticker object
         ticker_info (dict): Company information from yfinance
+        symbol (str): Stock symbol for major stock detection
     
     Returns:
         dict: Earnings information
@@ -860,9 +861,9 @@ def get_earnings_info(ticker_obj, ticker_info):
                     earnings_info['last_earnings'] = last_earnings
                     earnings_info['last_earnings_formatted'] = last_earnings.strftime('%Y-%m-%d')
                     
-                    # Check if earnings might be outdated (more than 100 days old or more than 120 days for quarterly companies)
+                    # Check if earnings might be outdated (more than 100 days old or more than 90 days for major quarterly companies)
                     days_since_last = (current_date_tz - last_earnings).days
-                    quarterly_threshold = 120  # 4 months for quarterly reporters
+                    quarterly_threshold = 90  # 3 months for major quarterly reporters
                     major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'MSTR']
                     
                     if symbol.upper() in major_stocks and days_since_last > quarterly_threshold:
@@ -2032,7 +2033,7 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         support_level, resistance_level = calculate_support_resistance(data)
         
         # Earnings and dividend info
-        earnings_info = get_earnings_info(ticker_obj, ticker_info)
+        earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
         dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
         
         # Calculate performance metrics
@@ -2638,7 +2639,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     price_vs_ma_200 = ((latest_price - latest_ma_200) / latest_ma_200) * 100 if not pd.isna(latest_ma_200) else 0
     
     # Get earnings and dividend information
-    earnings_info = get_earnings_info(ticker_obj, ticker_info)
+    earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
     dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
     
     # Calculate performance since last earnings (if available)
@@ -4167,7 +4168,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     st.subheader("📅 Earnings & Dividend Information")
     
     # Get earnings and dividend information
-    earnings_info = get_earnings_info(ticker_obj, ticker_info)
+    earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
     dividend_info = get_dividend_info(ticker_obj, ticker_info, market)
     
     # Estimate next dividend date
