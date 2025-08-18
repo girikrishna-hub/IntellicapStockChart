@@ -3206,63 +3206,73 @@ def main():
     # Set page config first
     st.set_page_config(page_title="Stock Technical Analysis", page_icon="📈", layout="wide", initial_sidebar_state="collapsed")
     
-    # Global CSS with maximum specificity to override Streamlit defaults
+    # Global CSS with aggressive targeting for all metric elements
     st.markdown("""
     <style>
-    /* Force all metrics to use smaller fonts */
-    div[data-testid="metric-container"] label {
-        font-size: 0.55rem !important;
-        font-weight: 500 !important;
-        line-height: 1.0 !important;
-        margin-bottom: 0.1rem !important;
+    /* Target all possible metric selectors */
+    [data-testid="metric-container"],
+    [data-testid="metric-container"] *,
+    .stMetric,
+    .stMetric *,
+    .metric,
+    .metric * {
+        font-size: 0.7rem !important;
     }
     
-    div[data-testid="metric-container"] > div > div:nth-child(2) {
-        font-size: 0.75rem !important;
-        font-weight: 600 !important;
-        line-height: 1.1 !important;
-    }
-    
-    .stMetric {
-        padding: 0.1rem 0 !important;
-        margin-bottom: 0.1rem !important;
-    }
-    
-    /* Make everything more compact */
-    .element-container {
-        margin-bottom: 0.2rem !important;
-    }
-    
-    /* Smaller text everywhere */
-    .stMarkdown p {
+    /* Specifically target metric values with multiple selectors */
+    [data-testid="metric-container"] [data-testid="metric-value"],
+    [data-testid="metric-container"] > div > div:last-child,
+    [data-testid="metric-container"] > div > div > div:last-child,
+    .stMetric > div > div > div:last-child,
+    .stMetric [data-testid="metric-value"] {
         font-size: 0.8rem !important;
-        margin-bottom: 0.2rem !important;
+        transform: scale(0.8) !important;
+        transform-origin: left center !important;
     }
     
-    /* Smaller tables */
+    /* Target metric labels */
+    [data-testid="metric-container"] label,
+    [data-testid="metric-container"] > div > div:first-child,
+    .stMetric label,
+    .stMetric > div > div > div:first-child {
+        font-size: 0.6rem !important;
+        transform: scale(0.8) !important;
+        transform-origin: left center !important;
+    }
+    
+    /* Apply transform scaling to make everything smaller */
+    .stMetric {
+        transform: scale(0.85) !important;
+        transform-origin: top left !important;
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Force smaller text globally */
+    * {
+        font-size: 0.8rem !important;
+    }
+    
+    /* Override for headers */
+    h1, .stTitle { 
+        font-size: 1.3rem !important; 
+        transform: scale(0.9) !important;
+        transform-origin: left center !important;
+    }
+    h2, .stSubheader { 
+        font-size: 1.0rem !important; 
+        transform: scale(0.9) !important;
+        transform-origin: left center !important;
+    }
+    h3 { 
+        font-size: 0.9rem !important; 
+        transform: scale(0.9) !important;
+        transform-origin: left center !important;
+    }
+    
+    /* Scale down dataframes */
     .stDataFrame {
-        font-size: 0.65rem !important;
-    }
-    
-    .stDataFrame th, .stDataFrame td {
-        padding: 0.1rem 0.2rem !important;
-        font-size: 0.65rem !important;
-    }
-    
-    /* Smaller headers */
-    h1 {
-        font-size: 1.5rem !important;
-        margin: 0.3rem 0 !important;
-    }
-    
-    h2 {
-        font-size: 1.2rem !important;
-        margin: 0.2rem 0 !important;
-    }
-    
-    h3 {
-        font-size: 1.0rem !important;
-        margin: 0.2rem 0 !important;
+        transform: scale(0.8) !important;
+        transform-origin: top left !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -3378,28 +3388,23 @@ def main():
 def yahoo_finance_tab():
     """Fundamental analysis tab content"""
     
-    # Add comprehensive CSS for significantly reduced spacing and smaller fonts
+    # Apply same aggressive scaling to tab content
     st.markdown("""
     <style>
-    /* Aggressively reduce metric font sizes with multiple selectors */
-    .stMetric > div > div > div,
-    .stMetric [data-testid="metric-container"] > div > div,
-    .stMetric [data-testid="metric-container"] label,
-    .stMetric label {
-        font-size: 0.65rem !important;
-        line-height: 1.0 !important;
+    /* Scale down all content in this tab */
+    .stMetric {
+        transform: scale(0.85) !important;
+        transform-origin: top left !important;
     }
-    .stMetric > div > div > div > div,
-    .stMetric [data-testid="metric-container"] > div > div > div,
-    .stMetric [data-testid="metric-container"] [data-testid="metric-value"],
-    .stMetric [data-testid="metric-value"] {
-        font-size: 0.85rem !important;
-        margin-bottom: 0.1rem !important;
-        font-weight: 600 !important;
+    
+    [data-testid="metric-container"] {
+        transform: scale(0.85) !important;
+        transform-origin: top left !important;
     }
-    .stMetric [data-testid="metric-container"] {
-        padding: 0.2rem 0 !important;
-        margin-bottom: 0.2rem !important;
+    
+    /* Force smaller fonts on all elements */
+    * {
+        font-size: 0.8rem !important;
     }
     
     /* Reduce header sizes */
