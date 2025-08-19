@@ -3337,7 +3337,7 @@ def main():
         gurufocus_tab()
 
 def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
-    """Generate a comprehensive PDF report with all tabs data in 1-2 pages"""
+    """Generate a comprehensive PDF report with charts and advanced analysis data in 1-2 pages"""
     
     # Create PDF buffer
     buffer = io.BytesIO()
@@ -3353,14 +3353,6 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         fontSize=16,
         spaceAfter=10,
         alignment=TA_CENTER
-    )
-    
-    section_style = ParagraphStyle(
-        'CompactSection',
-        parent=styles['Heading2'],
-        fontSize=12,
-        spaceAfter=6,
-        spaceBefore=8
     )
     
     compact_style = ParagraphStyle(
@@ -3383,7 +3375,17 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     story.append(Spacer(1, 8))
     
-    # Create data table for Page 1
+    # Generate price chart
+    try:
+        chart_buffer = generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level)
+        if chart_buffer:
+            chart_image = ImageReader(chart_buffer)
+            story.append(Image(chart_image, width=5*inch, height=3*inch))
+            story.append(Spacer(1, 8))
+    except Exception as e:
+        story.append(Paragraph(f"Chart generation error: {str(e)}", compact_style))
+    
+    # Create data table
     data_rows = []
     
     # Price Action Data
@@ -3447,14 +3449,57 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         
         beta = ticker_info.get('beta', 'N/A')
         data_rows.append(['Beta', f'{beta}'])
+        
+        # Advanced Analysis Data
+        book_value = ticker_info.get('bookValue', 'N/A')
+        data_rows.append(['Book Value', f'${book_value}' if book_value != 'N/A' else 'N/A'])
+        
+        pb_ratio = ticker_info.get('priceToBook', 'N/A')
+        data_rows.append(['P/B Ratio', f'{pb_ratio}'])
+        
+        enterprise_value = ticker_info.get('enterpriseValue', 'N/A')
+        if enterprise_value != 'N/A' and isinstance(enterprise_value, (int, float)):
+            ev_b = enterprise_value / 1e9
+            data_rows.append(['Enterprise Value', f'${ev_b:.2f}B'])
+        else:
+            data_rows.append(['Enterprise Value', 'N/A'])
+        
+        debt_to_equity = ticker_info.get('debtToEquity', 'N/A')
+        data_rows.append(['Debt/Equity', f'{debt_to_equity}'])
+        
+        roe = ticker_info.get('returnOnEquity', 'N/A')
+        if roe != 'N/A' and isinstance(roe, (int, float)):
+            roe_pct = roe * 100
+            data_rows.append(['ROE', f'{roe_pct:.2f}%'])
+        else:
+            data_rows.append(['ROE', 'N/A'])
+        
+        profit_margins = ticker_info.get('profitMargins', 'N/A')
+        if profit_margins != 'N/A' and isinstance(profit_margins, (int, float)):
+            margins_pct = profit_margins * 100
+            data_rows.append(['Profit Margin', f'{margins_pct:.2f}%'])
+        else:
+            data_rows.append(['Profit Margin', 'N/A'])
     
-    # Add earnings dates
+    # Add earnings dates and analysis
     try:
         earnings_info = get_earnings_info(ticker_obj)
         if earnings_info['last_earnings'] != 'N/A':
             data_rows.append(['Last Earnings', earnings_info['last_earnings']])
         if earnings_info['next_earnings'] != 'N/A':
             data_rows.append(['Next Earnings', earnings_info['next_earnings']])
+    except:
+        pass
+    
+    # Add Fibonacci levels
+    try:
+        fib_data = calculate_fibonacci_levels(data, period='3M')
+        if fib_data and 'next_two_levels' in fib_data:
+            levels = fib_data['next_two_levels'][:2]  # Get first two levels
+            for i, level in enumerate(levels, 1):
+                level_price = level['price']
+                level_type = level['type']
+                data_rows.append([f'Fib Level {i}', f'${level_price:.2f} ({level_type})'])
     except:
         pass
     
@@ -3504,6 +3549,72 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     buffer.seek(0)
     
     return buffer
+
+def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level):
+    """Generate a compact price chart for PDF inclusion"""
+    try:
+        import plotly.graph_objects as go
+        from plotly.io import to_image
+        
+        # Create figure
+        fig = go.Figure()
+        
+        # Add candlestick chart
+        fig.add_trace(go.Candlestick(
+            x=data.index,
+            open=data['Open'],
+            high=data['High'],
+            low=data['Low'],
+            close=data['Close'],
+            name=symbol.upper(),
+            increasing_line_color='#00ff88',
+            decreasing_line_color='#ff4444'
+        ))
+        
+        # Add moving averages
+        if ma_50 is not None and not ma_50.empty:
+            fig.add_trace(go.Scatter(
+                x=data.index,
+                y=ma_50,
+                mode='lines',
+                name='50-Day MA',
+                line=dict(color='blue', width=1)
+            ))
+        
+        if ma_200 is not None and not ma_200.empty:
+            fig.add_trace(go.Scatter(
+                x=data.index,
+                y=ma_200,
+                mode='lines',
+                name='200-Day MA',
+                line=dict(color='red', width=1)
+            ))
+        
+        # Add support and resistance lines
+        fig.add_hline(y=support_level, line_dash="dash", line_color="green", annotation_text="Support")
+        fig.add_hline(y=resistance_level, line_dash="dash", line_color="red", annotation_text="Resistance")
+        
+        # Update layout for PDF
+        fig.update_layout(
+            title=f"{symbol.upper()} Price Chart",
+            title_font_size=14,
+            width=500,
+            height=300,
+            margin=dict(l=20, r=20, t=40, b=20),
+            showlegend=False,
+            xaxis_rangeslider_visible=False
+        )
+        
+        # Convert to image
+        img_buffer = io.BytesIO()
+        img_bytes = to_image(fig, format="png", width=500, height=300)
+        img_buffer.write(img_bytes)
+        img_buffer.seek(0)
+        return img_buffer
+        
+    except Exception as e:
+        print(f"Chart generation error: {e}")
+        return None
 
 def apply_view_mode_css():
     """Apply CSS styling based on the selected view mode"""
