@@ -4864,78 +4864,51 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             current_time = datetime.now().strftime("%H:%M:%S")
             st.metric("Last Update", current_time)
     
-    # Company information and current price
-    col1, col2 = st.columns([2, 1])
+    # Calculate basic data needed for both modes
+    current_price = data['Close'].iloc[-1]
+    previous_close = ticker_info.get('previousClose', data['Close'].iloc[-2] if len(data) > 1 else current_price)
+    price_change = current_price - previous_close
+    price_change_pct = (price_change / previous_close) * 100 if previous_close != 0 else 0
+    currency = "₹" if market == "India" else "$"
+    company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
     
-    with col1:
-        company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
+    # Check view mode for display format
+    view_mode = st.session_state.get('view_mode', 'Standard')
+    
+    if view_mode == 'Compact':
+        # COMPACT MODE - Company info and pricing as tables
         st.markdown(f"### 🏢 {company_name} ({symbol})")
         
-        if 'sector' in ticker_info:
-            col_info1, col_info2 = st.columns(2)
-            with col_info1:
-                st.markdown(f"**Sector:** {ticker_info.get('sector', 'N/A')}")
-            with col_info2:
-                st.markdown(f"**Industry:** {ticker_info.get('industry', 'N/A')}")
-    
-    with col2:
-        # Current price and change
-        current_price = data['Close'].iloc[-1]
-        previous_close = ticker_info.get('previousClose', data['Close'].iloc[-2] if len(data) > 1 else current_price)
-        price_change = current_price - previous_close
-        price_change_pct = (price_change / previous_close) * 100 if previous_close != 0 else 0
+        # Company Information Table
+        company_data = [
+            ["Sector", ticker_info.get('sector', 'N/A'), "Industry", ticker_info.get('industry', 'N/A')],
+        ]
         
-        # Currency based on market
-        currency = "₹" if market == "India" else "$"
+        if ticker_info.get('sector') or ticker_info.get('industry'):
+            df_company = pd.DataFrame(company_data)
+            st.dataframe(df_company, hide_index=True, use_container_width=True)
         
-        st.metric(
-            label=f"Current Price ({currency})",
-            value=f"{currency}{current_price:.2f}",
-            delta=f"{price_change:+.2f} ({price_change_pct:+.2f}%)"
-        )
-    
-    st.markdown("---")
-    
-    # After-market information
-    st.subheader("🕐 Extended Hours Trading")
-    
-    try:
-        after_market_data = get_after_market_data(symbol, market)
+        st.markdown("**💰 Current Price & Market Data**")
         
-        col_am1, col_am2, col_am3, col_am4 = st.columns(4)
+        # Current Price Table
+        price_data = [
+            ["Current Price", f"{currency}{current_price:.2f}", "Previous Close", f"{currency}{previous_close:.2f}"],
+            ["Price Change", f"{price_change:+.2f}", "Change %", f"{price_change_pct:+.2f}%"]
+        ]
         
-        with col_am1:
-            if after_market_data['pre_market_change'] != 'N/A':
-                st.metric(
-                    "Pre-Market Change",
-                    after_market_data['pre_market_change'],
-                    after_market_data['pre_market_change_percent']
-                )
-            else:
-                st.metric("Pre-Market Change", "N/A")
+        df_current_price = pd.DataFrame(price_data)
+        st.dataframe(df_current_price, hide_index=True, use_container_width=True)
         
-        with col_am2:
-            if after_market_data['post_market_change'] != 'N/A':
-                st.metric(
-                    "After-Hours Change", 
-                    after_market_data['post_market_change'],
-                    after_market_data['post_market_change_percent']
-                )
-            else:
-                st.metric("After-Hours Change", "N/A")
+        # Extended Hours Trading Table
+        st.markdown("**🕐 Extended Hours Trading**")
         
-        with col_am3:
-            if after_market_data['regular_session_close'] != 'N/A':
-                st.metric("Regular Session Close", after_market_data['regular_session_close'])
-            else:
-                st.metric("Regular Session Close", "N/A")
-        
-        with col_am4:
-            # Market status indicator
+        try:
+            after_market_data = get_after_market_data(symbol, market)
+            
+            # Market status calculation
             import datetime
             current_time = datetime.datetime.now()
             
-            # Simple market hours check (9:30 AM - 4:00 PM ET for US markets)
             if market == "US":
                 market_open_time = current_time.replace(hour=9, minute=30)
                 market_close_time = current_time.replace(hour=16, minute=0)
@@ -4949,14 +4922,102 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             else:
                 market_status = "🔵 Active"
             
-            st.metric("Market Status", market_status)
+            # Extended hours data table
+            extended_data = [
+                ["Pre-Market Change", after_market_data.get('pre_market_change', 'N/A'), "After-Hours Change", after_market_data.get('post_market_change', 'N/A')],
+                ["Regular Close", after_market_data.get('regular_session_close', 'N/A'), "Market Status", market_status]
+            ]
             
-    except Exception as e:
-        st.info("Extended hours data not available")
+            df_extended = pd.DataFrame(extended_data)
+            st.dataframe(df_extended, hide_index=True, use_container_width=True)
+            
+        except Exception as e:
+            st.info("Extended hours data not available")
+            
+    else:
+        # STANDARD MODE - Original metric display
+        # Company information and current price
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.markdown(f"### 🏢 {company_name} ({symbol})")
+            
+            if 'sector' in ticker_info:
+                col_info1, col_info2 = st.columns(2)
+                with col_info1:
+                    st.markdown(f"**Sector:** {ticker_info.get('sector', 'N/A')}")
+                with col_info2:
+                    st.markdown(f"**Industry:** {ticker_info.get('industry', 'N/A')}")
+        
+        with col2:
+            st.metric(
+                label=f"Current Price ({currency})",
+                value=f"{currency}{current_price:.2f}",
+                delta=f"{price_change:+.2f} ({price_change_pct:+.2f}%)"
+            )
+        
+        st.markdown("---")
+        
+        # After-market information
+        st.subheader("🕐 Extended Hours Trading")
+        
+        try:
+            after_market_data = get_after_market_data(symbol, market)
+            
+            col_am1, col_am2, col_am3, col_am4 = st.columns(4)
+            
+            with col_am1:
+                if after_market_data['pre_market_change'] != 'N/A':
+                    st.metric(
+                        "Pre-Market Change",
+                        after_market_data['pre_market_change'],
+                        after_market_data['pre_market_change_percent']
+                    )
+                else:
+                    st.metric("Pre-Market Change", "N/A")
+            
+            with col_am2:
+                if after_market_data['post_market_change'] != 'N/A':
+                    st.metric(
+                        "After-Hours Change", 
+                        after_market_data['post_market_change'],
+                        after_market_data['post_market_change_percent']
+                    )
+                else:
+                    st.metric("After-Hours Change", "N/A")
+            
+            with col_am3:
+                if after_market_data['regular_session_close'] != 'N/A':
+                    st.metric("Regular Session Close", after_market_data['regular_session_close'])
+                else:
+                    st.metric("Regular Session Close", "N/A")
+            
+            with col_am4:
+                # Market status indicator
+                import datetime
+                current_time = datetime.datetime.now()
+                
+                # Simple market hours check (9:30 AM - 4:00 PM ET for US markets)
+                if market == "US":
+                    market_open_time = current_time.replace(hour=9, minute=30)
+                    market_close_time = current_time.replace(hour=16, minute=0)
+                    
+                    if market_open_time <= current_time <= market_close_time:
+                        market_status = "🟢 Open"
+                    elif current_time < market_open_time:
+                        market_status = "🟡 Pre-Market"
+                    else:
+                        market_status = "🔴 After-Hours"
+                else:
+                    market_status = "🔵 Active"
+                
+                st.metric("Market Status", market_status)
+                
+        except Exception as e:
+            st.info("Extended hours data not available")
     
     st.markdown("---")
-    
-    # Check view mode and display accordingly
+    # Check view mode for key metrics display
     view_mode = st.session_state.get('view_mode', 'Standard')
     
     if view_mode == 'Compact':
