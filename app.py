@@ -4956,75 +4956,140 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     st.markdown("---")
     
-    # Key price metrics in organized columns
-    col1, col2, col3, col4 = st.columns(4)
+    # Check view mode and display accordingly
+    view_mode = st.session_state.get('view_mode', 'Standard')
+    st.write(f"DEBUG: Current view mode is: {view_mode}")  # Debug info
     
-    with col1:
-        # 52-week analysis
+    if view_mode == 'Compact':
+        st.subheader("📊 Key Metrics (Table View)")
+        st.success("✅ COMPACT MODE ACTIVE - Table format is now displayed")
+        
+        # COMPACT TABLE VIEW - All key metrics in tables
+        # Get all required data first
         week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
         week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
-        
-        if week_52_high and week_52_low:
-            position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
-            st.metric("52W Position", f"{position_52w:.1f}%")
-            st.caption(f"Range: {currency}{week_52_low:.2f} - {currency}{week_52_high:.2f}")
-        else:
-            st.metric("52W Position", "N/A")
-    
-    with col2:
-        # Volume analysis
-        avg_volume = ticker_info.get('averageVolume', 0)
-        current_volume = data['Volume'].iloc[-1]
-        
-        if avg_volume > 0:
-            volume_ratio = current_volume / avg_volume
-            st.metric("Volume Ratio", f"{volume_ratio:.2f}x")
-            st.caption(f"Avg: {avg_volume:,.0f}")
-        else:
-            st.metric("Volume Ratio", "N/A")
-    
-    with col3:
-        # Market cap and beta
-        market_cap = ticker_info.get('marketCap', 0)
-        if market_cap:
-            if market_cap >= 1e12:
-                cap_display = f"{currency}{market_cap/1e12:.2f}T"
-            elif market_cap >= 1e9:
-                cap_display = f"{currency}{market_cap/1e9:.2f}B"
-            elif market_cap >= 1e6:
-                cap_display = f"{currency}{market_cap/1e6:.2f}M"
-            else:
-                cap_display = f"{currency}{market_cap:.0f}"
-            st.metric("Market Cap", cap_display)
-        else:
-            st.metric("Market Cap", "N/A")
-        
-        beta = ticker_info.get('beta', 0)
-        if beta:
-            st.caption(f"Beta: {beta:.2f}")
-    
-    with col4:
-        # RSI and trend
         current_rsi = rsi.iloc[-1] if not rsi.empty else 0
-        rsi_status = "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral"
-        st.metric("RSI", f"{current_rsi:.1f}")
-        st.caption(rsi_status)
-    
-    # Moving average analysis
-    st.markdown("---")
-    st.subheader("📈 Moving Average Analysis")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
         ma_50_current = ma_50.iloc[-1] if not ma_50.empty else 0
-        ma_50_change = ((current_price - ma_50_current) / ma_50_current * 100) if ma_50_current != 0 else 0
-        st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}", f"{ma_50_change:+.2f}%")
-    
-    with col2:
         ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
+        avg_volume = ticker_info.get('averageVolume', 0)
+        current_volume = data['Volume'].iloc[-1] if len(data) > 0 else 0
+        market_cap = ticker_info.get('marketCap', 0)
+        beta = ticker_info.get('beta', 0)
+        
+        # Calculate derived values
+        position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100 if week_52_high and week_52_low else 0
+        volume_ratio = current_volume / avg_volume if avg_volume > 0 else 0
+        ma_50_change = ((current_price - ma_50_current) / ma_50_current * 100) if ma_50_current != 0 else 0
         ma_200_change = ((current_price - ma_200_current) / ma_200_current * 100) if ma_200_current != 0 else 0
-        st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}", f"{ma_200_change:+.2f}%")
+        
+        # Format market cap
+        if market_cap >= 1e12:
+            cap_display = f"{currency}{market_cap/1e12:.2f}T"
+        elif market_cap >= 1e9:
+            cap_display = f"{currency}{market_cap/1e9:.2f}B"
+        elif market_cap >= 1e6:
+            cap_display = f"{currency}{market_cap/1e6:.2f}M"
+        else:
+            cap_display = f"{currency}{market_cap:.0f}" if market_cap else "N/A"
+        
+        # Price Action Table
+        price_data = [
+            ["Current Price", f"{currency}{current_price:.2f}", "52W High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A"],
+            ["52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A", "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
+            ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", "Volume Ratio", f"{volume_ratio:.2f}x" if volume_ratio else "N/A"],
+            ["MA 50", f"{currency}{ma_50_current:.2f} ({ma_50_change:+.2f}%)" if ma_50_current else "N/A", "MA 200", f"{currency}{ma_200_current:.2f} ({ma_200_change:+.2f}%)" if ma_200_current else "N/A"],
+            ["Market Cap", cap_display, "Beta", f"{beta:.2f}" if beta else "N/A"],
+            ["Avg Volume", f"{avg_volume:,}" if avg_volume else "N/A", "Current Vol", f"{current_volume:,}" if current_volume else "N/A"]
+        ]
+        
+        df_price = pd.DataFrame(price_data)
+        st.dataframe(df_price, hide_index=True, use_container_width=True)
+        
+        # Support/Resistance Analysis Table
+        st.markdown("**📊 Support/Resistance Analysis**")
+        
+        # Calculate support/resistance (simplified version for table)
+        resistance_table_data = [
+            ["Support Level", f"{currency}{support_level:.2f}" if support_level else "N/A", "Resistance Level", f"{currency}{resistance_level:.2f}" if resistance_level else "N/A"],
+            ["Distance to Support", f"{((current_price - support_level)/support_level*100):+.2f}%" if support_level else "N/A", "Distance to Resistance", f"{((resistance_level - current_price)/current_price*100):+.2f}%" if resistance_level else "N/A"]
+        ]
+        
+        df_resistance = pd.DataFrame(resistance_table_data)
+        st.dataframe(df_resistance, hide_index=True, use_container_width=True)
+        
+    else:
+        st.subheader("📊 Key Metrics")
+        st.info("💡 Switch to Compact view above for table format that eliminates scrolling")
+        
+        # STANDARD MODE - Original metric columns
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            # 52-week analysis
+            week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
+            week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
+            
+            if week_52_high and week_52_low:
+                position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
+                st.metric("52W Position", f"{position_52w:.1f}%")
+                st.caption(f"Range: {currency}{week_52_low:.2f} - {currency}{week_52_high:.2f}")
+            else:
+                st.metric("52W Position", "N/A")
+        
+        with col2:
+            # Volume analysis
+            avg_volume = ticker_info.get('averageVolume', 0)
+            current_volume = data['Volume'].iloc[-1]
+            
+            if avg_volume > 0:
+                volume_ratio = current_volume / avg_volume
+                st.metric("Volume Ratio", f"{volume_ratio:.2f}x")
+                st.caption(f"Avg: {avg_volume:,.0f}")
+            else:
+                st.metric("Volume Ratio", "N/A")
+        
+        with col3:
+            # Market cap and beta
+            market_cap = ticker_info.get('marketCap', 0)
+            if market_cap:
+                if market_cap >= 1e12:
+                    cap_display = f"{currency}{market_cap/1e12:.2f}T"
+                elif market_cap >= 1e9:
+                    cap_display = f"{currency}{market_cap/1e9:.2f}B"
+                elif market_cap >= 1e6:
+                    cap_display = f"{currency}{market_cap/1e6:.2f}M"
+                else:
+                    cap_display = f"{currency}{market_cap:.0f}"
+                st.metric("Market Cap", cap_display)
+            else:
+                st.metric("Market Cap", "N/A")
+            
+            beta = ticker_info.get('beta', 0)
+            if beta:
+                st.caption(f"Beta: {beta:.2f}")
+        
+        with col4:
+            # RSI and trend
+            current_rsi = rsi.iloc[-1] if not rsi.empty else 0
+            rsi_status = "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral"
+            st.metric("RSI", f"{current_rsi:.1f}")
+            st.caption(rsi_status)
+        
+        # Moving average analysis
+        st.markdown("---")
+        st.subheader("📈 Moving Average Analysis")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            ma_50_current = ma_50.iloc[-1] if not ma_50.empty else 0
+            ma_50_change = ((current_price - ma_50_current) / ma_50_current * 100) if ma_50_current != 0 else 0
+            st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}", f"{ma_50_change:+.2f}%")
+        
+        with col2:
+            ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
+            ma_200_change = ((current_price - ma_200_current) / ma_200_current * 100) if ma_200_current != 0 else 0
+            st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}", f"{ma_200_change:+.2f}%")
     
     with col3:
         # Trend analysis
