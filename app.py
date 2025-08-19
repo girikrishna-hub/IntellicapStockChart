@@ -3587,19 +3587,23 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             story.append(earnings_title)
             story.append(Spacer(1, 8))
             
-            # Create earnings table data
-            earnings_table_data = [['Earnings Date', 'Overnight Return', 'Week Return', 'Period']]
+            # Create comprehensive earnings table data
+            earnings_table_data = [['Date', 'Pre-Close', 'Next Open', 'Overnight %', 'Week Close', 'Week %', 'Direction', 'EPS']]
             
             for earning in earnings_performance['earnings_data']:
                 earnings_date = earning['date'].strftime('%Y-%m-%d') if hasattr(earning['date'], 'strftime') else str(earning['date']).split(' ')[0]
-                overnight_return = f"{earning['overnight_return']:.2f}%" if earning['overnight_return'] is not None else 'N/A'
-                week_return = f"{earning['week_return']:.2f}%" if earning['week_return'] is not None else 'N/A'
-                period = earning.get('period', 'N/A')
+                pre_close = f"${earning['pre_close']:.2f}" if earning['pre_close'] is not None else 'N/A'
+                next_open = f"${earning['next_open']:.2f}" if earning['next_open'] is not None else 'N/A'
+                overnight_pct = f"{earning['overnight_change_pct']:.2f}%" if earning['overnight_change_pct'] is not None else 'N/A'
+                week_close = f"${earning['week_close']:.2f}" if earning['week_close'] is not None else 'N/A'
+                week_pct = f"{earning['week_performance']:.2f}%" if earning['week_performance'] is not None else 'N/A'
+                direction = earning.get('direction', 'N/A')
+                eps = earning.get('eps', 'N/A')
                 
-                earnings_table_data.append([earnings_date, overnight_return, week_return, period])
+                earnings_table_data.append([earnings_date, pre_close, next_open, overnight_pct, week_close, week_pct, direction, eps])
             
-            # Create and style the earnings table
-            earnings_table = Table(earnings_table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+            # Create and style the comprehensive earnings table
+            earnings_table = Table(earnings_table_data, colWidths=[0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.8*inch, 0.6*inch, 0.6*inch])
             earnings_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -3691,14 +3695,41 @@ def analyze_earnings_performance(ticker_obj):
                 overnight_return = None
                 week_return = None
                 
+                pre_close = None
+                next_open = None
+                overnight_change_pct = None
+                week_close = None
+                week_performance = None
+                direction = 'N/A'
+                
                 if not pre_price_data.empty and not post_price_data.empty:
-                    pre_price = pre_price_data['Close'].iloc[-1]
-                    post_price = post_price_data['Close'].iloc[0]
-                    overnight_return = ((post_price - pre_price) / pre_price) * 100
+                    pre_close = pre_price_data['Close'].iloc[-1]
+                    next_open = post_price_data['Open'].iloc[0] if 'Open' in post_price_data.columns else post_price_data['Close'].iloc[0]
+                    overnight_change_pct = ((next_open - pre_close) / pre_close) * 100
+                    overnight_return = overnight_change_pct
+                    
+                    # Determine direction
+                    direction = 'UP' if overnight_change_pct > 0 else 'DOWN' if overnight_change_pct < 0 else 'FLAT'
                     
                     if not week_price_data.empty:
-                        week_price = week_price_data['Close'].iloc[0]
-                        week_return = ((week_price - pre_price) / pre_price) * 100
+                        week_close = week_price_data['Close'].iloc[0]
+                        week_performance = ((week_close - pre_close) / pre_close) * 100
+                        week_return = week_performance
+                
+                # Get EPS data if available
+                eps_value = 'N/A'
+                try:
+                    earnings_info = ticker_obj.earnings_dates
+                    if earnings_info is not None and not earnings_info.empty:
+                        earnings_row = earnings_info[earnings_info.index == earnings_date]
+                        if not earnings_row.empty and 'EPS Estimate' in earnings_row.columns:
+                            eps_value = earnings_row['EPS Estimate'].iloc[0]
+                            if pd.notna(eps_value):
+                                eps_value = f"${eps_value:.2f}"
+                            else:
+                                eps_value = 'N/A'
+                except:
+                    eps_value = 'N/A'
                 
                 # Determine quarter
                 quarter_map = {1: 'Q1', 2: 'Q1', 3: 'Q1', 4: 'Q2', 5: 'Q2', 6: 'Q2', 
@@ -3707,8 +3738,15 @@ def analyze_earnings_performance(ticker_obj):
                 
                 earnings_details.append({
                     'date': earnings_date,
+                    'pre_close': pre_close,
+                    'next_open': next_open,
                     'overnight_return': overnight_return,
+                    'overnight_change_pct': overnight_change_pct,
+                    'week_close': week_close,
                     'week_return': week_return,
+                    'week_performance': week_performance,
+                    'direction': direction,
+                    'eps': eps_value,
                     'period': quarter
                 })
                 
