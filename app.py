@@ -4072,22 +4072,20 @@ def apply_view_mode_css():
             font-size: 0.9rem !important;
         }
         
-        /* Reduce markdown text size and spacing */
+        /* Targeted markdown spacing */
         .stMarkdown p {
             font-size: 0.85rem !important;
-            margin: 0.1rem 0 !important;
-            line-height: 1.1 !important;
-        }
-        
-        /* Remove extra spacing from lists */
-        ul, ol {
             margin: 0.2rem 0 !important;
-            padding-left: 1rem !important;
+            line-height: 1.3 !important;
         }
         
-        li {
-            margin: 0 !important;
-            line-height: 1.1 !important;
+        /* Compact expander and tab spacing */
+        .streamlit-expander {
+            margin: 0.2rem 0 !important;
+        }
+        
+        .stTabs [data-baseweb="tab-panel"] {
+            padding-top: 0.5rem !important;
         }
         
         /* Reduce tab font size */
@@ -4111,34 +4109,22 @@ def apply_view_mode_css():
             padding: 0.5rem !important;
         }
         
-        /* Force compact display for all text elements - reduce whitespace */
-        * {
-            line-height: 1.1 !important;
-            margin-top: 0.1rem !important;
-            margin-bottom: 0.1rem !important;
-        }
-        
-        /* Reduce spacing between all elements */
-        .stElement {
-            margin-bottom: 0.2rem !important;
-        }
-        
-        /* Compact text blocks */
-        p, div, span {
-            line-height: 1.1 !important;
-            margin: 0.1rem 0 !important;
-            padding: 0.1rem 0 !important;
-        }
-        
-        /* Reduce spacing around containers */
-        .block-container {
-            padding-top: 1rem !important;
+        /* Targeted whitespace reduction - avoid global rules */
+        .main .block-container {
+            padding-top: 0.5rem !important;
             padding-bottom: 0.5rem !important;
+            max-width: 100% !important;
         }
         
-        /* Minimize gaps between sections */
-        .stMarkdown {
-            margin: 0.1rem 0 !important;
+        /* Specific element spacing reduction */
+        .stElement {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        /* Reduce spacing between metrics and charts */
+        .stPlotlyChart + .stElement,
+        .stMetric + .stElement {
+            margin-top: 0.1rem !important;
         }
         
         /* Additional metric number targeting */
