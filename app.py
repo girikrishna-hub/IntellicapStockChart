@@ -4958,11 +4958,9 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     # Check view mode and display accordingly
     view_mode = st.session_state.get('view_mode', 'Standard')
-    st.write(f"DEBUG: Current view mode is: {view_mode}")  # Debug info
     
     if view_mode == 'Compact':
         st.subheader("📊 Key Metrics (Table View)")
-        st.success("✅ COMPACT MODE ACTIVE - Table format is now displayed")
         
         # COMPACT TABLE VIEW - All key metrics in tables
         # Get all required data first
