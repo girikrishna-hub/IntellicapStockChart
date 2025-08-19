@@ -4094,9 +4094,34 @@ def apply_view_mode_css():
             padding: 0.3rem 0.6rem !important;
         }
         
-        /* Reduce divider spacing */
+        /* Minimize divider spacing */
         hr {
-            margin: 0.5rem 0 !important;
+            margin: 0.25rem 0 !important;
+        }
+        
+        /* Remove spacing from sections */
+        .stContainer > div {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Compact form elements */
+        .stTextInput > div > div {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Reduce spacing around buttons */
+        .stButton {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Minimize column gaps */
+        .stColumns > div {
+            gap: 0.25rem !important;
+        }
+        
+        /* Remove extra spacing in tabs */
+        .stTabs [data-baseweb="tab-panel"] {
+            padding: 0.25rem 0 !important;
         }
         
         /* Compact chart containers */
@@ -4109,22 +4134,37 @@ def apply_view_mode_css():
             padding: 0.5rem !important;
         }
         
-        /* Targeted whitespace reduction - avoid global rules */
+        /* Aggressive whitespace reduction */
         .main .block-container {
-            padding-top: 0.5rem !important;
-            padding-bottom: 0.5rem !important;
+            padding: 0.25rem 1rem !important;
             max-width: 100% !important;
         }
         
-        /* Specific element spacing reduction */
+        /* Minimize all element spacing */
         .stElement {
-            margin-bottom: 0.25rem !important;
+            margin: 0.1rem 0 !important;
         }
         
-        /* Reduce spacing between metrics and charts */
-        .stPlotlyChart + .stElement,
-        .stMetric + .stElement {
-            margin-top: 0.1rem !important;
+        /* Remove spacing around specific components */
+        .stPlotlyChart,
+        .stMetric,
+        .stDataFrame,
+        .stTable {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Compact vertical spacing */
+        .element-container {
+            margin: 0.1rem 0 !important;
+        }
+        
+        /* Remove default spacing */
+        .row-widget.stRadio > div {
+            gap: 0.25rem !important;
+        }
+        
+        .row-widget.stSelectbox > div {
+            margin: 0.1rem 0 !important;
         }
         
         /* Additional metric number targeting */
