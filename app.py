@@ -3341,43 +3341,27 @@ def apply_view_mode_css():
     if view_mode == 'Compact':
         st.markdown("""
         <style>
-        /* Compact Mode - Reduce metric font sizes */
-        .stMetric > div > div > div {
-            font-size: 0.65rem !important;
-            line-height: 1.0 !important;
-        }
-        .stMetric > div > div > div > div {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.1rem !important;
-        }
-        .stMetric [data-testid="metric-container"] {
-            padding: 0.2rem 0 !important;
+        /* Compact Mode - Scale entire metric containers */
+        [data-testid="metric-container"] {
+            transform: scale(0.8) !important;
+            transform-origin: top left !important;
+            margin: 0.2rem 0 !important;
+            padding: 0.1rem 0 !important;
         }
         
-        /* Target metric values specifically */
-        .stMetric [data-testid="metric-container"] > div:first-child {
-            font-size: 0.75rem !important;
-        }
-        .stMetric [data-testid="metric-container"] > div:last-child {
-            font-size: 0.65rem !important;
+        /* Alternative: Direct font size targeting */
+        div[data-testid="metric-container"] * {
+            font-size: 0.8em !important;
         }
         
-        /* Reduce metric value numbers */
-        .stMetric .metric-value {
-            font-size: 0.85rem !important;
+        /* Specifically target the large metric value */
+        div[data-testid="metric-container"] > div:first-child {
+            font-size: 1.2rem !important;
         }
         
-        /* More specific metric targeting */
-        div[data-testid="metric-container"] div {
-            font-size: 0.75rem !important;
-        }
-        div[data-testid="metric-container"] > div > div > div {
-            font-size: 0.75rem !important;
-        }
-        
-        /* Target the actual number values in metrics */
-        .stMetric > div:first-child > div:first-child > div:first-child {
-            font-size: 0.85rem !important;
+        /* Target metric labels */
+        div[data-testid="metric-container"] > div:last-child {
+            font-size: 0.7rem !important;
         }
         
         /* Reduce header sizes */
