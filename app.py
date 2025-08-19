@@ -3413,6 +3413,13 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     data_rows.append(['Support Level', f'${support_level:.2f}'])
     data_rows.append(['Resistance Level', f'${resistance_level:.2f}'])
     
+    # Calculate Safe Levels (conservative trading zones)
+    price_range = resistance_level - support_level
+    safe_level_low = support_level + (price_range * 0.1)  # 10% above support
+    safe_level_high = resistance_level - (price_range * 0.1)  # 10% below resistance
+    data_rows.append(['Safe Level Low', f'${safe_level_low:.2f}'])
+    data_rows.append(['Safe Level High', f'${safe_level_high:.2f}'])
+    
     # Technical Indicators
     if macd_line is not None and not macd_line.empty:
         latest_macd = macd_line.iloc[-1]
@@ -3614,7 +3621,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     # Add comprehensive Fibonacci analysis
     try:
-        fib_data = calculate_fibonacci_levels(data, period='3M')
+        fib_data = calculate_fibonacci_levels(data)
         if fib_data and 'next_two_levels' in fib_data:
             levels = fib_data['next_two_levels'][:4]  # Get up to 4 Fibonacci levels
             for i, level in enumerate(levels, 1):
