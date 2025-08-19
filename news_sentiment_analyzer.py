@@ -9,7 +9,13 @@ import plotly.graph_objects as go
 import plotly.express as px
 from trafilatura import fetch_url, extract
 import feedparser
-from newsapi import NewsApiClient
+try:
+    from newsapi.newsapi_client import NewsApiClient
+except ImportError:
+    try:
+        from newsapi import NewsApiClient
+    except ImportError:
+        NewsApiClient = None
 from alpha_vantage.timeseries import TimeSeries
 import time
 

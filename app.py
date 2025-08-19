@@ -3488,6 +3488,14 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Last Earnings', earnings_info['last_earnings']])
         if earnings_info['next_earnings'] != 'N/A':
             data_rows.append(['Next Earnings', earnings_info['next_earnings']])
+            
+        # Add earnings performance analysis
+        earnings_performance = analyze_earnings_performance(ticker_obj)
+        if earnings_performance:
+            avg_overnight = earnings_performance.get('avg_overnight_return', 0)
+            avg_week = earnings_performance.get('avg_week_return', 0)
+            data_rows.append(['Avg Earnings Overnight', f'{avg_overnight:.2f}%'])
+            data_rows.append(['Avg Earnings Week', f'{avg_week:.2f}%'])
     except:
         pass
     
@@ -3550,65 +3558,112 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     return buffer
 
-def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level):
-    """Generate a compact price chart for PDF inclusion"""
+def analyze_earnings_performance(ticker_obj):
+    """Analyze earnings performance for PDF report"""
     try:
-        import plotly.graph_objects as go
-        from plotly.io import to_image
+        # Get earnings dates and performance data
+        earnings_dates = ticker_obj.earnings_dates
+        if earnings_dates is None or earnings_dates.empty:
+            return None
         
-        # Create figure
-        fig = go.Figure()
+        # Get historical data for analysis
+        hist_data = ticker_obj.history(period="2y")
+        if hist_data.empty:
+            return None
         
-        # Add candlestick chart
-        fig.add_trace(go.Candlestick(
-            x=data.index,
-            open=data['Open'],
-            high=data['High'],
-            low=data['Low'],
-            close=data['Close'],
-            name=symbol.upper(),
-            increasing_line_color='#00ff88',
-            decreasing_line_color='#ff4444'
-        ))
+        # Calculate average overnight and week returns around earnings
+        overnight_returns = []
+        week_returns = []
+        
+        # Filter to recent earnings (last 4 quarters)
+        recent_earnings = earnings_dates.head(4)
+        
+        for earnings_date in recent_earnings.index:
+            try:
+                # Find the closest trading day before earnings
+                pre_earnings_date = earnings_date - pd.Timedelta(days=1)
+                post_earnings_date = earnings_date + pd.Timedelta(days=1)
+                week_post_date = earnings_date + pd.Timedelta(days=7)
+                
+                # Get prices
+                pre_price_data = hist_data[hist_data.index <= pre_earnings_date]
+                post_price_data = hist_data[hist_data.index >= post_earnings_date]
+                week_price_data = hist_data[hist_data.index >= week_post_date]
+                
+                if not pre_price_data.empty and not post_price_data.empty:
+                    pre_price = pre_price_data['Close'].iloc[-1]
+                    post_price = post_price_data['Close'].iloc[0]
+                    overnight_return = ((post_price - pre_price) / pre_price) * 100
+                    overnight_returns.append(overnight_return)
+                    
+                    if not week_price_data.empty:
+                        week_price = week_price_data['Close'].iloc[0]
+                        week_return = ((week_price - pre_price) / pre_price) * 100
+                        week_returns.append(week_return)
+                        
+            except Exception:
+                continue
+        
+        # Calculate averages
+        avg_overnight = sum(overnight_returns) / len(overnight_returns) if overnight_returns else 0
+        avg_week = sum(week_returns) / len(week_returns) if week_returns else 0
+        
+        return {
+            'avg_overnight_return': avg_overnight,
+            'avg_week_return': avg_week,
+            'sample_size': len(overnight_returns)
+        }
+        
+    except Exception as e:
+        print(f"Earnings analysis error: {e}")
+        return None
+
+def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level):
+    """Generate a compact price chart for PDF inclusion using matplotlib"""
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+        from mplfinance import plot as mpf_plot
+        import mplfinance as mpf
+        
+        # Create a simple chart using matplotlib instead of plotly
+        fig, ax = plt.subplots(figsize=(6, 3.5))
+        
+        # Plot candlestick-like chart with OHLC data
+        # Use close price line for simplicity since candlesticks are complex in matplotlib
+        ax.plot(data.index, data['Close'], label=f'{symbol.upper()} Price', color='black', linewidth=1.5)
         
         # Add moving averages
         if ma_50 is not None and not ma_50.empty:
-            fig.add_trace(go.Scatter(
-                x=data.index,
-                y=ma_50,
-                mode='lines',
-                name='50-Day MA',
-                line=dict(color='blue', width=1)
-            ))
+            ax.plot(data.index, ma_50, label='50-Day MA', color='blue', linewidth=1)
         
         if ma_200 is not None and not ma_200.empty:
-            fig.add_trace(go.Scatter(
-                x=data.index,
-                y=ma_200,
-                mode='lines',
-                name='200-Day MA',
-                line=dict(color='red', width=1)
-            ))
+            ax.plot(data.index, ma_200, label='200-Day MA', color='red', linewidth=1)
         
         # Add support and resistance lines
-        fig.add_hline(y=support_level, line_dash="dash", line_color="green", annotation_text="Support")
-        fig.add_hline(y=resistance_level, line_dash="dash", line_color="red", annotation_text="Resistance")
+        ax.axhline(y=support_level, color='green', linestyle='--', alpha=0.7, label='Support')
+        ax.axhline(y=resistance_level, color='red', linestyle='--', alpha=0.7, label='Resistance')
         
-        # Update layout for PDF
-        fig.update_layout(
-            title=f"{symbol.upper()} Price Chart",
-            title_font_size=14,
-            width=500,
-            height=300,
-            margin=dict(l=20, r=20, t=40, b=20),
-            showlegend=False,
-            xaxis_rangeslider_visible=False
-        )
+        # Format the chart
+        ax.set_title(f'{symbol.upper()} Price Chart', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Date', fontsize=10)
+        ax.set_ylabel('Price ($)', fontsize=10)
+        ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=8, loc='upper left')
         
-        # Convert to image
+        # Format x-axis dates
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+        plt.xticks(rotation=45, fontsize=8)
+        plt.yticks(fontsize=8)
+        
+        # Tight layout
+        plt.tight_layout()
+        
+        # Save to buffer
         img_buffer = io.BytesIO()
-        img_bytes = to_image(fig, format="png", width=500, height=300)
-        img_buffer.write(img_bytes)
+        plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
         img_buffer.seek(0)
         return img_buffer
         
