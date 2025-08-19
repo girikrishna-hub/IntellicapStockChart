@@ -3491,9 +3491,19 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     try:
         earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
         if earnings_info['last_earnings'] != 'N/A':
-            data_rows.append(['Last Earnings', earnings_info['last_earnings']])
+            # Format date to show only the date part, not time
+            last_earnings = earnings_info['last_earnings']
+            if 'likely outdated' in last_earnings:
+                # Extract just the date part from "2025-05-01 (likely outdated - check company reports)"
+                date_part = last_earnings.split(' (')[0]
+            else:
+                date_part = last_earnings.split(' ')[0]  # Take first part before any space
+            data_rows.append(['Last Earnings', date_part])
         if earnings_info['next_earnings'] != 'N/A':
-            data_rows.append(['Next Earnings', earnings_info['next_earnings']])
+            # Format date to show only the date part, not time
+            next_earnings = earnings_info['next_earnings']
+            date_part = next_earnings.split(' ')[0]  # Take first part before any space
+            data_rows.append(['Next Earnings', date_part])
             
         # Add earnings performance analysis
         print("Attempting to analyze earnings performance...")
