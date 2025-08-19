@@ -3382,8 +3382,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         chart_buffer = generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level)
         if chart_buffer:
             print("Chart generated successfully")
-            chart_image = ImageReader(chart_buffer)
-            story.append(ReportLabImage(chart_image, width=5*inch, height=3*inch))
+            story.append(ReportLabImage(chart_buffer, width=5*inch, height=3*inch))
             story.append(Spacer(1, 8))
         else:
             print("Chart buffer is None")
@@ -3490,7 +3489,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     # Add earnings dates and analysis
     try:
-        earnings_info = get_earnings_info(ticker_obj)
+        earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
         if earnings_info['last_earnings'] != 'N/A':
             data_rows.append(['Last Earnings', earnings_info['last_earnings']])
         if earnings_info['next_earnings'] != 'N/A':
