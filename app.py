@@ -2752,7 +2752,13 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             pass
     
     # Ultra-compact table view - all price action metrics in one table
-    st.markdown("**📈 Price Action & Technical Analysis**")
+    view_mode = st.session_state.get('view_mode', 'Standard')
+    if view_mode == 'Compact':
+        st.markdown("**📈 Price Action (Table View)**")
+        st.info("💡 Ultra-compact table format active - all metrics in tables to eliminate scrolling")
+    else:
+        st.markdown("**📈 Price Action & Technical Analysis**")
+        st.info("💡 Switch to Compact view below for table format that eliminates scrolling")
     
     # Get all required data first
     fib_data = calculate_fibonacci_levels(data, period_months=3)
