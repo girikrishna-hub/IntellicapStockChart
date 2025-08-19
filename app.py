@@ -17,6 +17,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as Re
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from reportlab.lib.utils import ImageReader
 from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
 from reportlab.platypus import PageBreak, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -3382,7 +3383,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         if chart_buffer:
             print("Chart generated successfully")
             chart_image = ImageReader(chart_buffer)
-            story.append(Image(chart_image, width=5*inch, height=3*inch))
+            story.append(ReportLabImage(chart_image, width=5*inch, height=3*inch))
             story.append(Spacer(1, 8))
         else:
             print("Chart buffer is None")
@@ -3506,10 +3507,13 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Avg Earnings Overnight', f'{avg_overnight:.2f}%'])
             data_rows.append(['Avg Earnings Week', f'{avg_week:.2f}%'])
             data_rows.append(['Earnings Sample Size', f'{sample_size} quarters'])
+            print("Added earnings performance to PDF data")
         else:
             print("No earnings performance data available")
-    except:
-        pass
+    except Exception as e:
+        print(f"Error adding earnings analysis to PDF: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Add Fibonacci levels
     try:
