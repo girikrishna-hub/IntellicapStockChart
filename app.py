@@ -5337,6 +5337,17 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
         
         st.plotly_chart(rsi_fig, use_container_width=True)
         create_export_buttons(rsi_fig, "RSI_Analysis", symbol)
+    
+    # Add Chaikin Money Flow Chart in full width
+    st.markdown("#### 📊 Chaikin Money Flow Analysis")
+    
+    if not cmf.empty:
+        period_label = selected_period.replace('_', ' ').title()
+        cmf_fig = create_chaikin_chart(data, symbol, cmf, period_label, market)
+        st.plotly_chart(cmf_fig, use_container_width=True)
+        create_export_buttons(cmf_fig, "Chaikin_Money_Flow", symbol)
+    else:
+        st.warning("Chaikin Money Flow data not available for the selected period.")
 
 
 def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market):
