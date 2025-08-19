@@ -4183,55 +4183,55 @@ def yahoo_finance_tab():
     # CSS for compact form elements
     st.markdown("""
     <style>
-    /* Compact selectbox styling */
+    /* Force selectbox width and visibility */
+    .stSelectbox {
+        width: 300px !important;
+    }
+    .stSelectbox > div {
+        width: 300px !important;
+        max-width: 300px !important;
+    }
+    .stSelectbox > div > div {
+        width: 300px !important;
+        max-width: 300px !important;
+        height: 35px !important;
+        min-height: 35px !important;
+    }
     .stSelectbox > div > div > div {
-        min-height: 35px !important;
+        width: 300px !important;
+        max-width: 300px !important;
         height: 35px !important;
-        width: 280px !important;
-        max-width: 280px !important;
-    }
-    .stSelectbox > div > div > div > div {
         min-height: 35px !important;
-        height: 35px !important;
         font-size: 14px !important;
-        width: 240px !important;
-        max-width: 240px !important;
-        padding-left: 12px !important;
-        padding-right: 30px !important;
+        line-height: 35px !important;
+        padding: 0 35px 0 12px !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
+        overflow: visible !important;
     }
+    
     /* Compact text input styling */
+    .stTextInput {
+        width: 140px !important;
+    }
+    .stTextInput > div {
+        width: 140px !important;
+        max-width: 140px !important;
+    }
     .stTextInput > div > div > input {
         height: 35px !important;
         min-height: 35px !important;
         font-size: 14px !important;
         padding: 8px 12px !important;
-        width: 120px !important;
-        max-width: 120px !important;
+        width: 140px !important;
+        max-width: 140px !important;
     }
+    
     /* Reduce label sizes */
     .stSelectbox label, .stTextInput label {
         font-size: 14px !important;
         font-weight: 500 !important;
         margin-bottom: 4px !important;
-    }
-    /* Additional width constraints for form containers */
-    .stSelectbox > div {
-        width: 280px !important;
-        max-width: 280px !important;
-    }
-    .stSelectbox > div > div {
-        width: 280px !important;
-        max-width: 280px !important;
-    }
-    .stSelectbox select {
-        width: 280px !important;
-        max-width: 280px !important;
-        padding-left: 12px !important;
-        padding-right: 40px !important;
-    }
-    .stTextInput > div {
-        width: 120px !important;
-        max-width: 120px !important;
     }
     </style>
     """, unsafe_allow_html=True)
