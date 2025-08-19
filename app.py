@@ -4014,22 +4014,26 @@ def apply_view_mode_css():
             zoom: 1 !important;
         }
         
-        /* Reduce header sizes */
+        /* Reduce header sizes and minimize spacing */
         h1 {
             font-size: 1.5rem !important;
-            margin: 0.3rem 0 0.2rem 0 !important;
+            margin: 0.1rem 0 !important;
+            line-height: 1.1 !important;
         }
         h2 {
             font-size: 1.2rem !important;
-            margin: 0.3rem 0 0.1rem 0 !important;
+            margin: 0.1rem 0 !important;
+            line-height: 1.1 !important;
         }
         h3 {
             font-size: 1.0rem !important;
-            margin: 0.2rem 0 0.1rem 0 !important;
+            margin: 0.1rem 0 !important;
+            line-height: 1.1 !important;
         }
         .stSubheader {
             font-size: 0.95rem !important;
-            margin: 0.2rem 0 0.1rem 0 !important;
+            margin: 0.1rem 0 !important;
+            line-height: 1.1 !important;
         }
         
         /* Reduce DataFrame font sizes */
@@ -4068,10 +4072,22 @@ def apply_view_mode_css():
             font-size: 0.9rem !important;
         }
         
-        /* Reduce markdown text size */
+        /* Reduce markdown text size and spacing */
         .stMarkdown p {
             font-size: 0.85rem !important;
-            margin-bottom: 0.3rem !important;
+            margin: 0.1rem 0 !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* Remove extra spacing from lists */
+        ul, ol {
+            margin: 0.2rem 0 !important;
+            padding-left: 1rem !important;
+        }
+        
+        li {
+            margin: 0 !important;
+            line-height: 1.1 !important;
         }
         
         /* Reduce tab font size */
@@ -4095,9 +4111,34 @@ def apply_view_mode_css():
             padding: 0.5rem !important;
         }
         
-        /* Force compact display for all text elements */
+        /* Force compact display for all text elements - reduce whitespace */
         * {
-            line-height: 1.2 !important;
+            line-height: 1.1 !important;
+            margin-top: 0.1rem !important;
+            margin-bottom: 0.1rem !important;
+        }
+        
+        /* Reduce spacing between all elements */
+        .stElement {
+            margin-bottom: 0.2rem !important;
+        }
+        
+        /* Compact text blocks */
+        p, div, span {
+            line-height: 1.1 !important;
+            margin: 0.1rem 0 !important;
+            padding: 0.1rem 0 !important;
+        }
+        
+        /* Reduce spacing around containers */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 0.5rem !important;
+        }
+        
+        /* Minimize gaps between sections */
+        .stMarkdown {
+            margin: 0.1rem 0 !important;
         }
         
         /* Additional metric number targeting */
