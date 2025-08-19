@@ -16,62 +16,39 @@ def apply_gurufocus_view_mode_css():
     if view_mode == 'Compact':
         st.markdown("""
         <style>
-        /* Compact Mode - Comprehensive metric scaling */
+        /* Compact Mode - Focused on readability */
         
-        /* Scale the entire metric widget */
-        .stMetric {
-            transform: scale(0.75) !important;
-            transform-origin: top left !important;
-            margin: -0.5rem 0 !important;
-        }
-        
-        /* Alternative approach: Target all metric elements aggressively */
+        /* Metric containers - reduce padding only */
         [data-testid="metric-container"] {
-            font-size: 0.7rem !important;
-            transform: scale(0.8) !important;
-            transform-origin: top left !important;
+            padding: 0.2rem 0 !important;
+            margin: 0.3rem 0 !important;
         }
         
-        /* Force smaller fonts on all metric children */
-        .stMetric, .stMetric * {
-            font-size: 0.75rem !important;
+        /* Make metric values (numbers) clearly readable */
+        .stMetric [data-testid="metric-value"],
+        .stMetric > div > div > div:first-child,
+        .stMetric div[data-baseweb="block"] > div:first-child {
+            font-size: 1.8rem !important;
+            font-weight: 600 !important;
+            line-height: 1.2 !important;
         }
         
-        /* Override specific metric parts */
-        .stMetric [class*="metric"] {
-            font-size: 0.75rem !important;
-        }
-        
-        /* Universal metric text scaling */
-        div[data-testid="metric-container"] span,
-        div[data-testid="metric-container"] div,
-        div[data-testid="metric-container"] p {
-            font-size: 0.75rem !important;
-        }
-        
-        /* Nuclear option - override everything with zoom */
-        .stMetric {
-            zoom: 0.8 !important;
-        }
-        
-        /* Increase metric values (numbers) by 50% */
-        .stMetric [data-testid="metric-value"] {
-            font-size: 1.5rem !important;
-        }
-        
-        /* Keep metric labels smaller */
-        .stMetric [data-testid="metric-label"] {
-            font-size: 0.7rem !important;
-        }
-        
-        /* Keep metric deltas (change values) smaller */
-        .stMetric [data-testid="metric-delta"] {
+        /* Keep metric labels compact but readable */
+        .stMetric [data-testid="metric-label"],
+        .stMetric > div > div > div:last-child {
             font-size: 0.8rem !important;
+            line-height: 1.1 !important;
         }
         
-        /* Override the universal selector for metric values specifically */
-        .stMetric > div > div > div:first-child {
-            font-size: 1.5rem !important;
+        /* Keep metric deltas (change values) compact */
+        .stMetric [data-testid="metric-delta"] {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Remove any transforms that shrink metrics */
+        .stMetric {
+            transform: none !important;
+            zoom: 1 !important;
         }
         
         /* Reduce header sizes */
