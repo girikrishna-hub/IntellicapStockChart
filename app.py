@@ -4885,7 +4885,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ]
         
         if ticker_info.get('sector') or ticker_info.get('industry'):
-            df_company = pd.DataFrame(company_data)
+            df_company = pd.DataFrame(company_data, columns=["Field A", "Value A", "Field B", "Value B"])
             st.dataframe(df_company, hide_index=True, use_container_width=True)
         
         st.markdown("**💰 Current Price & Market Data**")
@@ -4896,7 +4896,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ["Price Change", f"{price_change:+.2f}", "Change %", f"{price_change_pct:+.2f}%"]
         ]
         
-        df_current_price = pd.DataFrame(price_data)
+        df_current_price = pd.DataFrame(price_data, columns=["Metric A", "Value A", "Metric B", "Value B"])
         st.dataframe(df_current_price, hide_index=True, use_container_width=True)
         
         # Extended Hours Trading Table
@@ -4928,7 +4928,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 ["Regular Close", after_market_data.get('regular_session_close', 'N/A'), "Market Status", market_status]
             ]
             
-            df_extended = pd.DataFrame(extended_data)
+            df_extended = pd.DataFrame(extended_data, columns=["Session A", "Value A", "Session B", "Value B"])
             st.dataframe(df_extended, hide_index=True, use_container_width=True)
             
         except Exception as e:
@@ -5061,7 +5061,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ["Avg Volume", f"{avg_volume:,}" if avg_volume else "N/A", "Current Vol", f"{current_volume:,}" if current_volume else "N/A"]
         ]
         
-        df_price = pd.DataFrame(price_data)
+        df_price = pd.DataFrame(price_data, columns=["Metric A", "Value A", "Metric B", "Value B"])
         st.dataframe(df_price, hide_index=True, use_container_width=True)
         
         # Support/Resistance Analysis Table
@@ -5073,7 +5073,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ["Distance to Support", f"{((current_price - support_level)/support_level*100):+.2f}%" if support_level else "N/A", "Distance to Resistance", f"{((resistance_level - current_price)/current_price*100):+.2f}%" if resistance_level else "N/A"]
         ]
         
-        df_resistance = pd.DataFrame(resistance_table_data)
+        df_resistance = pd.DataFrame(resistance_table_data, columns=["Support A", "Value A", "Resistance B", "Value B"])
         st.dataframe(df_resistance, hide_index=True, use_container_width=True)
         
     else:
@@ -5227,7 +5227,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 [f"{period_months}M Low", format_currency(reference_low, market), "Analysis Type", analysis_type.replace("_", " ").title()]
             ]
             
-            df_fib_ref = pd.DataFrame(fib_reference_data)
+            df_fib_ref = pd.DataFrame(fib_reference_data, columns=["Period A", "Value A", "Current B", "Value B"])
             st.dataframe(df_fib_ref, hide_index=True, use_container_width=True)
             
             # Fibonacci Levels Table
