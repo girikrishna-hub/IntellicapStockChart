@@ -3471,14 +3471,48 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Enterprise Value', 'N/A'])
         
         debt_to_equity = ticker_info.get('debtToEquity', 'N/A')
-        data_rows.append(['Debt/Equity', f'{debt_to_equity}'])
+        data_rows.append(['Debt/Equity', f'{debt_to_equity:.2f}' if debt_to_equity != 'N/A' and isinstance(debt_to_equity, (int, float)) else 'N/A'])
         
+        # Institutional Financial Parameters
+        ebitda = ticker_info.get('ebitda', 'N/A')
+        if ebitda != 'N/A' and isinstance(ebitda, (int, float)):
+            ebitda_b = ebitda / 1e9
+            data_rows.append(['EBITDA', f'${ebitda_b:.2f}B'])
+        else:
+            data_rows.append(['EBITDA', 'N/A'])
+        
+        ev_ebitda = ticker_info.get('enterpriseToEbitda', 'N/A')
+        data_rows.append(['EV/EBITDA', f'{ev_ebitda:.2f}' if ev_ebitda != 'N/A' and isinstance(ev_ebitda, (int, float)) else 'N/A'])
+        
+        ev_revenue = ticker_info.get('enterpriseToRevenue', 'N/A')
+        data_rows.append(['EV/Revenue', f'{ev_revenue:.2f}' if ev_revenue != 'N/A' and isinstance(ev_revenue, (int, float)) else 'N/A'])
+        
+        forward_pe = ticker_info.get('forwardPE', 'N/A')
+        data_rows.append(['Forward P/E', f'{forward_pe:.2f}' if forward_pe != 'N/A' and isinstance(forward_pe, (int, float)) else 'N/A'])
+        
+        peg_ratio = ticker_info.get('pegRatio', 'N/A')
+        data_rows.append(['PEG Ratio', f'{peg_ratio:.2f}' if peg_ratio != 'N/A' and isinstance(peg_ratio, (int, float)) else 'N/A'])
+        
+        current_ratio = ticker_info.get('currentRatio', 'N/A')
+        data_rows.append(['Current Ratio', f'{current_ratio:.2f}' if current_ratio != 'N/A' and isinstance(current_ratio, (int, float)) else 'N/A'])
+        
+        quick_ratio = ticker_info.get('quickRatio', 'N/A')
+        data_rows.append(['Quick Ratio', f'{quick_ratio:.2f}' if quick_ratio != 'N/A' and isinstance(quick_ratio, (int, float)) else 'N/A'])
+        
+        # Profitability & Growth
         roe = ticker_info.get('returnOnEquity', 'N/A')
         if roe != 'N/A' and isinstance(roe, (int, float)):
             roe_pct = roe * 100
             data_rows.append(['ROE', f'{roe_pct:.2f}%'])
         else:
             data_rows.append(['ROE', 'N/A'])
+            
+        roa = ticker_info.get('returnOnAssets', 'N/A')
+        if roa != 'N/A' and isinstance(roa, (int, float)):
+            roa_pct = roa * 100
+            data_rows.append(['ROA', f'{roa_pct:.2f}%'])
+        else:
+            data_rows.append(['ROA', 'N/A'])
         
         profit_margins = ticker_info.get('profitMargins', 'N/A')
         if profit_margins != 'N/A' and isinstance(profit_margins, (int, float)):
@@ -3486,6 +3520,60 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Profit Margin', f'{margins_pct:.2f}%'])
         else:
             data_rows.append(['Profit Margin', 'N/A'])
+            
+        gross_margins = ticker_info.get('grossMargins', 'N/A')
+        if gross_margins != 'N/A' and isinstance(gross_margins, (int, float)):
+            gross_margins_pct = gross_margins * 100
+            data_rows.append(['Gross Margin', f'{gross_margins_pct:.2f}%'])
+        else:
+            data_rows.append(['Gross Margin', 'N/A'])
+            
+        # Growth & Ownership Metrics
+        revenue_growth = ticker_info.get('revenueGrowth', 'N/A')
+        if revenue_growth != 'N/A' and isinstance(revenue_growth, (int, float)):
+            revenue_growth_pct = revenue_growth * 100
+            data_rows.append(['Revenue Growth', f'{revenue_growth_pct:.2f}%'])
+        else:
+            data_rows.append(['Revenue Growth', 'N/A'])
+            
+        earnings_growth = ticker_info.get('earningsGrowth', 'N/A')
+        if earnings_growth != 'N/A' and isinstance(earnings_growth, (int, float)):
+            earnings_growth_pct = earnings_growth * 100
+            data_rows.append(['Earnings Growth', f'{earnings_growth_pct:.2f}%'])
+        else:
+            data_rows.append(['Earnings Growth', 'N/A'])
+            
+        # Institutional Ownership
+        held_by_institutions = ticker_info.get('heldPercentInstitutions', 'N/A')
+        if held_by_institutions != 'N/A' and isinstance(held_by_institutions, (int, float)):
+            institutions_pct = held_by_institutions * 100
+            data_rows.append(['Institutional %', f'{institutions_pct:.1f}%'])
+        else:
+            data_rows.append(['Institutional %', 'N/A'])
+            
+        held_by_insiders = ticker_info.get('heldPercentInsiders', 'N/A')
+        if held_by_insiders != 'N/A' and isinstance(held_by_insiders, (int, float)):
+            insiders_pct = held_by_insiders * 100
+            data_rows.append(['Insider %', f'{insiders_pct:.1f}%'])
+        else:
+            data_rows.append(['Insider %', 'N/A'])
+            
+        short_ratio = ticker_info.get('shortRatio', 'N/A')
+        data_rows.append(['Short Ratio', f'{short_ratio:.2f}' if short_ratio != 'N/A' and isinstance(short_ratio, (int, float)) else 'N/A'])
+        
+        short_percent = ticker_info.get('shortPercentOfFloat', 'N/A')
+        if short_percent != 'N/A' and isinstance(short_percent, (int, float)):
+            short_percent_pct = short_percent * 100
+            data_rows.append(['Short % of Float', f'{short_percent_pct:.2f}%'])
+        else:
+            data_rows.append(['Short % of Float', 'N/A'])
+            
+        free_cash_flow = ticker_info.get('freeCashflow', 'N/A')
+        if free_cash_flow != 'N/A' and isinstance(free_cash_flow, (int, float)):
+            fcf_b = free_cash_flow / 1e9
+            data_rows.append(['Free Cash Flow', f'${fcf_b:.2f}B'])
+        else:
+            data_rows.append(['Free Cash Flow', 'N/A'])
     
     # Add earnings dates and analysis
     try:
@@ -3524,17 +3612,41 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         import traceback
         traceback.print_exc()
     
-    # Add Fibonacci levels
+    # Add comprehensive Fibonacci analysis
     try:
         fib_data = calculate_fibonacci_levels(data, period='3M')
         if fib_data and 'next_two_levels' in fib_data:
-            levels = fib_data['next_two_levels'][:2]  # Get first two levels
+            levels = fib_data['next_two_levels'][:4]  # Get up to 4 Fibonacci levels
             for i, level in enumerate(levels, 1):
                 level_price = level['price']
                 level_type = level['type']
-                data_rows.append([f'Fib Level {i}', f'${level_price:.2f} ({level_type})'])
-    except:
-        pass
+                percentage = level.get('percentage', '')
+                fib_label = f"Fib {percentage}" if percentage else f"Fib Level {i}"
+                data_rows.append([fib_label, f'${level_price:.2f} ({level_type})'])
+        
+        # Add key Fibonacci retracement levels if available
+        if fib_data and 'retracement_levels' in fib_data:
+            retracement = fib_data['retracement_levels']
+            if '38.2%' in retracement:
+                data_rows.append(['Fib 38.2%', f"${retracement['38.2%']:.2f}"])
+            if '50.0%' in retracement:
+                data_rows.append(['Fib 50.0%', f"${retracement['50.0%']:.2f}"])
+            if '61.8%' in retracement:
+                data_rows.append(['Fib 61.8%', f"${retracement['61.8%']:.2f}"])
+    except Exception as e:
+        print(f"Fibonacci analysis error: {e}")
+        # Fallback - calculate basic Fibonacci levels
+        try:
+            high_price = data['High'].tail(60).max()
+            low_price = data['Low'].tail(60).min()
+            fib_382 = high_price - (high_price - low_price) * 0.382
+            fib_500 = high_price - (high_price - low_price) * 0.500
+            fib_618 = high_price - (high_price - low_price) * 0.618
+            data_rows.append(['Fib 38.2%', f'${fib_382:.2f}'])
+            data_rows.append(['Fib 50.0%', f'${fib_500:.2f}'])
+            data_rows.append(['Fib 61.8%', f'${fib_618:.2f}'])
+        except:
+            pass
     
     # Create table with two columns
     col1_data = []
