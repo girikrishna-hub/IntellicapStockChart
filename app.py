@@ -4187,8 +4187,8 @@ def yahoo_finance_tab():
     .stSelectbox > div > div > div {
         min-height: 35px !important;
         height: 35px !important;
-        width: 240px !important;
-        max-width: 240px !important;
+        width: 280px !important;
+        max-width: 280px !important;
     }
     .stSelectbox > div > div > div > div {
         min-height: 35px !important;
@@ -4196,6 +4196,8 @@ def yahoo_finance_tab():
         font-size: 14px !important;
         width: 240px !important;
         max-width: 240px !important;
+        padding-left: 12px !important;
+        padding-right: 30px !important;
     }
     /* Compact text input styling */
     .stTextInput > div > div > input {
@@ -4214,12 +4216,18 @@ def yahoo_finance_tab():
     }
     /* Additional width constraints for form containers */
     .stSelectbox > div {
-        width: 240px !important;
-        max-width: 240px !important;
+        width: 280px !important;
+        max-width: 280px !important;
     }
-    .stSelectbox > div > div > div {
-        width: 240px !important;
-        max-width: 240px !important;
+    .stSelectbox > div > div {
+        width: 280px !important;
+        max-width: 280px !important;
+    }
+    .stSelectbox select {
+        width: 280px !important;
+        max-width: 280px !important;
+        padding-left: 12px !important;
+        padding-right: 40px !important;
     }
     .stTextInput > div {
         width: 120px !important;
