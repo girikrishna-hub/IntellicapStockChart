@@ -4247,6 +4247,11 @@ def yahoo_finance_tab():
     .stRadio > div > div {
         margin-top: 4px !important;
     }
+    
+    /* Move Time Period selectbox to the left */
+    .stSelectbox {
+        margin-left: -20px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
