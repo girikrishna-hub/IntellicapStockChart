@@ -18,6 +18,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
+from reportlab.platypus import PageBreak, Table, TableStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
 # Set page configuration
 st.set_page_config(
@@ -3334,6 +3336,153 @@ def main():
     with tab_guru:
         gurufocus_tab()
 
+def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
+    """Generate a comprehensive PDF report with all tabs data"""
+    
+    # Create PDF buffer
+    buffer = io.BytesIO()
+    
+    # Create PDF document
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    styles = getSampleStyleSheet()
+    
+    # Create custom styles
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    section_style = ParagraphStyle(
+        'CustomSection',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=12
+    )
+    
+    story = []
+    
+    # Title page
+    story.append(Paragraph(f"Stock Analysis Report - {symbol.upper()}", title_style))
+    story.append(Spacer(1, 12))
+    story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
+    story.append(Spacer(1, 12))
+    
+    # Company info
+    if ticker_info:
+        company_name = ticker_info.get('longName', symbol.upper())
+        story.append(Paragraph(f"Company: {company_name}", styles['Normal']))
+        sector = ticker_info.get('sector', 'N/A')
+        story.append(Paragraph(f"Sector: {sector}", styles['Normal']))
+        story.append(Spacer(1, 12))
+    
+    # Page 1: Price Action Summary
+    story.append(Paragraph("Price Action Summary", section_style))
+    
+    current_price = data['Close'].iloc[-1] if not data.empty else 0
+    story.append(Paragraph(f"Current Price: ${current_price:.2f}", styles['Normal']))
+    
+    if ma_50 is not None and not ma_50.empty:
+        latest_ma50 = ma_50.iloc[-1]
+        story.append(Paragraph(f"50-Day MA: ${latest_ma50:.2f}", styles['Normal']))
+    
+    if ma_200 is not None and not ma_200.empty:
+        latest_ma200 = ma_200.iloc[-1]
+        story.append(Paragraph(f"200-Day MA: ${latest_ma200:.2f}", styles['Normal']))
+    
+    # RSI
+    if rsi is not None and not rsi.empty:
+        latest_rsi = rsi.iloc[-1]
+        story.append(Paragraph(f"RSI (14): {latest_rsi:.2f}", styles['Normal']))
+    
+    # Support/Resistance
+    story.append(Paragraph(f"Support Level: ${support_level:.2f}", styles['Normal']))
+    story.append(Paragraph(f"Resistance Level: ${resistance_level:.2f}", styles['Normal']))
+    
+    story.append(PageBreak())
+    
+    # Page 2: Technical Indicators
+    story.append(Paragraph("Technical Indicators", section_style))
+    
+    # MACD
+    if macd_line is not None and not macd_line.empty:
+        latest_macd = macd_line.iloc[-1]
+        latest_signal = signal_line.iloc[-1] if signal_line is not None and not signal_line.empty else 0
+        story.append(Paragraph(f"MACD Line: {latest_macd:.4f}", styles['Normal']))
+        story.append(Paragraph(f"Signal Line: {latest_signal:.4f}", styles['Normal']))
+    
+    # Chaikin Money Flow
+    if cmf is not None and not cmf.empty:
+        latest_cmf = cmf.iloc[-1]
+        story.append(Paragraph(f"Chaikin Money Flow: {latest_cmf:.4f}", styles['Normal']))
+    
+    # 52-week high/low
+    if ticker_info:
+        week_52_high = ticker_info.get('fiftyTwoWeekHigh', 'N/A')
+        week_52_low = ticker_info.get('fiftyTwoWeekLow', 'N/A')
+        story.append(Paragraph(f"52-Week High: ${week_52_high}", styles['Normal']))
+        story.append(Paragraph(f"52-Week Low: ${week_52_low}", styles['Normal']))
+    
+    story.append(PageBreak())
+    
+    # Page 3: Earnings & Dividends
+    story.append(Paragraph("Earnings & Dividends", section_style))
+    
+    if ticker_info:
+        # Earnings data
+        eps = ticker_info.get('trailingEps', 'N/A')
+        pe_ratio = ticker_info.get('trailingPE', 'N/A')
+        story.append(Paragraph(f"EPS (TTM): {eps}", styles['Normal']))
+        story.append(Paragraph(f"P/E Ratio: {pe_ratio}", styles['Normal']))
+        
+        # Dividend data
+        dividend_yield = ticker_info.get('dividendYield', 0)
+        if dividend_yield:
+            dividend_yield_pct = dividend_yield * 100
+            story.append(Paragraph(f"Dividend Yield: {dividend_yield_pct:.2f}%", styles['Normal']))
+        else:
+            story.append(Paragraph("Dividend Yield: N/A", styles['Normal']))
+        
+        # Get earnings info
+        try:
+            earnings_info = get_earnings_info(ticker_obj)
+            if earnings_info['last_earnings'] != 'N/A':
+                story.append(Paragraph(f"Last Earnings: {earnings_info['last_earnings']}", styles['Normal']))
+            if earnings_info['next_earnings'] != 'N/A':
+                story.append(Paragraph(f"Next Earnings: {earnings_info['next_earnings']}", styles['Normal']))
+        except:
+            pass
+    
+    story.append(PageBreak())
+    
+    # Page 4: Market Statistics
+    story.append(Paragraph("Market Statistics", section_style))
+    
+    if ticker_info:
+        market_cap = ticker_info.get('marketCap', 'N/A')
+        if market_cap != 'N/A' and isinstance(market_cap, (int, float)):
+            market_cap_b = market_cap / 1e9
+            story.append(Paragraph(f"Market Cap: ${market_cap_b:.2f}B", styles['Normal']))
+        else:
+            story.append(Paragraph(f"Market Cap: {market_cap}", styles['Normal']))
+        
+        volume = ticker_info.get('volume', 'N/A')
+        story.append(Paragraph(f"Volume: {volume:,}" if isinstance(volume, (int, float)) else f"Volume: {volume}", styles['Normal']))
+        
+        avg_volume = ticker_info.get('averageVolume', 'N/A')
+        story.append(Paragraph(f"Avg Volume: {avg_volume:,}" if isinstance(avg_volume, (int, float)) else f"Avg Volume: {avg_volume}", styles['Normal']))
+        
+        beta = ticker_info.get('beta', 'N/A')
+        story.append(Paragraph(f"Beta: {beta}", styles['Normal']))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    return buffer
+
 def apply_view_mode_css():
     """Apply CSS styling based on the selected view mode"""
     view_mode = st.session_state.get('view_mode', 'Standard')
@@ -3620,7 +3769,12 @@ def yahoo_finance_tab():
                 help="Automatically update data every 10 minutes during market hours"
             )
             
-            analyze_button = st.button("Generate Chart", type="primary")
+            # Create two columns for buttons
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                analyze_button = st.button("Generate Chart", type="primary")
+            with btn_col2:
+                pdf_button = st.button("📄 Export PDF", help="Export all tabs to PDF")
         
         # Create sub-tabs for organized content when stock data is available
         if symbol:
@@ -3656,6 +3810,29 @@ def yahoo_finance_tab():
                 
                 with tab_sentiment:
                     display_news_sentiment_analysis(symbol)
+                
+                # Handle PDF export
+                if pdf_button:
+                    with st.spinner('Generating comprehensive PDF report...'):
+                        try:
+                            pdf_buffer = generate_comprehensive_pdf_report(
+                                symbol, data, ticker_info, ticker_obj, ma_50, ma_200, 
+                                macd_line, signal_line, histogram, rsi, cmf, 
+                                support_level, resistance_level, selected_period, market
+                            )
+                            
+                            # Create download button
+                            st.download_button(
+                                label="📄 Download PDF Report",
+                                data=pdf_buffer,
+                                file_name=f"{symbol.upper()}_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                                mime="application/pdf",
+                                type="primary"
+                            )
+                            st.success("PDF report generated successfully!")
+                            
+                        except Exception as e:
+                            st.error(f"Error generating PDF: {str(e)}")
             
             else:
                 st.error(f"""
