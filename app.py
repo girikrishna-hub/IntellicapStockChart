@@ -2751,332 +2751,96 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         except:
             pass
     
-    # Compact layout - organize all metrics in two optimized rows
+    # Ultra-compact table view - all price action metrics in one table
     st.markdown("**📈 Price Action & Technical Analysis**")
     
-    # Row 1: Core price metrics (6 columns for compact display)
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    # Get all required data first
+    fib_data = calculate_fibonacci_levels(data, period_months=3)
+    latest_rsi = rsi.iloc[-1] if not rsi.empty else None
+    beta_value = get_beta_value(ticker_info)
+    ctp_levels = calculate_ctp_levels(latest_price)
     
-    with col1:
-        st.metric(
-            label="Current Price",
-            value=format_currency(latest_price, market),
-            delta=f"{price_vs_ma_50:.1f}% vs MA50" if not pd.isna(latest_ma_50) else None
-        )
+    # Fibonacci levels or fallback to standard support/resistance
+    if fib_data and fib_data['next_levels_below']:
+        fib_support = min(fib_data['next_levels_below'])
+        support_display = format_currency(fib_support, market)
+        support_type = "Fib Support"
+    else:
+        support_display = format_currency(support_level, market)
+        support_type = "Support"
     
-    with col2:
-        st.metric(
-            label="52W High",
-            value=format_currency(year_high, market),
-            delta=f"{distance_from_high:.1f}% below"
-        )
+    if fib_data and fib_data['next_levels_above']:
+        fib_resistance = min(fib_data['next_levels_above'])
+        resistance_display = format_currency(fib_resistance, market)
+        resistance_type = "Fib Resistance"
+    else:
+        resistance_display = format_currency(resistance_level, market)
+        resistance_type = "Resistance"
     
-    with col3:
-        st.metric(
-            label="52W Low", 
-            value=format_currency(year_low, market),
-            delta=f"+{distance_from_low:.1f}% above"
-        )
+    # Create comprehensive price action table
+    price_data = [
+        ["Current Price", format_currency(latest_price, market), "52W High", format_currency(year_high, market)],
+        [support_type, support_display, "52W Low", format_currency(year_low, market)],
+        [resistance_type, resistance_display, "RSI (14)", f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"],
+        ["MA 50", format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A", "MA 200", format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A"],
+        ["Beta", beta_value, "Since Earnings", earnings_performance],
+        ["Safe Low", format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A", "Safe High", format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"]
+    ]
     
-    with col4:
-        # Get Fibonacci data for compact display
-        fib_data = calculate_fibonacci_levels(data, period_months=3)
-        if fib_data and fib_data['next_levels_below']:
-            fib_support = min(fib_data['next_levels_below'])
-            st.metric(
-                label="Fib Support",
-                value=format_currency(fib_support, market),
-                help="Next Fibonacci support level"
-            )
+    # Convert to DataFrame for better display
+    import pandas as pd
+    df_price = pd.DataFrame(price_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+    
+    # Display table without index
+    st.dataframe(df_price, hide_index=True, use_container_width=True)
+    
+    # Compact earnings and schedule table
+    st.markdown("**📅 Earnings & Schedule**")
+    
+    # Clean earnings value for table display
+    earnings_value = earnings_info['last_earnings_formatted']
+    if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
+        if " (likely outdated" in earnings_value:
+            clean_date = earnings_value.split(" (likely outdated")[0] + " ⚠️"
+        elif " (data may be outdated)" in earnings_value:
+            clean_date = earnings_value.split(" (data may be outdated)")[0] + " ⚠️"
         else:
-            st.metric(
-                label="Support",
-                value=format_currency(support_level, market),
-                help="20-day support level"
-            )
+            clean_date = earnings_value + " ⚠️"
+    else:
+        clean_date = earnings_value
     
-    with col5:
-        if fib_data and fib_data['next_levels_above']:
-            fib_resistance = min(fib_data['next_levels_above'])
-            st.metric(
-                label="Fib Resistance", 
-                value=format_currency(fib_resistance, market),
-                help="Next Fibonacci resistance level"
-            )
-        else:
-            st.metric(
-                label="Resistance",
-                value=format_currency(resistance_level, market),
-                help="20-day resistance level"
-            )
+    # Get volume data
+    volume_data = "N/A"
+    if ticker_info.get('averageVolume'):
+        volume_data = f"{ticker_info['averageVolume']:,}"
+    elif ticker_info.get('volume'):
+        volume_data = f"{ticker_info['volume']:,}"
     
-    with col6:
-        latest_rsi = rsi.iloc[-1] if not rsi.empty else None
-        st.metric(
-            label="RSI (14)",
-            value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
-            help="Relative Strength Index"
-        )
+    earnings_data = [
+        ["Last Earnings", clean_date, "Next Earnings", earnings_info['next_earnings_formatted']],
+        ["Volume (Avg)", volume_data, "Market Cap", format_currency(ticker_info.get('marketCap', 'N/A'), market) if ticker_info.get('marketCap') and ticker_info['marketCap'] != 'N/A' else "N/A"]
+    ]
     
-    # Row 2: Moving averages, safe levels and key data (6 columns)
-    col7, col8, col9, col10, col11, col12 = st.columns(6)
-    
-    with col7:
-        st.metric(
-            label="MA 50",
-            value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A"
-        )
-    
-    with col8:
-        st.metric(
-            label="MA 200",
-            value=format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A",
-            delta=f"{price_vs_ma_200:.1f}% vs Price" if not pd.isna(latest_ma_200) else None
-        )
-    
-    with col9:
-        # Get beta value
-        beta_value = get_beta_value(ticker_info)
-        st.metric(
-            label="Beta",
-            value=beta_value,
-            help="Market volatility (1.0 = average)"
-        )
-    
-    with col10:
-        st.metric(
-            label="Since Earnings",
-            value=earnings_performance,
-            help="Price change since last earnings"
-        )
-    
-    with col11:
-        # Safe Level Low
-        ctp_levels = calculate_ctp_levels(latest_price)
-        st.metric(
-            label="Safe Low",
-            value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            help="Lower support reference"
-        )
-    
-    with col12:
-        # Safe Level High  
-        st.metric(
-            label="Safe High",
-            value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-            help="Upper resistance reference"
-        )
-    
-    # Row 3: Earnings data (compact 3-column layout)
-    st.markdown("**📅 Earnings Schedule**")
-    col_ctp1, col_ctp2, col_ctp3 = st.columns(3)
-    
-    with col_ctp1:
-        earnings_value = earnings_info['last_earnings_formatted']
-        if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
-            # Split the earnings date and warning message
-            if " (likely outdated" in earnings_value:
-                clean_date = earnings_value.split(" (likely outdated")[0]
-                warning_msg = "⚠️ Likely outdated - Yahoo Finance frequently misses recent earnings announcements"
-            elif " (data may be outdated)" in earnings_value:
-                clean_date = earnings_value.split(" (data may be outdated)")[0]
-                warning_msg = "⚠️ Data may be outdated - verify on company investor relations page"
-            else:
-                clean_date = earnings_value
-                warning_msg = "⚠️ Check company investor relations for latest earnings"
-            
-            st.metric(
-                label="Last Earnings",
-                value=clean_date,
-                help="Most recent earnings date - Data source may be missing recent announcements. For major stocks, check company investor relations for latest reports."
-            )
-            # Display warning message in smaller font on new line
-            st.markdown(f'<p style="font-size:11px; margin-top:-8px; color:#ff6b6b;">{warning_msg}</p>', unsafe_allow_html=True)
-        else:
-            st.metric(
-                label="Last Earnings",
-                value=earnings_value,
-                help="Most recent earnings announcement date"
-            )
-    
-    with col_ctp2:
-        st.metric(
-            label="Next Earnings",
-            value=earnings_info['next_earnings_formatted'],
-            help="Expected next earnings date"
-        )
-    
-    with col_ctp3:
-        # Current price reference for earnings section
-        st.metric(
-            label="Current Price",
-            value=format_currency(latest_price, market),
-            help="Current market price"
-        )
+    df_earnings = pd.DataFrame(earnings_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+    st.dataframe(df_earnings, hide_index=True, use_container_width=True)
 
-    # Compact after-market data section - only show if data available
+    # Ultra-compact extended hours table - only show if data available
     after_market = get_after_market_data(symbol, market)
     if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
         st.markdown("**🕘 Extended Hours**")
-        col_am1, col_am2, col_am3 = st.columns(3)
         
-        with col_am1:
-            # Show most relevant extended hours data
-            if after_market['pre_market_change'] != 'N/A':
-                st.metric(
-                    label="Pre-Market",
-                    value=after_market['pre_market_change'],
-                    delta=after_market['pre_market_change_percent'],
-                    help="Pre-market movement"
-                )
-            elif after_market['post_market_change'] != 'N/A':
-                st.metric(
-                    label="After-Hours",
-                    value=after_market['post_market_change'],
-                    delta=after_market['post_market_change_percent'],
-                    help="After-hours movement"
-                )
+        # Determine which extended hours data to show
+        extended_data = []
+        if after_market['pre_market_change'] != 'N/A':
+            extended_data.append(["Pre-Market", f"{after_market['pre_market_change']} ({after_market['pre_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
+        elif after_market['post_market_change'] != 'N/A':
+            extended_data.append(["After-Hours", f"{after_market['post_market_change']} ({after_market['post_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
         
-        with col_am2:
-            st.metric(
-                label="Regular Close", 
-                value=after_market['regular_session_close'],
-                help="Official market close"
-            )
-        
-        with col_am3:
-            st.metric(
-                label="Current",
-                value=after_market['current_price'],
-                help="Most recent price"
-            )
+        if extended_data:
+            df_extended = pd.DataFrame(extended_data, columns=["Session", "Change", "Reference", "Price"])
+            st.dataframe(df_extended, hide_index=True, use_container_width=True)
 
-    # All analysis data is now integrated into the compact layout above
-
-    
-    # Add Social Sharing Section
-    st.markdown("---")
-    st.subheader("📤 Share Your Analysis")
-    st.markdown("Share your investment insights with customizable privacy settings")
-    
-    col_privacy, col_share = st.columns([1, 2])
-    
-    with col_privacy:
-        privacy_level = st.selectbox(
-            "Privacy Level:",
-            ["public", "anonymized", "private"],
-            format_func=lambda x: {
-                "public": "🌐 Public - Full Details",
-                "anonymized": "🔒 Anonymized - No Stock Name", 
-                "private": "🔐 Private - Limited Info"
-            }.get(x, x),
-            help="Choose how much information to include when sharing"
-        )
-    
-    with col_share:
-        if st.button("🚀 Generate Shareable Insight", type="primary"):
-            # Collect all metrics for sharing
-            share_metrics = {
-                'longName': ticker_info.get('longName', symbol),
-                'RSI': f"{rsi.iloc[-1]:.2f}" if not rsi.empty else "N/A",
-                'Price vs 50-Day MA (%)': f"{price_vs_ma_50:+.2f}%",
-                'Price vs 200-Day MA (%)': f"{price_vs_ma_200:+.2f}%",
-                'Beta': get_beta_value(ticker_info),
-                'Volume': f"{data['Volume'].iloc[-1]:,.0f}" if 'Volume' in data.columns else "N/A"
-            }
-            
-            # Get Fibonacci analysis data
-            fib_data = calculate_fibonacci_levels(data, period_months=3)
-            
-            # Create shareable insight
-            insight = create_shareable_insight(symbol, data, share_metrics, privacy_level, fib_data)
-            
-            if 'error' not in insight:
-                # Display the generated insight
-                st.success("✅ Shareable insight generated!")
-                
-                with st.expander("📋 Preview Your Insight", expanded=True):
-                    if privacy_level == "public":
-                        st.markdown(f"**📊 {insight['symbol']} Analysis**")
-                        st.markdown(f"**Company:** {insight['company_name']}")
-                        st.markdown(f"**Current Price:** {insight['current_price']} ({insight['daily_change']})")
-                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
-                        st.markdown(f"**Risk Level:** {insight['risk_level']}")
-                        
-                        col_rsi, col_ma50, col_ma200 = st.columns(3)
-                        with col_rsi:
-                            st.metric("RSI", insight['key_metrics']['rsi'])
-                        with col_ma50:
-                            st.metric("vs 50-Day MA", insight['key_metrics']['ma_50_signal'])
-                        with col_ma200:
-                            st.metric("vs 200-Day MA", insight['key_metrics']['ma_200_signal'])
-                        
-                        # Show Fibonacci analysis if available
-                        if 'fibonacci_analysis' in insight:
-                            st.markdown("**📈 Fibonacci Analysis:**")
-                            fib_data = insight['fibonacci_analysis']
-                            col_trend, col_level, col_range = st.columns(3)
-                            with col_trend:
-                                trend_emoji = "📈" if fib_data['trend'] == "Uptrend" else "📉" if fib_data['trend'] == "Downtrend" else "➡️"
-                                st.metric("Trend", f"{trend_emoji} {fib_data['trend']}")
-                            with col_level:
-                                level_status = "🎯" if fib_data.get('near_key_level') else "📊"
-                                st.metric("Key Level", f"{level_status} {fib_data['key_level']}")
-                            with col_range:
-                                st.metric("Swing Range", fib_data['swing_range'])
-                    
-                    elif privacy_level == "anonymized":
-                        st.markdown(f"**📊 Anonymous Stock Analysis**")
-                        st.markdown(f"**Current Price:** {insight['current_price']} ({insight['daily_change']})")
-                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
-                        st.info(insight['note'])
-                        
-                        # Show Fibonacci analysis if available
-                        if 'fibonacci_analysis' in insight:
-                            fib_data = insight['fibonacci_analysis']
-                            col_anon_trend, col_anon_level = st.columns(2)
-                            with col_anon_trend:
-                                trend_emoji = "📈" if fib_data['trend'] == "Uptrend" else "📉" if fib_data['trend'] == "Downtrend" else "➡️"
-                                st.metric("Trend Pattern", f"{trend_emoji} {fib_data['trend']}")
-                            with col_anon_level:
-                                st.metric("Near Key Level", fib_data['key_level'])
-                    
-                    else:  # private
-                        st.markdown(f"**📊 Private Analysis for {insight['symbol']}**")
-                        st.markdown(f"**Summary:** {insight['analysis_summary']}")
-                        st.markdown(f"**Recommendation:** {insight['recommendation']}")
-                
-                # Generate share URLs
-                share_urls = create_share_urls(insight)
-                
-                st.markdown("### 🔗 Share Options")
-                col_twitter, col_linkedin, col_copy, col_email = st.columns(4)
-                
-                with col_twitter:
-                    st.markdown(f"[📱 Twitter]({share_urls['twitter']})")
-                
-                with col_linkedin:
-                    st.markdown(f"[💼 LinkedIn]({share_urls['linkedin']})")
-                
-                with col_copy:
-                    if st.button("📋 Copy Text"):
-                        st.code(share_urls['copy_text'], language="text")
-                        st.success("Text ready to copy!")
-                
-                with col_email:
-                    email_url = f"mailto:?subject={urllib.parse.quote(share_urls['email_subject'])}&body={urllib.parse.quote(share_urls['email_body'])}"
-                    st.markdown(f"[📧 Email]({email_url})")
-                
-                # Store insight in session state for potential later use
-                if 'shared_insights' not in st.session_state:
-                    st.session_state.shared_insights = []
-                st.session_state.shared_insights.append(insight)
-                
-                # Show insight ID for reference
-                st.caption(f"Insight ID: {insight['id']} | Generated: {insight['timestamp'][:19]}")
-            
-            else:
-                st.error(f"Failed to generate insight: {insight['error']}")
+    # All price action data is now displayed in ultra-compact table format above
 
 
 def main():
