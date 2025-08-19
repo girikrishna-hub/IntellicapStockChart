@@ -5124,99 +5124,99 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             st.metric("Safe Level High", f"{currency}{safe_high:.2f}")
         
         # Earnings and dividend information moved to dedicated "Earnings & Dividends" tab
+    
+    # Enhanced Fibonacci Analysis - Available in both view modes
+    st.markdown("---")
+    st.subheader("📐 Fibonacci Analysis – Next Two Levels")
+    
+    # Add period selection
+    col_period, col_spacer = st.columns([1, 3])
+    with col_period:
+        period_months = st.selectbox(
+            "Reference Range:",
+            [3, 6],
+            index=0,
+            format_func=lambda x: f"{x}-Month High/Low"
+        )
+    
+    # Calculate Fibonacci levels
+    fibonacci_data = calculate_fibonacci_levels(data, period_months=period_months)
+    if fibonacci_data:
+        current_price = fibonacci_data['current_price']
+        reference_high = fibonacci_data['reference_high']
+        reference_low = fibonacci_data['reference_low']
+        analysis_type = fibonacci_data['analysis_type']
+        next_levels_above = fibonacci_data['next_levels_above']
+        next_levels_below = fibonacci_data['next_levels_below']
         
-        # Enhanced Fibonacci Analysis
-        st.markdown("---")
-        st.subheader("📐 Fibonacci Analysis – Next Two Levels")
+        # Display current status
+        col_status1, col_status2, col_status3 = st.columns(3)
         
-        # Add period selection
-        col_period, col_spacer = st.columns([1, 3])
-        with col_period:
-            period_months = st.selectbox(
-                "Reference Range:",
-                [3, 6],
-                index=0,
-                format_func=lambda x: f"{x}-Month High/Low"
+        with col_status1:
+            st.metric(
+                label=f"{period_months}M Reference High",
+                value=format_currency(reference_high, market),
+                help=f"Highest price in the last {period_months} months"
             )
         
-        # Calculate Fibonacci levels
-        fibonacci_data = calculate_fibonacci_levels(data, period_months=period_months)
-        if fibonacci_data:
-            current_price = fibonacci_data['current_price']
-            reference_high = fibonacci_data['reference_high']
-            reference_low = fibonacci_data['reference_low']
-            analysis_type = fibonacci_data['analysis_type']
-            next_levels_above = fibonacci_data['next_levels_above']
-            next_levels_below = fibonacci_data['next_levels_below']
-            
-            # Display current status
-            col_status1, col_status2, col_status3 = st.columns(3)
-            
-            with col_status1:
-                st.metric(
-                    label=f"{period_months}M Reference High",
-                    value=format_currency(reference_high, market),
-                    help=f"Highest price in the last {period_months} months"
-                )
-            
-            with col_status2:
-                st.metric(
-                    label="Current Price",
-                    value=format_currency(current_price, market),
-                    help="Current market price"
-                )
-            
-            with col_status3:
-                st.metric(
-                    label=f"{period_months}M Reference Low",
-                    value=format_currency(reference_low, market),
-                    help=f"Lowest price in the last {period_months} months"
-                )
-            
-            # Analysis type indicator
-            if analysis_type == "retracement":
-                analysis_status = "🎯 Price within range - Using Retracement Levels"
-            elif analysis_type == "upward_extension":
-                analysis_status = "📈 Price above range - Using Upward Extensions"
-            else:
-                analysis_status = "📉 Price below range - Using Downward Extensions"
-            
-            st.info(analysis_status)
-            
-            # Display next levels
-            col_above, col_below = st.columns(2)
-            
-            with col_above:
-                st.markdown("**🔺 Next Two Levels Above:**")
-                if next_levels_above:
-                    for i, level in enumerate(next_levels_above, 1):
-                        distance = level['price'] - current_price
-                        distance_pct = (distance / current_price) * 100
-                        st.metric(
-                            label=f"Level {i} - {level['label']}",
-                            value=format_currency(level['price'], market),
-                            delta=f"+{distance_pct:.1f}%",
-                            help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
-                        )
-                else:
-                    st.write("No levels found above current price")
-            
-            with col_below:
-                st.markdown("**🔻 Next Two Levels Below:**")
-                if next_levels_below:
-                    for i, level in enumerate(next_levels_below, 1):
-                        distance = current_price - level['price']
-                        distance_pct = (distance / current_price) * 100
-                        st.metric(
-                            label=f"Level {i} - {level['label']}",
-                            value=format_currency(level['price'], market),
-                            delta=f"-{distance_pct:.1f}%",
-                            help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
-                        )
-                else:
-                    st.write("No levels found below current price")
+        with col_status2:
+            st.metric(
+                label="Current Price",
+                value=format_currency(current_price, market),
+                help="Current market price"
+            )
+        
+        with col_status3:
+            st.metric(
+                label=f"{period_months}M Reference Low",
+                value=format_currency(reference_low, market),
+                help=f"Lowest price in the last {period_months} months"
+            )
+        
+        # Analysis type indicator
+        if analysis_type == "retracement":
+            analysis_status = "🎯 Price within range - Using Retracement Levels"
+        elif analysis_type == "upward_extension":
+            analysis_status = "📈 Price above range - Using Upward Extensions"
         else:
-            st.info("Fibonacci analysis requires sufficient price history for calculation")
+            analysis_status = "📉 Price below range - Using Downward Extensions"
+        
+        st.info(analysis_status)
+        
+        # Display next levels
+        col_above, col_below = st.columns(2)
+        
+        with col_above:
+            st.markdown("**🔺 Next Two Levels Above:**")
+            if next_levels_above:
+                for i, level in enumerate(next_levels_above, 1):
+                    distance = level['price'] - current_price
+                    distance_pct = (distance / current_price) * 100
+                    st.metric(
+                        label=f"Level {i} - {level['label']}",
+                        value=format_currency(level['price'], market),
+                        delta=f"+{distance_pct:.1f}%",
+                        help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
+                    )
+            else:
+                st.write("No levels found above current price")
+        
+        with col_below:
+            st.markdown("**🔻 Next Two Levels Below:**")
+            if next_levels_below:
+                for i, level in enumerate(next_levels_below, 1):
+                    distance = current_price - level['price']
+                    distance_pct = (distance / current_price) * 100
+                    st.metric(
+                        label=f"Level {i} - {level['label']}",
+                        value=format_currency(level['price'], market),
+                        delta=f"-{distance_pct:.1f}%",
+                        help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
+                    )
+            else:
+                st.write("No levels found below current price")
+    else:
+        st.info("Fibonacci analysis requires sufficient price history for calculation")
     
     # Earnings and dividend information moved to dedicated tab
 
