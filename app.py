@@ -4363,12 +4363,9 @@ def yahoo_finance_tab():
                 help="Automatically update data every 10 minutes during market hours"
             )
             
-            # Create two columns for buttons
-            btn_col1, btn_col2 = st.columns(2)
-            with btn_col1:
-                analyze_button = st.button("Generate Chart", type="primary")
-            with btn_col2:
-                pdf_button = st.button("📄 Export PDF", help="Export all tabs to PDF")
+            # Stack buttons vertically with proper sizing
+            analyze_button = st.button("Generate Chart", type="primary", use_container_width=True)
+            pdf_button = st.button("📄 Export PDF", help="Export all tabs to PDF", use_container_width=True)
         
         # Create sub-tabs for organized content when stock data is available
         if symbol:
