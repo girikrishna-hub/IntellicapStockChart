@@ -54,14 +54,24 @@ def apply_gurufocus_view_mode_css():
             zoom: 0.8 !important;
         }
         
-        /* Final attempt - target by structure */
-        .stMetric > div > div {
-            font-size: 0.75rem !important;
+        /* Increase metric values (numbers) by 50% */
+        .stMetric [data-testid="metric-value"] {
+            font-size: 1.5rem !important;
         }
         
-        /* Override any inline styles */
-        .stMetric * {
-            font-size: 0.75rem !important;
+        /* Keep metric labels smaller */
+        .stMetric [data-testid="metric-label"] {
+            font-size: 0.7rem !important;
+        }
+        
+        /* Keep metric deltas (change values) smaller */
+        .stMetric [data-testid="metric-delta"] {
+            font-size: 0.8rem !important;
+        }
+        
+        /* Override the universal selector for metric values specifically */
+        .stMetric > div > div > div:first-child {
+            font-size: 1.5rem !important;
         }
         
         /* Reduce header sizes */
