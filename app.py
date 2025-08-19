@@ -4185,26 +4185,26 @@ def yahoo_finance_tab():
     <style>
     /* Force selectbox width and visibility */
     .stSelectbox {
-        width: 300px !important;
+        width: 180px !important;
     }
     .stSelectbox > div {
-        width: 300px !important;
-        max-width: 300px !important;
+        width: 180px !important;
+        max-width: 180px !important;
     }
     .stSelectbox > div > div {
-        width: 300px !important;
-        max-width: 300px !important;
+        width: 180px !important;
+        max-width: 180px !important;
         height: 35px !important;
         min-height: 35px !important;
     }
     .stSelectbox > div > div > div {
-        width: 300px !important;
-        max-width: 300px !important;
+        width: 180px !important;
+        max-width: 180px !important;
         height: 35px !important;
         min-height: 35px !important;
         font-size: 14px !important;
         line-height: 35px !important;
-        padding: 0 35px 0 12px !important;
+        padding: 0 25px 0 12px !important;
         text-overflow: ellipsis !important;
         white-space: nowrap !important;
         overflow: visible !important;
