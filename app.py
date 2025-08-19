@@ -3979,13 +3979,21 @@ def apply_view_mode_css():
             margin: 0.3rem 0 !important;
         }
         
-        /* Make metric values (numbers) clearly readable */
+        /* Target metric values more specifically */
         .stMetric [data-testid="metric-value"],
         .stMetric > div > div > div:first-child,
-        .stMetric div[data-baseweb="block"] > div:first-child {
-            font-size: 1.8rem !important;
+        .stMetric div[data-baseweb="block"] > div:first-child,
+        .stMetric div[data-testid="stMetricValue"],
+        .stMetric div[data-testid="stMetricValue"] > div,
+        .stMetric [role="text"] {
+            font-size: 1.2rem !important;
             font-weight: 600 !important;
-            line-height: 1.2 !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* Force smaller numbers with additional selectors */
+        .stMetric div[data-baseweb="block"] div[data-baseweb="block"]:first-child {
+            font-size: 1.2rem !important;
         }
         
         /* Keep metric labels compact but readable */
@@ -4038,9 +4046,21 @@ def apply_view_mode_css():
             padding: 0.25rem 0.75rem !important;
         }
         
-        /* Reduce column spacing */
+        /* Reduce column spacing and use grid layout */
         .stColumn {
             padding: 0.25rem !important;
+        }
+        
+        /* Grid layout for metric containers */
+        .stColumns {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
+            gap: 0.5rem !important;
+        }
+        
+        /* Limit text line length */
+        .stMarkdown, .stText, p {
+            max-width: 70ch !important;
         }
         
         /* Reduce expander font size */
@@ -4064,7 +4084,61 @@ def apply_view_mode_css():
         hr {
             margin: 0.5rem 0 !important;
         }
+        
+        /* Compact chart containers */
+        .stPlotlyChart {
+            margin: 0.25rem 0 !important;
+        }
+        
+        /* Compact expander content */
+        .streamlit-expanderContent {
+            padding: 0.5rem !important;
+        }
+        
+        /* Force compact display for all text elements */
+        * {
+            line-height: 1.2 !important;
+        }
+        
+        /* Additional metric number targeting */
+        [data-testid="metric-container"] div:first-child div:first-child,
+        [data-testid="metric-container"] > div > div:first-child,
+        .stMetric .metric-value {
+            font-size: 1.2rem !important;
+            transform: scale(0.85) !important;
+            transform-origin: left !important;
+        }
         </style>
+        
+        <script>
+        // Compact numbers with JavaScript when space is tight
+        function compactNumbers() {
+            const metrics = document.querySelectorAll('[data-testid="metric-container"]');
+            metrics.forEach(metric => {
+                const valueEl = metric.querySelector('[data-testid="metric-value"], div[data-baseweb="block"]:first-child');
+                if (valueEl && valueEl.textContent) {
+                    const text = valueEl.textContent;
+                    if (text.includes('$') && text.length > 8) {
+                        // Convert large numbers to compact format
+                        const number = parseFloat(text.replace(/[$,]/g, ''));
+                        if (number >= 1e9) {
+                            valueEl.textContent = '$' + (number / 1e9).toFixed(1) + 'B';
+                        } else if (number >= 1e6) {
+                            valueEl.textContent = '$' + (number / 1e6).toFixed(1) + 'M';
+                        } else if (number >= 1e3) {
+                            valueEl.textContent = '$' + (number / 1e3).toFixed(1) + 'K';
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Run on load and when content changes
+        document.addEventListener('DOMContentLoaded', compactNumbers);
+        setTimeout(compactNumbers, 500);
+        setTimeout(compactNumbers, 1000);
+        setTimeout(compactNumbers, 2000);
+        </script>
         """, unsafe_allow_html=True)
     else:  # Standard mode
         st.markdown("""
