@@ -2779,18 +2779,36 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         )
     
     with col4:
-        st.metric(
-            label="Support",
-            value=format_currency(support_level, market),
-            help="20-day support level"
-        )
+        # Get Fibonacci data for compact display
+        fib_data = calculate_fibonacci_levels(data, period_months=3)
+        if fib_data and fib_data['next_levels_below']:
+            fib_support = min(fib_data['next_levels_below'])
+            st.metric(
+                label="Fib Support",
+                value=format_currency(fib_support, market),
+                help="Next Fibonacci support level"
+            )
+        else:
+            st.metric(
+                label="Support",
+                value=format_currency(support_level, market),
+                help="20-day support level"
+            )
     
     with col5:
-        st.metric(
-            label="Resistance",
-            value=format_currency(resistance_level, market),
-            help="20-day resistance level"
-        )
+        if fib_data and fib_data['next_levels_above']:
+            fib_resistance = min(fib_data['next_levels_above'])
+            st.metric(
+                label="Fib Resistance", 
+                value=format_currency(fib_resistance, market),
+                help="Next Fibonacci resistance level"
+            )
+        else:
+            st.metric(
+                label="Resistance",
+                value=format_currency(resistance_level, market),
+                help="20-day resistance level"
+            )
     
     with col6:
         latest_rsi = rsi.iloc[-1] if not rsi.empty else None
@@ -2933,92 +2951,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                 help="Most recent price"
             )
 
-    # Compact Fibonacci Analysis - integrated into main layout
-    fib_data = calculate_fibonacci_levels(data, period_months=3)
-    if fib_data:
-        st.markdown("---")
-        st.markdown("**🔢 Fibonacci Analysis**")
-        
-        # Get analysis data
-        analysis_type = fib_data['analysis_type']
-        next_levels_above = fib_data['next_levels_above']
-        next_levels_below = fib_data['next_levels_below']
-        reference_high = fib_data['reference_high']
-        reference_low = fib_data['reference_low']
-        current_price = fib_data['current_price']
-        
-        # Display trend information
-        if analysis_type == "retracement":
-            trend_emoji = "🎯"
-            trend_status = "Within Range"
-        elif analysis_type == "upward_extension":
-            trend_emoji = "📈"
-            trend_status = "Above Range"
-        else:
-            trend_emoji = "📉"
-            trend_status = "Below Range"
-        
-        col_trend1, col_trend2, col_trend3, col_trend4 = st.columns(4)
-        
-        with col_trend1:
-            st.metric(
-                label="Analysis Type",
-                value=f"{trend_emoji} {trend_status}",
-                help="Current price position relative to reference range"
-            )
-        
-        with col_trend2:
-            st.metric(
-                label="Reference High",
-                value=format_currency(reference_high, market),
-                help="3-month high used for Fibonacci calculations"
-            )
-        
-        with col_trend3:
-            st.metric(
-                label="Reference Low", 
-                value=format_currency(reference_low, market),
-                help="3-month low used for Fibonacci calculations"
-            )
-        
-        with col_trend4:
-            price_range = reference_high - reference_low
-            st.metric(
-                label="Range",
-                value=format_currency(price_range, market),
-                help="Price range used for Fibonacci level calculations"
-            )
-        
-        # Display next two levels above and below
-        st.markdown("**🔺 Next Two Levels Above:**")
-        col_above1, col_above2 = st.columns(2)
-        
-        if next_levels_above:
-            for i, (col, level) in enumerate(zip([col_above1, col_above2], next_levels_above)):
-                with col:
-                    distance = level['price'] - current_price
-                    distance_pct = (distance / current_price) * 100
-                    st.metric(
-                        label=f"Level {i+1} - {level['label']}",
-                        value=format_currency(level['price'], market),
-                        delta=f"+{distance_pct:.1f}%",
-                        help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
-                    )
-        
-        st.markdown("**🔻 Next Two Levels Below:**")
-        col_below1, col_below2 = st.columns(2)
-        
-        if next_levels_below:
-            for i, (col, level) in enumerate(zip([col_below1, col_below2], next_levels_below)):
-                with col:
-                    distance = current_price - level['price']
-                    distance_pct = (distance / current_price) * 100
-                    st.metric(
-                        label=f"Level {i+1} - {level['label']}",
-                        value=format_currency(level['price'], market),
-                        delta=f"-{distance_pct:.1f}%",
-                        help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
-                    )
+    # All analysis data is now integrated into the compact layout above
 
     
     # Add Social Sharing Section
