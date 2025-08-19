@@ -4877,6 +4877,24 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
     
     if view_mode == 'Compact':
         # COMPACT MODE - Company info and pricing as tables
+        # CSS to hide all dataframe headers
+        st.markdown("""
+        <style>
+        div[data-testid="stDataFrame"] thead tr th {
+            display: none !important;
+        }
+        div[data-testid="stDataFrame"] thead {
+            display: none !important;
+        }
+        .stDataFrame thead {
+            display: none !important;
+        }
+        [data-testid="stDataFrame"] thead tr {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         st.markdown(f"### 🏢 {company_name} ({symbol})")
         
         # Company Information Table
@@ -4886,7 +4904,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         
         if ticker_info.get('sector') or ticker_info.get('industry'):
             df_company = pd.DataFrame(company_data)
-            st.dataframe(df_company, hide_index=True, column_config={}, use_container_width=True)
+            st.dataframe(df_company, hide_index=True, use_container_width=True)
         
         st.markdown("**💰 Current Price & Market Data**")
         
@@ -4897,7 +4915,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ]
         
         df_current_price = pd.DataFrame(price_data)
-        st.dataframe(df_current_price, hide_index=True, column_config={}, use_container_width=True)
+        st.dataframe(df_current_price, hide_index=True, use_container_width=True)
         
         # Extended Hours Trading Table
         st.markdown("**🕐 Extended Hours Trading**")
@@ -4929,7 +4947,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ]
             
             df_extended = pd.DataFrame(extended_data)
-            st.dataframe(df_extended, hide_index=True, column_config={}, use_container_width=True)
+            st.dataframe(df_extended, hide_index=True, use_container_width=True)
             
         except Exception as e:
             st.info("Extended hours data not available")
@@ -5062,7 +5080,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ]
         
         df_price = pd.DataFrame(price_data)
-        st.dataframe(df_price, hide_index=True, column_config={}, use_container_width=True)
+        st.dataframe(df_price, hide_index=True, use_container_width=True)
         
         # Support/Resistance Analysis Table
         st.markdown("**📊 Support/Resistance Analysis**")
@@ -5074,7 +5092,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ]
         
         df_resistance = pd.DataFrame(resistance_table_data)
-        st.dataframe(df_resistance, hide_index=True, column_config={}, use_container_width=True)
+        st.dataframe(df_resistance, hide_index=True, use_container_width=True)
         
     else:
         st.subheader("📊 Key Metrics")
@@ -5228,7 +5246,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ]
             
             df_fib_ref = pd.DataFrame(fib_reference_data)
-            st.dataframe(df_fib_ref, hide_index=True, column_config={}, use_container_width=True)
+            st.dataframe(df_fib_ref, hide_index=True, use_container_width=True)
             
             # Fibonacci Levels Table
             st.markdown("**📊 Next Fibonacci Levels**")
@@ -5259,7 +5277,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             
             if fib_levels_data:
                 df_fib_levels = pd.DataFrame(fib_levels_data)
-                st.dataframe(df_fib_levels, hide_index=True, column_config={}, use_container_width=True)
+                st.dataframe(df_fib_levels, hide_index=True, use_container_width=True)
             else:
                 st.info("No Fibonacci levels found near current price")
                 
