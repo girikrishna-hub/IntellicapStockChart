@@ -3377,12 +3377,18 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     # Generate price chart
     try:
+        print(f"Generating chart for {symbol} with data shape: {data.shape}")
         chart_buffer = generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level)
         if chart_buffer:
+            print("Chart generated successfully")
             chart_image = ImageReader(chart_buffer)
             story.append(Image(chart_image, width=5*inch, height=3*inch))
             story.append(Spacer(1, 8))
+        else:
+            print("Chart buffer is None")
+            story.append(Paragraph("Chart could not be generated", compact_style))
     except Exception as e:
+        print(f"Chart generation error: {e}")
         story.append(Paragraph(f"Chart generation error: {str(e)}", compact_style))
     
     # Create data table
@@ -3490,12 +3496,18 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Next Earnings', earnings_info['next_earnings']])
             
         # Add earnings performance analysis
+        print("Attempting to analyze earnings performance...")
         earnings_performance = analyze_earnings_performance(ticker_obj)
+        print(f"Earnings performance result: {earnings_performance}")
         if earnings_performance:
             avg_overnight = earnings_performance.get('avg_overnight_return', 0)
             avg_week = earnings_performance.get('avg_week_return', 0)
+            sample_size = earnings_performance.get('sample_size', 0)
             data_rows.append(['Avg Earnings Overnight', f'{avg_overnight:.2f}%'])
             data_rows.append(['Avg Earnings Week', f'{avg_week:.2f}%'])
+            data_rows.append(['Earnings Sample Size', f'{sample_size} quarters'])
+        else:
+            print("No earnings performance data available")
     except:
         pass
     
@@ -3621,24 +3633,28 @@ def analyze_earnings_performance(ticker_obj):
 def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level):
     """Generate a compact price chart for PDF inclusion using matplotlib"""
     try:
+        import matplotlib
+        matplotlib.use('Agg')  # Use non-GUI backend
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
-        from mplfinance import plot as mpf_plot
-        import mplfinance as mpf
         
-        # Create a simple chart using matplotlib instead of plotly
+        print(f"Creating chart for {symbol}")
+        print(f"Data shape: {data.shape}, MA50 shape: {ma_50.shape if ma_50 is not None else 'None'}")
+        
+        # Create a simple chart using matplotlib
         fig, ax = plt.subplots(figsize=(6, 3.5))
         
-        # Plot candlestick-like chart with OHLC data
-        # Use close price line for simplicity since candlesticks are complex in matplotlib
+        # Plot close price line
         ax.plot(data.index, data['Close'], label=f'{symbol.upper()} Price', color='black', linewidth=1.5)
         
         # Add moving averages
         if ma_50 is not None and not ma_50.empty:
             ax.plot(data.index, ma_50, label='50-Day MA', color='blue', linewidth=1)
+            print("Added 50-day MA to chart")
         
         if ma_200 is not None and not ma_200.empty:
             ax.plot(data.index, ma_200, label='200-Day MA', color='red', linewidth=1)
+            print("Added 200-day MA to chart")
         
         # Add support and resistance lines
         ax.axhline(y=support_level, color='green', linestyle='--', alpha=0.7, label='Support')
@@ -3653,7 +3669,7 @@ def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, res
         
         # Format x-axis dates
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-        ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
+        ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
         plt.xticks(rotation=45, fontsize=8)
         plt.yticks(fontsize=8)
         
@@ -3663,12 +3679,15 @@ def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, res
         # Save to buffer
         img_buffer = io.BytesIO()
         plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
-        plt.close()
+        plt.close(fig)  # Close the figure to free memory
         img_buffer.seek(0)
+        print("Chart saved to buffer successfully")
         return img_buffer
         
     except Exception as e:
         print(f"Chart generation error: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 def apply_view_mode_css():
