@@ -3492,8 +3492,8 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
         if earnings_info['last_earnings'] != 'N/A':
             # Format date to show only the date part, not time
-            last_earnings = earnings_info['last_earnings']
-            if 'likely outdated' in last_earnings:
+            last_earnings = str(earnings_info['last_earnings'])  # Convert to string first
+            if 'likely outdated' in last_earnings or 'data may be outdated' in last_earnings:
                 # Extract just the date part from "2025-05-01 (likely outdated - check company reports)"
                 date_part = last_earnings.split(' (')[0]
             else:
@@ -3501,7 +3501,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
             data_rows.append(['Last Earnings', date_part])
         if earnings_info['next_earnings'] != 'N/A':
             # Format date to show only the date part, not time
-            next_earnings = earnings_info['next_earnings']
+            next_earnings = str(earnings_info['next_earnings'])  # Convert to string first
             date_part = next_earnings.split(' ')[0]  # Take first part before any space
             data_rows.append(['Next Earnings', date_part])
             
@@ -3576,6 +3576,49 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     ]))
     
     story.append(table)
+    story.append(Spacer(1, 20))
+    
+    # Add earnings analysis table from Advanced Analysis
+    try:
+        print("Adding detailed earnings analysis table...")
+        earnings_performance = analyze_earnings_performance(ticker_obj)
+        if earnings_performance and 'earnings_data' in earnings_performance:
+            earnings_title = Paragraph("Detailed Earnings Performance Analysis", title_style)
+            story.append(earnings_title)
+            story.append(Spacer(1, 8))
+            
+            # Create earnings table data
+            earnings_table_data = [['Earnings Date', 'Overnight Return', 'Week Return', 'Period']]
+            
+            for earning in earnings_performance['earnings_data']:
+                earnings_date = earning['date'].strftime('%Y-%m-%d') if hasattr(earning['date'], 'strftime') else str(earning['date']).split(' ')[0]
+                overnight_return = f"{earning['overnight_return']:.2f}%" if earning['overnight_return'] is not None else 'N/A'
+                week_return = f"{earning['week_return']:.2f}%" if earning['week_return'] is not None else 'N/A'
+                period = earning.get('period', 'N/A')
+                
+                earnings_table_data.append([earnings_date, overnight_return, week_return, period])
+            
+            # Create and style the earnings table
+            earnings_table = Table(earnings_table_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+            earnings_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            
+            story.append(earnings_table)
+            print("Added detailed earnings table to PDF")
+        else:
+            print("No detailed earnings data available for table")
+    except Exception as e:
+        print(f"Error adding earnings table: {e}")
     
     # Build PDF
     doc.build(story)
@@ -3633,10 +3676,50 @@ def analyze_earnings_performance(ticker_obj):
         avg_overnight = sum(overnight_returns) / len(overnight_returns) if overnight_returns else 0
         avg_week = sum(week_returns) / len(week_returns) if week_returns else 0
         
+        # Also collect detailed earnings data for table
+        earnings_details = []
+        for earnings_date in recent_earnings.index:
+            try:
+                pre_earnings_date = earnings_date - pd.Timedelta(days=1)
+                post_earnings_date = earnings_date + pd.Timedelta(days=1)
+                week_post_date = earnings_date + pd.Timedelta(days=7)
+                
+                pre_price_data = hist_data[hist_data.index <= pre_earnings_date]
+                post_price_data = hist_data[hist_data.index >= post_earnings_date]
+                week_price_data = hist_data[hist_data.index >= week_post_date]
+                
+                overnight_return = None
+                week_return = None
+                
+                if not pre_price_data.empty and not post_price_data.empty:
+                    pre_price = pre_price_data['Close'].iloc[-1]
+                    post_price = post_price_data['Close'].iloc[0]
+                    overnight_return = ((post_price - pre_price) / pre_price) * 100
+                    
+                    if not week_price_data.empty:
+                        week_price = week_price_data['Close'].iloc[0]
+                        week_return = ((week_price - pre_price) / pre_price) * 100
+                
+                # Determine quarter
+                quarter_map = {1: 'Q1', 2: 'Q1', 3: 'Q1', 4: 'Q2', 5: 'Q2', 6: 'Q2', 
+                             7: 'Q3', 8: 'Q3', 9: 'Q3', 10: 'Q4', 11: 'Q4', 12: 'Q4'}
+                quarter = f"{quarter_map.get(earnings_date.month, 'Q?')} {earnings_date.year}"
+                
+                earnings_details.append({
+                    'date': earnings_date,
+                    'overnight_return': overnight_return,
+                    'week_return': week_return,
+                    'period': quarter
+                })
+                
+            except Exception:
+                continue
+
         return {
             'avg_overnight_return': avg_overnight,
             'avg_week_return': avg_week,
-            'sample_size': len(overnight_returns)
+            'sample_size': len(overnight_returns),
+            'earnings_data': earnings_details
         }
         
     except Exception as e:
