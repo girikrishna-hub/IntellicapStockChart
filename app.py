@@ -3307,6 +3307,24 @@ def main():
     st.title("📈 Stock Technical Analysis Tool")
     st.markdown("Get comprehensive technical analysis with moving averages, MACD, RSI, Chaikin Money Flow, earnings data, and dividend information for any stock symbol.")
     
+    # View Mode Selector
+    st.markdown("---")
+    col_view1, col_view2, col_view3 = st.columns([1, 2, 1])
+    
+    with col_view2:
+        view_mode = st.radio(
+            "Display View:",
+            ["Standard", "Compact"],
+            horizontal=True,
+            help="Standard: Normal font sizes and spacing. Compact: Reduced font sizes and minimal spacing for less scrolling.",
+            key="view_mode_selector"
+        )
+        
+        # Store view mode in session state
+        st.session_state['view_mode'] = view_mode
+    
+    st.markdown("---")
+    
     # Create data source tabs
     tab_yahoo, tab_guru = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis"])
     
@@ -3316,130 +3334,160 @@ def main():
     with tab_guru:
         gurufocus_tab()
 
+def apply_view_mode_css():
+    """Apply CSS styling based on the selected view mode"""
+    view_mode = st.session_state.get('view_mode', 'Standard')
+    
+    if view_mode == 'Compact':
+        st.markdown("""
+        <style>
+        /* Compact Mode - Reduce metric font sizes */
+        .stMetric > div > div > div {
+            font-size: 0.65rem !important;
+            line-height: 1.0 !important;
+        }
+        .stMetric > div > div > div > div {
+            font-size: 0.9rem !important;
+            margin-bottom: 0.1rem !important;
+        }
+        .stMetric [data-testid="metric-container"] {
+            padding: 0.2rem 0 !important;
+        }
+        
+        /* Reduce header sizes */
+        h1 {
+            font-size: 1.5rem !important;
+            margin: 0.3rem 0 0.2rem 0 !important;
+        }
+        h2 {
+            font-size: 1.2rem !important;
+            margin: 0.3rem 0 0.1rem 0 !important;
+        }
+        h3 {
+            font-size: 1.0rem !important;
+            margin: 0.2rem 0 0.1rem 0 !important;
+        }
+        .stSubheader {
+            font-size: 0.95rem !important;
+            margin: 0.2rem 0 0.1rem 0 !important;
+        }
+        
+        /* Reduce DataFrame font sizes */
+        .stDataFrame {
+            font-size: 0.75rem !important;
+        }
+        .stDataFrame table {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Reduce button and input sizes */
+        .stButton button {
+            font-size: 0.8rem !important;
+            padding: 0.25rem 0.75rem !important;
+        }
+        
+        /* Reduce column spacing */
+        .stColumn {
+            padding: 0.25rem !important;
+        }
+        
+        /* Reduce expander font size */
+        .streamlit-expanderHeader {
+            font-size: 0.9rem !important;
+        }
+        
+        /* Reduce markdown text size */
+        .stMarkdown p {
+            font-size: 0.85rem !important;
+            margin-bottom: 0.3rem !important;
+        }
+        
+        /* Reduce tab font size */
+        .stTabs [data-baseweb="tab-list"] button {
+            font-size: 0.85rem !important;
+            padding: 0.3rem 0.6rem !important;
+        }
+        
+        /* Reduce divider spacing */
+        hr {
+            margin: 0.5rem 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:  # Standard mode
+        st.markdown("""
+        <style>
+        /* Standard Mode - Normal sizes */
+        .stMetric > div > div > div {
+            font-size: 0.875rem !important;
+            line-height: 1.2 !important;
+        }
+        .stMetric > div > div > div > div {
+            font-size: 1.25rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .stMetric [data-testid="metric-container"] {
+            padding: 0.5rem 0 !important;
+        }
+        
+        /* Standard header sizes */
+        h1 {
+            font-size: 2.25rem !important;
+            margin: 1rem 0 0.5rem 0 !important;
+        }
+        h2 {
+            font-size: 1.875rem !important;
+            margin: 0.75rem 0 0.5rem 0 !important;
+        }
+        h3 {
+            font-size: 1.5rem !important;
+            margin: 0.5rem 0 0.25rem 0 !important;
+        }
+        .stSubheader {
+            font-size: 1.25rem !important;
+            margin: 0.5rem 0 0.25rem 0 !important;
+        }
+        
+        /* Standard DataFrame sizes */
+        .stDataFrame {
+            font-size: 0.875rem !important;
+        }
+        
+        /* Standard button sizes */
+        .stButton button {
+            font-size: 0.875rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        /* Standard column spacing */
+        .stColumn {
+            padding: 0.5rem !important;
+        }
+        
+        /* Standard markdown text size */
+        .stMarkdown p {
+            font-size: 1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Standard tab sizes */
+        .stTabs [data-baseweb="tab-list"] button {
+            font-size: 1rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        /* Standard divider spacing */
+        hr {
+            margin: 1rem 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
 def yahoo_finance_tab():
     """Fundamental analysis tab content"""
     
-    # Add comprehensive CSS for significantly reduced spacing and smaller fonts
-    st.markdown("""
-    <style>
-    /* Reduce metric font sizes */
-    .stMetric > div > div > div {
-        font-size: 0.75rem !important;
-        line-height: 1.1 !important;
-    }
-    .stMetric > div > div > div > div {
-        font-size: 1.0rem !important;
-        margin-bottom: 0.2rem !important;
-    }
-    .stMetric [data-testid="metric-container"] {
-        padding: 0.3rem 0 !important;
-    }
-    
-    /* Reduce header sizes */
-    h1 {
-        font-size: 1.8rem !important;
-        margin: 0.5rem 0 0.3rem 0 !important;
-    }
-    h2 {
-        font-size: 1.4rem !important;
-        margin: 0.4rem 0 0.2rem 0 !important;
-    }
-    h3 {
-        font-size: 1.2rem !important;
-        margin: 0.3rem 0 0.2rem 0 !important;
-    }
-    .stSubheader {
-        font-size: 1.1rem !important;
-        margin: 0.3rem 0 0.2rem 0 !important;
-    }
-    
-    /* Reduce tab spacing */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 4px !important;
-        margin-bottom: 0.5rem !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        padding: 0.3rem 0.8rem !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Reduce dataframe and table spacing */
-    .stDataFrame {
-        font-size: 0.75rem !important;
-    }
-    .stDataFrame table {
-        font-size: 0.75rem !important;
-    }
-    .stDataFrame th, .stDataFrame td {
-        padding: 0.2rem 0.4rem !important;
-    }
-    
-    /* Reduce general element spacing */
-    .element-container {
-        margin-bottom: 0.3rem !important;
-    }
-    .stMarkdown p {
-        margin-bottom: 0.3rem !important;
-        font-size: 0.9rem !important;
-    }
-    .stMarkdown ul, .stMarkdown ol {
-        margin-bottom: 0.3rem !important;
-        font-size: 0.85rem !important;
-    }
-    .stMarkdown li {
-        margin-bottom: 0.1rem !important;
-    }
-    
-    /* Reduce info/warning/success box spacing */
-    .stAlert {
-        padding: 0.4rem 0.6rem !important;
-        margin: 0.3rem 0 !important;
-        font-size: 0.85rem !important;
-    }
-    
-    /* Reduce column spacing */
-    .stColumn {
-        padding: 0 0.2rem !important;
-    }
-    
-    /* Reduce caption sizes */
-    .stCaption {
-        font-size: 0.7rem !important;
-        margin-top: -0.2rem !important;
-    }
-    
-    /* Reduce selectbox and input spacing */
-    .stSelectbox, .stTextInput {
-        margin-bottom: 0.3rem !important;
-    }
-    .stSelectbox label, .stTextInput label {
-        font-size: 0.8rem !important;
-        margin-bottom: 0.1rem !important;
-    }
-    
-    /* Reduce button spacing */
-    .stButton {
-        margin: 0.2rem 0 !important;
-    }
-    .stButton button {
-        font-size: 0.85rem !important;
-        padding: 0.3rem 0.8rem !important;
-    }
-    
-    /* Reduce checkbox spacing */
-    .stCheckbox {
-        margin: 0.2rem 0 !important;
-    }
-    .stCheckbox label {
-        font-size: 0.8rem !important;
-    }
-    
-    /* Reduce divider spacing */
-    hr {
-        margin: 0.5rem 0 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Apply view mode styling
+    apply_view_mode_css()
     
     st.markdown("### Real-time stock analysis with comprehensive fundamental metrics")
     
@@ -3818,6 +3866,10 @@ def yahoo_finance_tab():
 
 def gurufocus_tab():
     """Advanced analysis tab content"""
+    
+    # Apply view mode styling
+    apply_view_mode_css()
+    
     st.markdown("### Professional institutional-grade financial analysis")
     st.markdown("Advanced earnings performance analysis with up to 8 quarters of historical data")
     st.markdown("---")

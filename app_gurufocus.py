@@ -9,6 +9,143 @@ import requests
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 
+def apply_gurufocus_view_mode_css():
+    """Apply CSS styling based on the selected view mode for GuruFocus"""
+    view_mode = st.session_state.get('gurufocus_view_mode', 'Standard')
+    
+    if view_mode == 'Compact':
+        st.markdown("""
+        <style>
+        /* Compact Mode - Reduce metric font sizes */
+        .stMetric > div > div > div {
+            font-size: 0.65rem !important;
+            line-height: 1.0 !important;
+        }
+        .stMetric > div > div > div > div {
+            font-size: 0.9rem !important;
+            margin-bottom: 0.1rem !important;
+        }
+        .stMetric [data-testid="metric-container"] {
+            padding: 0.2rem 0 !important;
+        }
+        
+        /* Reduce header sizes */
+        h1 {
+            font-size: 1.5rem !important;
+            margin: 0.3rem 0 0.2rem 0 !important;
+        }
+        h2 {
+            font-size: 1.2rem !important;
+            margin: 0.3rem 0 0.1rem 0 !important;
+        }
+        h3 {
+            font-size: 1.0rem !important;
+            margin: 0.2rem 0 0.1rem 0 !important;
+        }
+        .stSubheader {
+            font-size: 0.95rem !important;
+            margin: 0.2rem 0 0.1rem 0 !important;
+        }
+        
+        /* Reduce DataFrame font sizes */
+        .stDataFrame {
+            font-size: 0.75rem !important;
+        }
+        .stDataFrame table {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Reduce button and input sizes */
+        .stButton button {
+            font-size: 0.8rem !important;
+            padding: 0.25rem 0.75rem !important;
+        }
+        
+        /* Reduce column spacing */
+        .stColumn {
+            padding: 0.25rem !important;
+        }
+        
+        /* Reduce expander font size */
+        .streamlit-expanderHeader {
+            font-size: 0.9rem !important;
+        }
+        
+        /* Reduce markdown text size */
+        .stMarkdown p {
+            font-size: 0.85rem !important;
+            margin-bottom: 0.3rem !important;
+        }
+        
+        /* Reduce divider spacing */
+        hr {
+            margin: 0.5rem 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:  # Standard mode
+        st.markdown("""
+        <style>
+        /* Standard Mode - Normal sizes */
+        .stMetric > div > div > div {
+            font-size: 0.875rem !important;
+            line-height: 1.2 !important;
+        }
+        .stMetric > div > div > div > div {
+            font-size: 1.25rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        .stMetric [data-testid="metric-container"] {
+            padding: 0.5rem 0 !important;
+        }
+        
+        /* Standard header sizes */
+        h1 {
+            font-size: 2.25rem !important;
+            margin: 1rem 0 0.5rem 0 !important;
+        }
+        h2 {
+            font-size: 1.875rem !important;
+            margin: 0.75rem 0 0.5rem 0 !important;
+        }
+        h3 {
+            font-size: 1.5rem !important;
+            margin: 0.5rem 0 0.25rem 0 !important;
+        }
+        .stSubheader {
+            font-size: 1.25rem !important;
+            margin: 0.5rem 0 0.25rem 0 !important;
+        }
+        
+        /* Standard DataFrame sizes */
+        .stDataFrame {
+            font-size: 0.875rem !important;
+        }
+        
+        /* Standard button sizes */
+        .stButton button {
+            font-size: 0.875rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        /* Standard column spacing */
+        .stColumn {
+            padding: 0.5rem !important;
+        }
+        
+        /* Standard markdown text size */
+        .stMarkdown p {
+            font-size: 1rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Standard divider spacing */
+        hr {
+            margin: 1rem 0 !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
 # Set page configuration
 st.set_page_config(
     page_title="GuruFocus Stock Analysis App",
@@ -637,6 +774,24 @@ def main():
     st.title("📊 GuruFocus Stock Analysis Application")
     st.markdown("Advanced stock analysis using GuruFocus professional data")
     
+    # View Mode Selector
+    st.markdown("---")
+    col_view1, col_view2, col_view3 = st.columns([1, 2, 1])
+    
+    with col_view2:
+        view_mode = st.radio(
+            "Display View:",
+            ["Standard", "Compact"],
+            horizontal=True,
+            help="Standard: Normal font sizes and spacing. Compact: Reduced font sizes and minimal spacing for less scrolling.",
+            key="gurufocus_view_mode_selector"
+        )
+        
+        # Store view mode in session state
+        st.session_state['gurufocus_view_mode'] = view_mode
+    
+    st.markdown("---")
+    
     # API Key input
     st.sidebar.header("🔑 GuruFocus API Configuration")
     api_key = st.sidebar.text_input(
@@ -670,6 +825,10 @@ def main():
 
 def single_stock_analysis(api_key):
     """Single stock analysis interface"""
+    
+    # Apply view mode styling
+    apply_gurufocus_view_mode_css()
+    
     st.header("🔍 Single Stock Analysis")
     
     # Stock input
@@ -769,6 +928,10 @@ def single_stock_analysis(api_key):
 
 def bulk_stock_analysis(api_key):
     """Bulk stock analysis interface"""
+    
+    # Apply view mode styling
+    apply_gurufocus_view_mode_css()
+    
     st.header("📊 Bulk Stock Analysis")
     
     # Stock list input
