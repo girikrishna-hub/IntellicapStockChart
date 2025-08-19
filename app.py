@@ -2760,9 +2760,10 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     
     # Ultra-compact table view - all price action metrics in one table
     view_mode = st.session_state.get('view_mode', 'Standard')
+    st.write(f"DEBUG: Current view mode is: {view_mode}")  # Debug info
     if view_mode == 'Compact':
         st.markdown("**📈 Price Action (Table View)**")
-        st.info("💡 Ultra-compact table format active - all metrics in tables to eliminate scrolling")
+        st.success("✅ COMPACT MODE ACTIVE - Table format is now displayed")
     else:
         st.markdown("**📈 Price Action & Technical Analysis**")
         st.info("💡 Switch to Compact view below for table format that eliminates scrolling")
