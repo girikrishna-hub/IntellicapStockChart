@@ -4109,14 +4109,31 @@ def apply_view_mode_css():
             margin: 0.1rem 0 !important;
         }
         
-        /* Reduce spacing around buttons */
+        /* Fix button layout and spacing */
         .stButton {
             margin: 0.1rem 0 !important;
         }
         
-        /* Minimize column gaps */
+        .stButton > button {
+            width: 100% !important;
+            white-space: nowrap !important;
+        }
+        
+        /* Ensure buttons stay in columns */
+        div[data-testid="column"] .stButton {
+            width: 100% !important;
+        }
+        
+        /* Fix column layout - ensure horizontal alignment */
+        .stColumns {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 0.5rem !important;
+        }
+        
         .stColumns > div {
-            gap: 0.25rem !important;
+            flex: 1 !important;
+            min-width: 0 !important;
         }
         
         /* Remove extra spacing in tabs */
