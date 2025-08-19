@@ -2751,116 +2751,109 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         except:
             pass
     
-    # First row of metrics
-    st.markdown("**📈 Current Price & Position**")
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Compact layout - organize all metrics in two optimized rows
+    st.markdown("**📈 Price Action & Technical Analysis**")
+    
+    # Row 1: Core price metrics (6 columns for compact display)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
     
     with col1:
         st.metric(
             label="Current Price",
             value=format_currency(latest_price, market),
-            delta=f"{price_vs_ma_50:.1f}% vs MA(50)" if not pd.isna(latest_ma_50) else None
+            delta=f"{price_vs_ma_50:.1f}% vs MA50" if not pd.isna(latest_ma_50) else None
         )
     
     with col2:
         st.metric(
-            label="52-Week High",
+            label="52W High",
             value=format_currency(year_high, market),
-            delta=f"{distance_from_high:.1f}% below high"
+            delta=f"{distance_from_high:.1f}% below"
         )
     
     with col3:
         st.metric(
-            label="52-Week Low",
+            label="52W Low", 
             value=format_currency(year_low, market),
-            delta=f"+{distance_from_low:.1f}% above low"
+            delta=f"+{distance_from_low:.1f}% above"
         )
     
     with col4:
         st.metric(
-            label="Support Level",
+            label="Support",
             value=format_currency(support_level, market),
-            help="Recent 20-day support level"
+            help="20-day support level"
         )
     
     with col5:
         st.metric(
-            label="Resistance Level",
+            label="Resistance",
             value=format_currency(resistance_level, market),
-            help="Recent 20-day resistance level"
+            help="20-day resistance level"
         )
-    
-    # Second row of metrics
-    st.markdown("**📊 Technical Indicators & Moving Averages**")
-    col6, col7, col8, col9, col10 = st.columns(5)
     
     with col6:
+        latest_rsi = rsi.iloc[-1] if not rsi.empty else None
         st.metric(
-            label="50-Day MA",
-            value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A"
+            label="RSI (14)",
+            value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
+            help="Relative Strength Index"
         )
+    
+    # Row 2: Moving averages, safe levels and key data (6 columns)
+    col7, col8, col9, col10, col11, col12 = st.columns(6)
     
     with col7:
         st.metric(
-            label="200-Day MA",
+            label="MA 50",
+            value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A"
+        )
+    
+    with col8:
+        st.metric(
+            label="MA 200",
             value=format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A",
             delta=f"{price_vs_ma_200:.1f}% vs Price" if not pd.isna(latest_ma_200) else None
         )
     
-    with col8:
+    with col9:
+        # Get beta value
+        beta_value = get_beta_value(ticker_info)
+        st.metric(
+            label="Beta",
+            value=beta_value,
+            help="Market volatility (1.0 = average)"
+        )
+    
+    with col10:
         st.metric(
             label="Since Earnings",
             value=earnings_performance,
             help="Price change since last earnings"
         )
     
-    with col9:
-        latest_rsi = rsi.iloc[-1] if not rsi.empty else None
-        st.metric(
-            label="RSI (14)",
-            value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
-            help="Relative Strength Index (14-period)"
-        )
-    
-    with col10:
-        # Get beta value
-        beta_value = get_beta_value(ticker_info)
-        st.metric(
-            label="Beta",
-            value=beta_value,
-            help="Stock's volatility relative to the market (1.0 = market average)"
-        )
-    
-    # New row for Safe Levels and earnings info
-    st.markdown("**🎯 Price Targets & Earnings Data**")
-    col_ctp1, col_ctp2, col_ctp3, col_ctp4, col_ctp5 = st.columns(5)
-    
-    with col_ctp1:
+    with col11:
         # Safe Level Low
         ctp_levels = calculate_ctp_levels(latest_price)
         st.metric(
-            label="Safe Level Low",
+            label="Safe Low",
             value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            help="Lower support reference level"
+            help="Lower support reference"
         )
     
-    with col_ctp2:
-        # Current price for reference
+    with col12:
+        # Safe Level High  
         st.metric(
-            label="Current Level",
-            value=format_currency(latest_price, market),
-            help="Current market price reference point"
-        )
-    
-    with col_ctp3:
-        # Safe Level High
-        st.metric(
-            label="Safe Level High",
+            label="Safe High",
             value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-            help="Upper resistance reference level"
+            help="Upper resistance reference"
         )
     
-    with col_ctp4:
+    # Row 3: Earnings data (compact 3-column layout)
+    st.markdown("**📅 Earnings Schedule**")
+    col_ctp1, col_ctp2, col_ctp3 = st.columns(3)
+    
+    with col_ctp1:
         earnings_value = earnings_info['last_earnings_formatted']
         if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
             # Split the earnings date and warning message
@@ -2888,113 +2881,59 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                 help="Most recent earnings announcement date"
             )
     
-    with col_ctp5:
+    with col_ctp2:
         st.metric(
             label="Next Earnings",
             value=earnings_info['next_earnings_formatted'],
             help="Expected next earnings date"
         )
+    
+    with col_ctp3:
+        # Current price reference for earnings section
+        st.metric(
+            label="Current Price",
+            value=format_currency(latest_price, market),
+            help="Current market price"
+        )
 
-    # After-market data section
+    # Compact after-market data section - only show if data available
     after_market = get_after_market_data(symbol, market)
     if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
-        st.markdown("**🕘 Extended Hours Trading**")
-        col_am1, col_am2, col_am3, col_am4 = st.columns(4)
+        st.markdown("**🕘 Extended Hours**")
+        col_am1, col_am2, col_am3 = st.columns(3)
         
         with col_am1:
-            st.metric(
-                label="Regular Close",
-                value=after_market['regular_session_close'],
-                help="Official market close price"
-            )
-        
-        with col_am2:
-            st.metric(
-                label="Current Price", 
-                value=after_market['current_price'],
-                help="Most recent available price"
-            )
-        
-        with col_am3:
+            # Show most relevant extended hours data
             if after_market['pre_market_change'] != 'N/A':
                 st.metric(
                     label="Pre-Market",
                     value=after_market['pre_market_change'],
                     delta=after_market['pre_market_change_percent'],
-                    help="Pre-market price movement"
+                    help="Pre-market movement"
                 )
-            else:
-                st.metric(
-                    label="Pre-Market",
-                    value="N/A",
-                    help="No pre-market data available"
-                )
-        
-        with col_am4:
-            if after_market['post_market_change'] != 'N/A':
+            elif after_market['post_market_change'] != 'N/A':
                 st.metric(
                     label="After-Hours",
                     value=after_market['post_market_change'],
                     delta=after_market['post_market_change_percent'],
-                    help="After-hours price movement"
+                    help="After-hours movement"
                 )
-            else:
-                st.metric(
-                    label="After-Hours",
-                    value="N/A",
-                    help="No after-hours data available"
-                )
-
-    # Third row of metrics - Dividend Information
-    st.markdown("**💰 Dividend Information**")
-    col11, col12, col13, col14, col15 = st.columns(5)
-    
-    with col11:
-        st.metric(
-            label="Last Dividend",
-            value=dividend_info['last_dividend_formatted'],
-            help="Most recent dividend payment"
-        )
-    
-    with col12:
-        st.metric(
-            label="Dividend Yield",
-            value=dividend_info['dividend_yield'],
-            help="Annual dividend yield percentage"
-        )
-    
-    with col13:
-        st.metric(
-            label="Forward Dividend",
-            value=dividend_info['forward_dividend'],
-            help="Expected annual dividend per share"
-        )
-    
-    with col14:
-        st.metric(
-            label="Payout Ratio",
-            value=dividend_info['payout_ratio'],
-            help="Percentage of earnings paid as dividends"
-        )
-    
-    with col15:
-        # Calculate estimated next dividend date if we have dividend history
-        next_dividend_estimate = "N/A"
-        if dividend_info['last_dividend_date'] is not None:
-            try:
-                # Estimate next dividend (typically quarterly, so add ~90 days)
-                estimated_next = dividend_info['last_dividend_date'] + pd.DateOffset(days=90)
-                next_dividend_estimate = estimated_next.strftime('%Y-%m-%d')
-            except:
-                pass
         
-        st.metric(
-            label="Est. Next Dividend",
-            value=next_dividend_estimate,
-            help="Estimated next dividend date (90 days from last)"
-        )
-    
-    # Fourth row of metrics - Fibonacci Analysis
+        with col_am2:
+            st.metric(
+                label="Regular Close", 
+                value=after_market['regular_session_close'],
+                help="Official market close"
+            )
+        
+        with col_am3:
+            st.metric(
+                label="Current",
+                value=after_market['current_price'],
+                help="Most recent price"
+            )
+
+    # Compact Fibonacci Analysis - integrated into main layout
     fib_data = calculate_fibonacci_levels(data, period_months=3)
     if fib_data:
         st.markdown("---")
