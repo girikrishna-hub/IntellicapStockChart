@@ -4233,6 +4233,20 @@ def yahoo_finance_tab():
         font-weight: 500 !important;
         margin-bottom: 4px !important;
     }
+    
+    /* Align radio buttons and selectbox vertically */
+    .stRadio > div {
+        align-items: flex-start !important;
+        margin-top: 0px !important;
+    }
+    .stRadio label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-bottom: 4px !important;
+    }
+    .stRadio > div > div {
+        margin-top: 4px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
