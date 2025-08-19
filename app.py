@@ -3376,17 +3376,17 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     story.append(Spacer(1, 8))
     
-    # Generate price chart
+    # Generate comprehensive technical analysis charts
     try:
-        print(f"Generating chart for {symbol} with data shape: {data.shape}")
-        chart_buffer = generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level)
+        print(f"Generating comprehensive charts for {symbol}")
+        chart_buffer = generate_charts_for_pdf(data, symbol, ma_50, ma_200, macd_line, signal_line, rsi, cmf, support_level, resistance_level)
         if chart_buffer:
-            print("Chart generated successfully")
-            story.append(ReportLabImage(chart_buffer, width=5*inch, height=3*inch))
+            print("Charts generated successfully")
+            story.append(ReportLabImage(chart_buffer, width=7*inch, height=5*inch))
             story.append(Spacer(1, 8))
         else:
             print("Chart buffer is None")
-            story.append(Paragraph("Chart could not be generated", compact_style))
+            story.append(Paragraph("Charts could not be generated", compact_style))
     except Exception as e:
         print(f"Chart generation error: {e}")
         story.append(Paragraph(f"Chart generation error: {str(e)}", compact_style))
@@ -3633,58 +3633,80 @@ def analyze_earnings_performance(ticker_obj):
         print(f"Earnings analysis error: {e}")
         return None
 
-def generate_price_chart_for_pdf(data, symbol, ma_50, ma_200, support_level, resistance_level):
-    """Generate a compact price chart for PDF inclusion using matplotlib"""
+def generate_charts_for_pdf(data, symbol, ma_50, ma_200, macd_line, signal_line, rsi, cmf, support_level, resistance_level):
+    """Generate multiple technical analysis charts for PDF inclusion"""
     try:
         import matplotlib
         matplotlib.use('Agg')  # Use non-GUI backend
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
         
-        print(f"Creating chart for {symbol}")
-        print(f"Data shape: {data.shape}, MA50 shape: {ma_50.shape if ma_50 is not None else 'None'}")
+        print(f"Creating comprehensive charts for {symbol}")
         
-        # Create a simple chart using matplotlib
-        fig, ax = plt.subplots(figsize=(6, 3.5))
+        # Create a 2x2 subplot figure
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
         
-        # Plot close price line
-        ax.plot(data.index, data['Close'], label=f'{symbol.upper()} Price', color='black', linewidth=1.5)
-        
-        # Add moving averages
+        # Chart 1: Price with Moving Averages
+        ax1.plot(data.index, data['Close'], label=f'{symbol.upper()} Price', color='black', linewidth=1.5)
         if ma_50 is not None and not ma_50.empty:
-            ax.plot(data.index, ma_50, label='50-Day MA', color='blue', linewidth=1)
-            print("Added 50-day MA to chart")
-        
+            ax1.plot(data.index, ma_50, label='50-Day MA', color='blue', linewidth=1)
         if ma_200 is not None and not ma_200.empty:
-            ax.plot(data.index, ma_200, label='200-Day MA', color='red', linewidth=1)
-            print("Added 200-day MA to chart")
+            ax1.plot(data.index, ma_200, label='200-Day MA', color='red', linewidth=1)
+        ax1.axhline(y=support_level, color='green', linestyle='--', alpha=0.7, label='Support')
+        ax1.axhline(y=resistance_level, color='red', linestyle='--', alpha=0.7, label='Resistance')
+        ax1.set_title(f'{symbol.upper()} Price & Moving Averages', fontsize=10, fontweight='bold')
+        ax1.set_ylabel('Price ($)', fontsize=9)
+        ax1.grid(True, alpha=0.3)
+        ax1.legend(fontsize=7)
         
-        # Add support and resistance lines
-        ax.axhline(y=support_level, color='green', linestyle='--', alpha=0.7, label='Support')
-        ax.axhline(y=resistance_level, color='red', linestyle='--', alpha=0.7, label='Resistance')
+        # Chart 2: MACD
+        if macd_line is not None and not macd_line.empty and signal_line is not None and not signal_line.empty:
+            ax2.plot(data.index, macd_line, label='MACD', color='blue', linewidth=1)
+            ax2.plot(data.index, signal_line, label='Signal', color='red', linewidth=1)
+            ax2.axhline(y=0, color='gray', linestyle='-', alpha=0.5)
+        ax2.set_title('MACD', fontsize=10, fontweight='bold')
+        ax2.set_ylabel('MACD', fontsize=9)
+        ax2.grid(True, alpha=0.3)
+        ax2.legend(fontsize=7)
         
-        # Format the chart
-        ax.set_title(f'{symbol.upper()} Price Chart', fontsize=12, fontweight='bold')
-        ax.set_xlabel('Date', fontsize=10)
-        ax.set_ylabel('Price ($)', fontsize=10)
-        ax.grid(True, alpha=0.3)
-        ax.legend(fontsize=8, loc='upper left')
+        # Chart 3: RSI
+        if rsi is not None and not rsi.empty:
+            ax3.plot(data.index, rsi, label='RSI', color='purple', linewidth=1)
+            ax3.axhline(y=70, color='red', linestyle='--', alpha=0.7, label='Overbought')
+            ax3.axhline(y=30, color='green', linestyle='--', alpha=0.7, label='Oversold')
+            ax3.set_ylim(0, 100)
+        ax3.set_title('RSI (14)', fontsize=10, fontweight='bold')
+        ax3.set_ylabel('RSI', fontsize=9)
+        ax3.grid(True, alpha=0.3)
+        ax3.legend(fontsize=7)
         
-        # Format x-axis dates
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
-        ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
-        plt.xticks(rotation=45, fontsize=8)
-        plt.yticks(fontsize=8)
+        # Chart 4: Chaikin Money Flow
+        if cmf is not None and not cmf.empty:
+            ax4.plot(data.index, cmf, label='CMF', color='orange', linewidth=1)
+            ax4.axhline(y=0, color='gray', linestyle='-', alpha=0.5)
+            ax4.axhline(y=0.1, color='green', linestyle='--', alpha=0.7, label='Bullish')
+            ax4.axhline(y=-0.1, color='red', linestyle='--', alpha=0.7, label='Bearish')
+        ax4.set_title('Chaikin Money Flow', fontsize=10, fontweight='bold')
+        ax4.set_ylabel('CMF', fontsize=9)
+        ax4.grid(True, alpha=0.3)
+        ax4.legend(fontsize=7)
+        
+        # Format x-axis for all charts
+        for ax in [ax1, ax2, ax3, ax4]:
+            ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
+            ax.tick_params(axis='x', labelsize=7, rotation=45)
+            ax.tick_params(axis='y', labelsize=7)
         
         # Tight layout
         plt.tight_layout()
         
         # Save to buffer
         img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
-        plt.close(fig)  # Close the figure to free memory
+        plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight')
+        plt.close(fig)
         img_buffer.seek(0)
-        print("Chart saved to buffer successfully")
+        print("Technical analysis charts saved successfully")
         return img_buffer
         
     except Exception as e:
