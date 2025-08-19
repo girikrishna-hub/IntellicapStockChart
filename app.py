@@ -4187,15 +4187,15 @@ def yahoo_finance_tab():
     .stSelectbox > div > div > div {
         min-height: 35px !important;
         height: 35px !important;
-        width: 120px !important;
-        max-width: 120px !important;
+        width: 240px !important;
+        max-width: 240px !important;
     }
     .stSelectbox > div > div > div > div {
         min-height: 35px !important;
         height: 35px !important;
         font-size: 14px !important;
-        width: 120px !important;
-        max-width: 120px !important;
+        width: 240px !important;
+        max-width: 240px !important;
     }
     /* Compact text input styling */
     .stTextInput > div > div > input {
@@ -4214,21 +4214,16 @@ def yahoo_finance_tab():
     }
     /* Additional width constraints for form containers */
     .stSelectbox > div {
-        width: 120px !important;
-        max-width: 120px !important;
+        width: 240px !important;
+        max-width: 240px !important;
+    }
+    .stSelectbox > div > div > div {
+        width: 240px !important;
+        max-width: 240px !important;
     }
     .stTextInput > div {
         width: 120px !important;
         max-width: 120px !important;
-    }
-    /* Wider market selection dropdown - first selectbox in the page */
-    .stSelectbox:first-of-type > div {
-        width: 180px !important;
-        max-width: 180px !important;
-    }
-    .stSelectbox:first-of-type > div > div > div {
-        width: 180px !important;
-        max-width: 180px !important;
     }
     </style>
     """, unsafe_allow_html=True)
