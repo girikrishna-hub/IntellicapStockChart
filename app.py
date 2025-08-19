@@ -4116,12 +4116,22 @@ def apply_view_mode_css():
         
         .stButton > button {
             width: 100% !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
+            padding: 0.5rem 0.75rem !important;
+            min-height: 2.5rem !important;
+            font-size: 0.9rem !important;
+            text-align: center !important;
+            word-wrap: break-word !important;
         }
         
-        /* Ensure buttons stay in columns */
+        /* Ensure buttons stay in columns and have proper width */
         div[data-testid="column"] .stButton {
             width: 100% !important;
+        }
+        
+        div[data-testid="column"] .stButton > button {
+            min-width: 120px !important;
+            max-width: 100% !important;
         }
         
         /* Fix column layout - ensure horizontal alignment */
