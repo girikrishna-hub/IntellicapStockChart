@@ -3413,10 +3413,9 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     data_rows.append(['Support Level', f'${support_level:.2f}'])
     data_rows.append(['Resistance Level', f'${resistance_level:.2f}'])
     
-    # Calculate Safe Levels (conservative trading zones)
-    price_range = resistance_level - support_level
-    safe_level_low = support_level + (price_range * 0.1)  # 10% above support
-    safe_level_high = resistance_level - (price_range * 0.1)  # 10% below resistance
+    # Calculate Safe Levels based on Current Trading Price (CTP)
+    safe_level_low = current_price * 0.875  # CTP - 12.5%
+    safe_level_high = current_price * 1.125  # CTP + 12.5%
     data_rows.append(['Safe Level Low', f'${safe_level_low:.2f}'])
     data_rows.append(['Safe Level High', f'${safe_level_high:.2f}'])
     
