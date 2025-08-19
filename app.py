@@ -2783,68 +2783,244 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         resistance_display = format_currency(resistance_level, market)
         resistance_type = "Resistance"
     
-    # Create comprehensive price action table
-    price_data = [
-        ["Current Price", format_currency(latest_price, market), "52W High", format_currency(year_high, market)],
-        [support_type, support_display, "52W Low", format_currency(year_low, market)],
-        [resistance_type, resistance_display, "RSI (14)", f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"],
-        ["MA 50", format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A", "MA 200", format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A"],
-        ["Beta", beta_value, "Since Earnings", earnings_performance],
-        ["Safe Low", format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A", "Safe High", format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"]
-    ]
-    
-    # Convert to DataFrame for better display
-    import pandas as pd
-    df_price = pd.DataFrame(price_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
-    
-    # Display table without index
-    st.dataframe(df_price, hide_index=True, use_container_width=True)
-    
-    # Compact earnings and schedule table
-    st.markdown("**📅 Earnings & Schedule**")
-    
-    # Clean earnings value for table display
-    earnings_value = earnings_info['last_earnings_formatted']
-    if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
-        if " (likely outdated" in earnings_value:
-            clean_date = earnings_value.split(" (likely outdated")[0] + " ⚠️"
-        elif " (data may be outdated)" in earnings_value:
-            clean_date = earnings_value.split(" (data may be outdated)")[0] + " ⚠️"
+    # Display based on view mode
+    if view_mode == 'Compact':
+        # COMPACT MODE: Table format for all data
+        # Create comprehensive price action table
+        price_data = [
+            ["Current Price", format_currency(latest_price, market), "52W High", format_currency(year_high, market)],
+            [support_type, support_display, "52W Low", format_currency(year_low, market)],
+            [resistance_type, resistance_display, "RSI (14)", f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"],
+            ["MA 50", format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A", "MA 200", format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A"],
+            ["Beta", beta_value, "Since Earnings", earnings_performance],
+            ["Safe Low", format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A", "Safe High", format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"]
+        ]
+        
+        # Convert to DataFrame for better display
+        df_price = pd.DataFrame(price_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+        
+        # Display table without index
+        st.dataframe(df_price, hide_index=True, use_container_width=True)
+        
+        # Compact earnings and schedule table
+        st.markdown("**📅 Earnings & Schedule**")
+        
+        # Clean earnings value for table display
+        earnings_value = earnings_info['last_earnings_formatted']
+        if "outdated" in earnings_value or "incomplete" in earnings_value or "likely outdated" in earnings_value:
+            if " (likely outdated" in earnings_value:
+                clean_date = earnings_value.split(" (likely outdated")[0] + " ⚠️"
+            elif " (data may be outdated)" in earnings_value:
+                clean_date = earnings_value.split(" (data may be outdated)")[0] + " ⚠️"
+            else:
+                clean_date = earnings_value + " ⚠️"
         else:
-            clean_date = earnings_value + " ⚠️"
-    else:
-        clean_date = earnings_value
-    
-    # Get volume data
-    volume_data = "N/A"
-    if ticker_info.get('averageVolume'):
-        volume_data = f"{ticker_info['averageVolume']:,}"
-    elif ticker_info.get('volume'):
-        volume_data = f"{ticker_info['volume']:,}"
-    
-    earnings_data = [
-        ["Last Earnings", clean_date, "Next Earnings", earnings_info['next_earnings_formatted']],
-        ["Volume (Avg)", volume_data, "Market Cap", format_currency(ticker_info.get('marketCap', 'N/A'), market) if ticker_info.get('marketCap') and ticker_info['marketCap'] != 'N/A' else "N/A"]
-    ]
-    
-    df_earnings = pd.DataFrame(earnings_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
-    st.dataframe(df_earnings, hide_index=True, use_container_width=True)
+            clean_date = earnings_value
+        
+        # Get volume data
+        volume_data = "N/A"
+        if ticker_info.get('averageVolume'):
+            volume_data = f"{ticker_info['averageVolume']:,}"
+        elif ticker_info.get('volume'):
+            volume_data = f"{ticker_info['volume']:,}"
+        
+        earnings_data = [
+            ["Last Earnings", clean_date, "Next Earnings", earnings_info['next_earnings_formatted']],
+            ["Volume (Avg)", volume_data, "Market Cap", format_currency(ticker_info.get('marketCap', 'N/A'), market) if ticker_info.get('marketCap') and ticker_info['marketCap'] != 'N/A' else "N/A"]
+        ]
+        
+        df_earnings = pd.DataFrame(earnings_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+        st.dataframe(df_earnings, hide_index=True, use_container_width=True)
 
-    # Ultra-compact extended hours table - only show if data available
-    after_market = get_after_market_data(symbol, market)
-    if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
-        st.markdown("**🕘 Extended Hours**")
+        # Ultra-compact extended hours table - only show if data available
+        after_market = get_after_market_data(symbol, market)
+        if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
+            st.markdown("**🕘 Extended Hours**")
+            
+            # Determine which extended hours data to show
+            extended_data = []
+            if after_market['pre_market_change'] != 'N/A':
+                extended_data.append(["Pre-Market", f"{after_market['pre_market_change']} ({after_market['pre_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
+            elif after_market['post_market_change'] != 'N/A':
+                extended_data.append(["After-Hours", f"{after_market['post_market_change']} ({after_market['post_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
+            
+            if extended_data:
+                df_extended = pd.DataFrame(extended_data, columns=["Session", "Change", "Reference", "Price"])
+                st.dataframe(df_extended, hide_index=True, use_container_width=True)
+    
+    else:
+        # STANDARD MODE: Original metric columns layout
+        # Row 1 - Price Analysis
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+
+        with col1:
+            st.metric(
+                label="Current Price",
+                value=format_currency(latest_price, market),
+                delta=f"{daily_change:.2f}%",
+                delta_color="normal"
+            )
+
+        with col2:
+            st.metric(
+                label="52W High",
+                value=format_currency(year_high, market)
+            )
+
+        with col3:
+            st.metric(
+                label="52W Low", 
+                value=format_currency(year_low, market)
+            )
+
+        with col4:
+            st.metric(
+                label=support_type,
+                value=support_display,
+                help="Next Fibonacci support level" if support_type == "Fib Support" else "Technical support level"
+            )
+
+        with col5:
+            st.metric(
+                label=resistance_type,
+                value=resistance_display,
+                help="Next Fibonacci resistance level" if resistance_type == "Fib Resistance" else "Technical resistance level"
+            )
+
+        with col6:
+            rsi_color = "normal"
+            if latest_rsi and not pd.isna(latest_rsi):
+                if latest_rsi > 70:
+                    rsi_color = "inverse"
+                elif latest_rsi < 30:
+                    rsi_color = "normal"
+            
+            st.metric(
+                label="RSI (14)",
+                value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"
+            )
+
+        # Row 2 - Technical Analysis
+        col7, col8, col9, col10, col11, col12 = st.columns(6)
+
+        with col7:
+            ma_50_trend = ""
+            if not pd.isna(latest_ma_50) and latest_price:
+                ma_50_trend = "+" if latest_price > latest_ma_50 else "-"
+            
+            st.metric(
+                label="MA 50",
+                value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A",
+                delta=ma_50_trend if ma_50_trend else None
+            )
+
+        with col8:
+            ma_200_trend = ""
+            if not pd.isna(latest_ma_200) and latest_price:
+                ma_200_trend = "+" if latest_price > latest_ma_200 else "-"
+            
+            st.metric(
+                label="MA 200",
+                value=format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A",
+                delta=ma_200_trend if ma_200_trend else None
+            )
+
+        with col9:
+            st.metric(
+                label="Beta",
+                value=beta_value
+            )
+
+        with col10:
+            st.metric(
+                label="Since Earnings",
+                value=earnings_performance
+            )
+
+        with col11:
+            st.metric(
+                label="Safe Low",
+                value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
+                help="CTP - 12.5% for safer entry"
+            )
+
+        with col12:
+            st.metric(
+                label="Safe High", 
+                value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
+                help="CTP + 12.5% for safer exit"
+            )
+
+        # Earnings and Dividends Section
+        st.markdown("---")
+        st.markdown("### 📅 Earnings & Dividends")
         
-        # Determine which extended hours data to show
-        extended_data = []
-        if after_market['pre_market_change'] != 'N/A':
-            extended_data.append(["Pre-Market", f"{after_market['pre_market_change']} ({after_market['pre_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
-        elif after_market['post_market_change'] != 'N/A':
-            extended_data.append(["After-Hours", f"{after_market['post_market_change']} ({after_market['post_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
+        col_e1, col_e2, col_e3, col_e4, col_e5, col_e6 = st.columns(6)
         
-        if extended_data:
-            df_extended = pd.DataFrame(extended_data, columns=["Session", "Change", "Reference", "Price"])
-            st.dataframe(df_extended, hide_index=True, use_container_width=True)
+        with col_e1:
+            st.metric(
+                label="Last Earnings",
+                value=earnings_info['last_earnings_formatted']
+            )
+
+        with col_e2:
+            st.metric(
+                label="Next Earnings", 
+                value=earnings_info['next_earnings_formatted']
+            )
+
+        with col_e3:
+            # Get volume data
+            volume_display = "N/A"
+            if ticker_info.get('averageVolume'):
+                volume_display = f"{ticker_info['averageVolume']:,}"
+            elif ticker_info.get('volume'):
+                volume_display = f"{ticker_info['volume']:,}"
+            
+            st.metric(
+                label="Volume (Avg)",
+                value=volume_display
+            )
+
+        with col_e4:
+            market_cap_display = "N/A"
+            if ticker_info.get('marketCap') and ticker_info['marketCap'] != 'N/A':
+                market_cap_display = format_currency(ticker_info['marketCap'], market)
+            
+            st.metric(
+                label="Market Cap",
+                value=market_cap_display
+            )
+
+        # Extended Hours (if data available)
+        after_market = get_after_market_data(symbol, market)
+        if after_market['pre_market_change'] != 'N/A' or after_market['post_market_change'] != 'N/A':
+            st.markdown("---")
+            st.markdown("### 🕘 Extended Hours Trading")
+            
+            col_ext1, col_ext2, col_ext3 = st.columns(3)
+            
+            with col_ext1:
+                if after_market['pre_market_change'] != 'N/A':
+                    st.metric(
+                        label="Pre-Market Change",
+                        value=f"{after_market['pre_market_change']}",
+                        delta=f"{after_market['pre_market_change_percent']}"
+                    )
+
+            with col_ext2:
+                if after_market['post_market_change'] != 'N/A':
+                    st.metric(
+                        label="After-Hours Change",
+                        value=f"{after_market['post_market_change']}",
+                        delta=f"{after_market['post_market_change_percent']}"
+                    )
+
+            with col_ext3:
+                st.metric(
+                    label="Regular Session Close",
+                    value=after_market['regular_session_close']
+                )
 
     # All price action data is now displayed in ultra-compact table format above
 
