@@ -4249,8 +4249,13 @@ def yahoo_finance_tab():
     }
     
     /* Move Time Period selectbox to the left using transform */
-    .stSelectbox {
+    div[data-testid="stSelectbox"] {
         transform: translateX(-30px) !important;
+    }
+    
+    /* Target specific Time Period selectbox by finding its container */
+    div[data-testid="column"]:nth-child(2) .stSelectbox {
+        transform: translateX(-40px) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -4351,7 +4356,8 @@ def yahoo_finance_tab():
                 "Select Time Period:",
                 options=list(period_options.keys()),
                 index=3,  # Default to "1 Year"
-                help="Choose the time period for historical data analysis"
+                help="Choose the time period for historical data analysis",
+                key="time_period_select"
             )
             
             period_code = period_options[selected_period]
