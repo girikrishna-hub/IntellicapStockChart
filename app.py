@@ -3783,14 +3783,6 @@ def yahoo_finance_tab():
                 data, ticker_info, ticker_obj = fetch_stock_data(symbol_for_fetching, period=period_code, market=market)
             
             if data is not None and ticker_info is not None and ticker_obj is not None and not data.empty:
-                # Create sub-tabs for better organization
-                tab_price, tab_charts, tab_earnings, tab_sentiment = st.tabs([
-                    "📊 Price Action", 
-                    "📈 Charts", 
-                    "📅 Earnings & Dividends",
-                    "📰 News Sentiment"
-                ])
-                
                 # Calculate all technical indicators once
                 ma_50 = calculate_moving_average(data, window=50)
                 ma_200 = calculate_moving_average(data, window=200)
@@ -3798,18 +3790,6 @@ def yahoo_finance_tab():
                 rsi = calculate_rsi(data)
                 cmf = calculate_chaikin_money_flow(data)
                 support_level, resistance_level = calculate_support_resistance(data)
-                
-                with tab_price:
-                    display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, rsi, support_level, resistance_level, selected_period, market, auto_refresh)
-                
-                with tab_charts:
-                    display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market)
-                
-                with tab_earnings:
-                    display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market)
-                
-                with tab_sentiment:
-                    display_news_sentiment_analysis(symbol)
                 
                 # Handle PDF export
                 if pdf_button:
@@ -3833,6 +3813,26 @@ def yahoo_finance_tab():
                             
                         except Exception as e:
                             st.error(f"Error generating PDF: {str(e)}")
+                
+                # Create sub-tabs for better organization
+                tab_price, tab_charts, tab_earnings, tab_sentiment = st.tabs([
+                    "📊 Price Action", 
+                    "📈 Charts", 
+                    "📅 Earnings & Dividends",
+                    "📰 News Sentiment"
+                ])
+                
+                with tab_price:
+                    display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, rsi, support_level, resistance_level, selected_period, market, auto_refresh)
+                
+                with tab_charts:
+                    display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, selected_period, market)
+                
+                with tab_earnings:
+                    display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market)
+                
+                with tab_sentiment:
+                    display_news_sentiment_analysis(symbol)
             
             else:
                 st.error(f"""
