@@ -2726,6 +2726,13 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     year_high = data['Close'].max()
     year_low = data['Close'].min()
     
+    # Calculate daily change percentage
+    if len(data) > 1:
+        previous_close = data['Close'].iloc[-2]
+        daily_change = ((latest_price - previous_close) / previous_close) * 100
+    else:
+        daily_change = 0.0
+    
     # Distance from 52-week high/low
     distance_from_high = ((year_high - latest_price) / year_high) * 100
     distance_from_low = ((latest_price - year_low) / year_low) * 100
@@ -2797,7 +2804,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         ]
         
         # Convert to DataFrame for better display
-        df_price = pd.DataFrame(price_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+        df_price = pd.DataFrame(price_data)
         
         # Display table without index
         st.dataframe(df_price, hide_index=True, use_container_width=True)
@@ -2829,7 +2836,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             ["Volume (Avg)", volume_data, "Market Cap", format_currency(ticker_info.get('marketCap', 'N/A'), market) if ticker_info.get('marketCap') and ticker_info['marketCap'] != 'N/A' else "N/A"]
         ]
         
-        df_earnings = pd.DataFrame(earnings_data, columns=["Metric 1", "Value 1", "Metric 2", "Value 2"])
+        df_earnings = pd.DataFrame(earnings_data)
         st.dataframe(df_earnings, hide_index=True, use_container_width=True)
 
         # Ultra-compact extended hours table - only show if data available
@@ -2845,7 +2852,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
                 extended_data.append(["After-Hours", f"{after_market['post_market_change']} ({after_market['post_market_change_percent']})", "Regular Close", after_market['regular_session_close']])
             
             if extended_data:
-                df_extended = pd.DataFrame(extended_data, columns=["Session", "Change", "Reference", "Price"])
+                df_extended = pd.DataFrame(extended_data)
                 st.dataframe(df_extended, hide_index=True, use_container_width=True)
     
     else:
