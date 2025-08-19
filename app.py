@@ -3643,8 +3643,8 @@ def analyze_earnings_performance(ticker_obj):
         overnight_returns = []
         week_returns = []
         
-        # Filter to recent earnings (last 4 quarters)
-        recent_earnings = earnings_dates.head(4)
+        # Filter to recent earnings (last 8 quarters to match Advanced Analysis)
+        recent_earnings = earnings_dates.head(8)
         
         for earnings_date in recent_earnings.index:
             try:
@@ -3676,7 +3676,7 @@ def analyze_earnings_performance(ticker_obj):
         avg_overnight = sum(overnight_returns) / len(overnight_returns) if overnight_returns else 0
         avg_week = sum(week_returns) / len(week_returns) if week_returns else 0
         
-        # Also collect detailed earnings data for table
+        # Also collect detailed earnings data for table (matching the 8 quarters from Advanced Analysis)
         earnings_details = []
         for earnings_date in recent_earnings.index:
             try:
