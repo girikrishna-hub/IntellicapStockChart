@@ -4221,6 +4221,15 @@ def yahoo_finance_tab():
         width: 120px !important;
         max-width: 120px !important;
     }
+    /* Wider market selection dropdown - first selectbox in the page */
+    .stSelectbox:first-of-type > div {
+        width: 180px !important;
+        max-width: 180px !important;
+    }
+    .stSelectbox:first-of-type > div > div > div {
+        width: 180px !important;
+        max-width: 180px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
