@@ -4248,9 +4248,9 @@ def yahoo_finance_tab():
         margin-top: 4px !important;
     }
     
-    /* Move Time Period selectbox to the left */
+    /* Move Time Period selectbox to the left using transform */
     .stSelectbox {
-        margin-left: -20px !important;
+        transform: translateX(-30px) !important;
     }
     </style>
     """, unsafe_allow_html=True)
