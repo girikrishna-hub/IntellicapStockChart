@@ -4248,13 +4248,8 @@ def yahoo_finance_tab():
         margin-top: 4px !important;
     }
     
-    /* Move Time Period selectbox to the left using transform */
-    div[data-testid="stSelectbox"] {
-        transform: translateX(-30px) !important;
-    }
-    
-    /* Target specific Time Period selectbox by finding its container */
-    div[data-testid="column"]:nth-child(2) .stSelectbox {
+    /* Target Time Period selectbox using custom container class */
+    .time-period-container .stSelectbox {
         transform: translateX(-40px) !important;
     }
     </style>
@@ -4341,6 +4336,9 @@ def yahoo_finance_tab():
                 symbol_for_fetching = symbol
         
         with col2:
+            # Add custom div with class for CSS targeting
+            st.markdown('<div class="time-period-container">', unsafe_allow_html=True)
+            
             period_options = {
                 "1 Month": "1mo",
                 "3 Months": "3mo", 
@@ -4359,6 +4357,8 @@ def yahoo_finance_tab():
                 help="Choose the time period for historical data analysis",
                 key="time_period_select"
             )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
             
             period_code = period_options[selected_period]
         
