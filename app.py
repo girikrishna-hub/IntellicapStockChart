@@ -3337,145 +3337,167 @@ def main():
         gurufocus_tab()
 
 def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
-    """Generate a comprehensive PDF report with all tabs data"""
+    """Generate a comprehensive PDF report with all tabs data in 1-2 pages"""
     
     # Create PDF buffer
     buffer = io.BytesIO()
     
-    # Create PDF document
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    # Create PDF document with smaller margins
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30, leftMargin=30, rightMargin=30)
     styles = getSampleStyleSheet()
     
-    # Create custom styles
+    # Create compact custom styles
     title_style = ParagraphStyle(
-        'CustomTitle',
+        'CompactTitle',
         parent=styles['Heading1'],
-        fontSize=18,
-        spaceAfter=20,
+        fontSize=16,
+        spaceAfter=10,
         alignment=TA_CENTER
     )
     
     section_style = ParagraphStyle(
-        'CustomSection',
+        'CompactSection',
         parent=styles['Heading2'],
-        fontSize=14,
-        spaceAfter=12
+        fontSize=12,
+        spaceAfter=6,
+        spaceBefore=8
+    )
+    
+    compact_style = ParagraphStyle(
+        'Compact',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=2
     )
     
     story = []
     
-    # Title page
+    # Title and basic info
     story.append(Paragraph(f"Stock Analysis Report - {symbol.upper()}", title_style))
-    story.append(Spacer(1, 12))
-    story.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles['Normal']))
-    story.append(Spacer(1, 12))
+    story.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | Period: {period}", compact_style))
     
-    # Company info
     if ticker_info:
         company_name = ticker_info.get('longName', symbol.upper())
-        story.append(Paragraph(f"Company: {company_name}", styles['Normal']))
         sector = ticker_info.get('sector', 'N/A')
-        story.append(Paragraph(f"Sector: {sector}", styles['Normal']))
-        story.append(Spacer(1, 12))
+        story.append(Paragraph(f"{company_name} | Sector: {sector}", compact_style))
     
-    # Page 1: Price Action Summary
-    story.append(Paragraph("Price Action Summary", section_style))
+    story.append(Spacer(1, 8))
     
+    # Create data table for Page 1
+    data_rows = []
+    
+    # Price Action Data
     current_price = data['Close'].iloc[-1] if not data.empty else 0
-    story.append(Paragraph(f"Current Price: ${current_price:.2f}", styles['Normal']))
+    data_rows.append(['Current Price', f'${current_price:.2f}'])
     
     if ma_50 is not None and not ma_50.empty:
         latest_ma50 = ma_50.iloc[-1]
-        story.append(Paragraph(f"50-Day MA: ${latest_ma50:.2f}", styles['Normal']))
+        data_rows.append(['50-Day MA', f'${latest_ma50:.2f}'])
     
     if ma_200 is not None and not ma_200.empty:
         latest_ma200 = ma_200.iloc[-1]
-        story.append(Paragraph(f"200-Day MA: ${latest_ma200:.2f}", styles['Normal']))
+        data_rows.append(['200-Day MA', f'${latest_ma200:.2f}'])
     
-    # RSI
     if rsi is not None and not rsi.empty:
         latest_rsi = rsi.iloc[-1]
-        story.append(Paragraph(f"RSI (14): {latest_rsi:.2f}", styles['Normal']))
+        data_rows.append(['RSI (14)', f'{latest_rsi:.1f}'])
     
-    # Support/Resistance
-    story.append(Paragraph(f"Support Level: ${support_level:.2f}", styles['Normal']))
-    story.append(Paragraph(f"Resistance Level: ${resistance_level:.2f}", styles['Normal']))
+    data_rows.append(['Support Level', f'${support_level:.2f}'])
+    data_rows.append(['Resistance Level', f'${resistance_level:.2f}'])
     
-    story.append(PageBreak())
-    
-    # Page 2: Technical Indicators
-    story.append(Paragraph("Technical Indicators", section_style))
-    
-    # MACD
+    # Technical Indicators
     if macd_line is not None and not macd_line.empty:
         latest_macd = macd_line.iloc[-1]
         latest_signal = signal_line.iloc[-1] if signal_line is not None and not signal_line.empty else 0
-        story.append(Paragraph(f"MACD Line: {latest_macd:.4f}", styles['Normal']))
-        story.append(Paragraph(f"Signal Line: {latest_signal:.4f}", styles['Normal']))
+        data_rows.append(['MACD Line', f'{latest_macd:.4f}'])
+        data_rows.append(['Signal Line', f'{latest_signal:.4f}'])
     
-    # Chaikin Money Flow
     if cmf is not None and not cmf.empty:
         latest_cmf = cmf.iloc[-1]
-        story.append(Paragraph(f"Chaikin Money Flow: {latest_cmf:.4f}", styles['Normal']))
+        data_rows.append(['Chaikin Money Flow', f'{latest_cmf:.4f}'])
     
-    # 52-week high/low
+    # Market data from ticker_info
     if ticker_info:
         week_52_high = ticker_info.get('fiftyTwoWeekHigh', 'N/A')
         week_52_low = ticker_info.get('fiftyTwoWeekLow', 'N/A')
-        story.append(Paragraph(f"52-Week High: ${week_52_high}", styles['Normal']))
-        story.append(Paragraph(f"52-Week Low: ${week_52_low}", styles['Normal']))
-    
-    story.append(PageBreak())
-    
-    # Page 3: Earnings & Dividends
-    story.append(Paragraph("Earnings & Dividends", section_style))
-    
-    if ticker_info:
-        # Earnings data
+        data_rows.append(['52-Week High', f'${week_52_high}' if week_52_high != 'N/A' else 'N/A'])
+        data_rows.append(['52-Week Low', f'${week_52_low}' if week_52_low != 'N/A' else 'N/A'])
+        
         eps = ticker_info.get('trailingEps', 'N/A')
         pe_ratio = ticker_info.get('trailingPE', 'N/A')
-        story.append(Paragraph(f"EPS (TTM): {eps}", styles['Normal']))
-        story.append(Paragraph(f"P/E Ratio: {pe_ratio}", styles['Normal']))
+        data_rows.append(['EPS (TTM)', f'{eps}'])
+        data_rows.append(['P/E Ratio', f'{pe_ratio}'])
         
-        # Dividend data
         dividend_yield = ticker_info.get('dividendYield', 0)
         if dividend_yield:
             dividend_yield_pct = dividend_yield * 100
-            story.append(Paragraph(f"Dividend Yield: {dividend_yield_pct:.2f}%", styles['Normal']))
+            data_rows.append(['Dividend Yield', f'{dividend_yield_pct:.2f}%'])
         else:
-            story.append(Paragraph("Dividend Yield: N/A", styles['Normal']))
+            data_rows.append(['Dividend Yield', 'N/A'])
         
-        # Get earnings info
-        try:
-            earnings_info = get_earnings_info(ticker_obj)
-            if earnings_info['last_earnings'] != 'N/A':
-                story.append(Paragraph(f"Last Earnings: {earnings_info['last_earnings']}", styles['Normal']))
-            if earnings_info['next_earnings'] != 'N/A':
-                story.append(Paragraph(f"Next Earnings: {earnings_info['next_earnings']}", styles['Normal']))
-        except:
-            pass
-    
-    story.append(PageBreak())
-    
-    # Page 4: Market Statistics
-    story.append(Paragraph("Market Statistics", section_style))
-    
-    if ticker_info:
         market_cap = ticker_info.get('marketCap', 'N/A')
         if market_cap != 'N/A' and isinstance(market_cap, (int, float)):
             market_cap_b = market_cap / 1e9
-            story.append(Paragraph(f"Market Cap: ${market_cap_b:.2f}B", styles['Normal']))
+            data_rows.append(['Market Cap', f'${market_cap_b:.2f}B'])
         else:
-            story.append(Paragraph(f"Market Cap: {market_cap}", styles['Normal']))
+            data_rows.append(['Market Cap', 'N/A'])
         
         volume = ticker_info.get('volume', 'N/A')
-        story.append(Paragraph(f"Volume: {volume:,}" if isinstance(volume, (int, float)) else f"Volume: {volume}", styles['Normal']))
-        
-        avg_volume = ticker_info.get('averageVolume', 'N/A')
-        story.append(Paragraph(f"Avg Volume: {avg_volume:,}" if isinstance(avg_volume, (int, float)) else f"Avg Volume: {avg_volume}", styles['Normal']))
+        data_rows.append(['Volume', f'{volume:,}' if isinstance(volume, (int, float)) else 'N/A'])
         
         beta = ticker_info.get('beta', 'N/A')
-        story.append(Paragraph(f"Beta: {beta}", styles['Normal']))
+        data_rows.append(['Beta', f'{beta}'])
+    
+    # Add earnings dates
+    try:
+        earnings_info = get_earnings_info(ticker_obj)
+        if earnings_info['last_earnings'] != 'N/A':
+            data_rows.append(['Last Earnings', earnings_info['last_earnings']])
+        if earnings_info['next_earnings'] != 'N/A':
+            data_rows.append(['Next Earnings', earnings_info['next_earnings']])
+    except:
+        pass
+    
+    # Create table with two columns
+    col1_data = []
+    col2_data = []
+    
+    for i, row in enumerate(data_rows):
+        if i % 2 == 0:
+            col1_data.append(row)
+        else:
+            col2_data.append(row)
+    
+    # Balance columns
+    while len(col1_data) > len(col2_data):
+        col2_data.append(['', ''])
+    while len(col2_data) > len(col1_data):
+        col1_data.append(['', ''])
+    
+    # Create combined table
+    table_data = [['Metric', 'Value', 'Metric', 'Value']]
+    for i in range(len(col1_data)):
+        table_data.append([
+            col1_data[i][0], col1_data[i][1],
+            col2_data[i][0] if i < len(col2_data) else '', 
+            col2_data[i][1] if i < len(col2_data) else ''
+        ])
+    
+    # Create table
+    table = Table(table_data, colWidths=[2*inch, 1*inch, 2*inch, 1*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ]))
+    
+    story.append(table)
     
     # Build PDF
     doc.build(story)
