@@ -22,11 +22,37 @@ def apply_gurufocus_view_mode_css():
             line-height: 1.0 !important;
         }
         .stMetric > div > div > div > div {
-            font-size: 0.9rem !important;
+            font-size: 0.75rem !important;
             margin-bottom: 0.1rem !important;
         }
         .stMetric [data-testid="metric-container"] {
             padding: 0.2rem 0 !important;
+        }
+        
+        /* Target metric values specifically */
+        .stMetric [data-testid="metric-container"] > div:first-child {
+            font-size: 0.75rem !important;
+        }
+        .stMetric [data-testid="metric-container"] > div:last-child {
+            font-size: 0.65rem !important;
+        }
+        
+        /* Reduce metric value numbers */
+        .stMetric .metric-value {
+            font-size: 0.85rem !important;
+        }
+        
+        /* More specific metric targeting */
+        div[data-testid="metric-container"] div {
+            font-size: 0.75rem !important;
+        }
+        div[data-testid="metric-container"] > div > div > div {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Target the actual number values in metrics */
+        .stMetric > div:first-child > div:first-child > div:first-child {
+            font-size: 0.85rem !important;
         }
         
         /* Reduce header sizes */
