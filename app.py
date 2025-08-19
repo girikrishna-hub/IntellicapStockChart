@@ -4248,10 +4248,7 @@ def yahoo_finance_tab():
         margin-top: 4px !important;
     }
     
-    /* Target Time Period selectbox using custom container class */
-    .time-period-container .stSelectbox {
-        transform: translateX(-40px) !important;
-    }
+    /* Remove unused CSS - Time Period now positioned in layout */
     </style>
     """, unsafe_allow_html=True)
     
@@ -4279,8 +4276,8 @@ def yahoo_finance_tab():
     
     st.markdown("---")
     
-    # Market and analysis mode selection
-    col_market, col_mode = st.columns([1, 2])
+    # Market and analysis mode selection with time period aligned
+    col_market, col_mode, col_time = st.columns([1, 2, 1])
     
     with col_market:
         market_selection = st.selectbox(
@@ -4297,9 +4294,32 @@ def yahoo_finance_tab():
             horizontal=True
         )
     
+    # Move Time Period selection to align with Analysis Mode
     if analysis_mode == "Single Stock Analysis":
-        # Create input section for single stock
-        col1, col2, col3 = st.columns([3, 2, 1])
+        with col_time:
+            period_options = {
+                "1 Month": "1mo",
+                "3 Months": "3mo", 
+                "6 Months": "6mo",
+                "1 Year": "1y",
+                "2 Years": "2y",
+                "5 Years": "5y",
+                "10 Years": "10y",
+                "Maximum": "max"
+            }
+            
+            selected_period = st.selectbox(
+                "Select Time Period:",
+                options=list(period_options.keys()),
+                index=3,  # Default to "1 Year"
+                help="Choose the time period for historical data analysis",
+                key="time_period_select_top"
+            )
+            
+            period_code = period_options[selected_period]
+    
+        # Create input section for single stock (simplified without time period in col2)
+        col1, col2 = st.columns([3, 1])
         
         with col1:
             if market == "India":
@@ -4336,33 +4356,6 @@ def yahoo_finance_tab():
                 symbol_for_fetching = symbol
         
         with col2:
-            # Add custom div with class for CSS targeting
-            st.markdown('<div class="time-period-container">', unsafe_allow_html=True)
-            
-            period_options = {
-                "1 Month": "1mo",
-                "3 Months": "3mo", 
-                "6 Months": "6mo",
-                "1 Year": "1y",
-                "2 Years": "2y",
-                "5 Years": "5y",
-                "10 Years": "10y",
-                "Maximum": "max"
-            }
-            
-            selected_period = st.selectbox(
-                "Select Time Period:",
-                options=list(period_options.keys()),
-                index=3,  # Default to "1 Year"
-                help="Choose the time period for historical data analysis",
-                key="time_period_select"
-            )
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            period_code = period_options[selected_period]
-        
-        with col3:
             # Auto-refresh toggle
             auto_refresh = st.checkbox(
                 "🔄 Auto-refresh (10 min)",
