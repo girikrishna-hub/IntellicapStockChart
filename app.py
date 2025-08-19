@@ -4187,11 +4187,15 @@ def yahoo_finance_tab():
     .stSelectbox > div > div > div {
         min-height: 35px !important;
         height: 35px !important;
+        width: 120px !important;
+        max-width: 120px !important;
     }
     .stSelectbox > div > div > div > div {
         min-height: 35px !important;
         height: 35px !important;
         font-size: 14px !important;
+        width: 120px !important;
+        max-width: 120px !important;
     }
     /* Compact text input styling */
     .stTextInput > div > div > input {
@@ -4199,12 +4203,23 @@ def yahoo_finance_tab():
         min-height: 35px !important;
         font-size: 14px !important;
         padding: 8px 12px !important;
+        width: 120px !important;
+        max-width: 120px !important;
     }
     /* Reduce label sizes */
     .stSelectbox label, .stTextInput label {
         font-size: 14px !important;
         font-weight: 500 !important;
         margin-bottom: 4px !important;
+    }
+    /* Additional width constraints for form containers */
+    .stSelectbox > div {
+        width: 120px !important;
+        max-width: 120px !important;
+    }
+    .stTextInput > div {
+        width: 120px !important;
+        max-width: 120px !important;
     }
     </style>
     """, unsafe_allow_html=True)
