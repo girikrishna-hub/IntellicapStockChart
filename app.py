@@ -4180,6 +4180,35 @@ def yahoo_finance_tab():
     # Apply view mode styling
     apply_view_mode_css()
     
+    # CSS for compact form elements
+    st.markdown("""
+    <style>
+    /* Compact selectbox styling */
+    .stSelectbox > div > div > div {
+        min-height: 35px !important;
+        height: 35px !important;
+    }
+    .stSelectbox > div > div > div > div {
+        min-height: 35px !important;
+        height: 35px !important;
+        font-size: 14px !important;
+    }
+    /* Compact text input styling */
+    .stTextInput > div > div > input {
+        height: 35px !important;
+        min-height: 35px !important;
+        font-size: 14px !important;
+        padding: 8px 12px !important;
+    }
+    /* Reduce label sizes */
+    .stSelectbox label, .stTextInput label {
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin-bottom: 4px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown("### Real-time stock analysis with comprehensive fundamental metrics")
     
     # Show shared insights history if any exist
