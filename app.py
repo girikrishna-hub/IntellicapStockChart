@@ -4075,8 +4075,18 @@ def apply_view_mode_css():
         /* Targeted markdown spacing */
         .stMarkdown p {
             font-size: 0.85rem !important;
-            margin: 0.2rem 0 !important;
-            line-height: 1.3 !important;
+            margin: 0.05rem 0 !important;
+            line-height: 1.1 !important;
+        }
+        
+        /* Minimize spacing around numbers and metrics */
+        .stMarkdown p:contains('$'),
+        .stMarkdown p:contains('%'),
+        .stMarkdown p:contains('B'),
+        .stMarkdown p:contains('M'),
+        .stMarkdown p:contains('K') {
+            margin: 0.02rem 0 !important;
+            line-height: 1.0 !important;
         }
         
         /* Compact expander and tab spacing */
@@ -4151,6 +4161,26 @@ def apply_view_mode_css():
             padding: 0.25rem 0 !important;
         }
         
+        /* Ultra-compact numeric display */
+        .stMarkdown div:contains('**'),
+        .stMarkdown strong {
+            margin: 0.02rem 0 !important;
+            line-height: 0.95 !important;
+        }
+        
+        /* Minimize space between consecutive numeric lines */
+        .stMarkdown p + p {
+            margin-top: 0.02rem !important;
+        }
+        
+        /* Target bullet points and lists with numbers */
+        .stMarkdown ul li,
+        .stMarkdown ol li {
+            margin: 0 !important;
+            padding: 0.02rem 0 !important;
+            line-height: 1.0 !important;
+        }
+        
         /* Compact chart containers */
         .stPlotlyChart {
             margin: 0.25rem 0 !important;
@@ -4177,7 +4207,22 @@ def apply_view_mode_css():
         .stMetric,
         .stDataFrame,
         .stTable {
-            margin: 0.1rem 0 !important;
+            margin: 0.05rem 0 !important;
+        }
+        
+        /* Ultra-tight spacing for numeric content */
+        .stMetric [data-testid="metric-container"] {
+            margin: 0 !important;
+            padding: 0.1rem 0 !important;
+        }
+        
+        .stMetric .metric-label {
+            margin-bottom: 0.1rem !important;
+        }
+        
+        .stMetric .metric-value {
+            margin: 0 !important;
+            line-height: 1.0 !important;
         }
         
         /* Compact vertical spacing */
