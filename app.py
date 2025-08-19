@@ -2836,13 +2836,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     col_ctp1, col_ctp2, col_ctp3, col_ctp4, col_ctp5 = st.columns(5)
     
     with col_ctp1:
-        # Safe Level Low
-        ctp_levels = calculate_ctp_levels(latest_price)
-        st.metric(
-            label="Safe Level Low",
-            value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-            help="Lower support reference level"
-        )
+        # Removed Safe Level Low - per user request
+        pass
     
     with col_ctp2:
         # Current price for reference
@@ -2853,12 +2848,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         )
     
     with col_ctp3:
-        # Safe Level High
-        st.metric(
-            label="Safe Level High",
-            value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-            help="Upper resistance reference level"
-        )
+        # Removed Safe Level High - per user request
+        pass
     
     with col_ctp4:
         earnings_value = earnings_info['last_earnings_formatted']
