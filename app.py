@@ -2787,9 +2787,13 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     else:
         daily_change = 0.0
     
-    # Distance from 52-week high/low
+    # Distance from 52-week high/low and % from CTP
     distance_from_high = ((year_high - latest_price) / year_high) * 100
     distance_from_low = ((latest_price - year_low) / year_low) * 100
+    
+    # % from Current Trading Price (CTP) calculations
+    pct_from_ctp_high = ((year_high - latest_price) / latest_price) * 100
+    pct_from_ctp_low = ((latest_price - year_low) / latest_price) * 100
     
     # Price vs MA comparison
     price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if not pd.isna(latest_ma_50) else 0
@@ -2847,22 +2851,39 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     
     # Display based on view mode
     if view_mode == 'Compact':
-        # COMPACT MODE: Table format for all data
-        # Create comprehensive price action table
-        price_data = [
-            ["Current Price", format_currency(latest_price, market), "52W High", format_currency(year_high, market)],
-            [support_type, support_display, "52W Low", format_currency(year_low, market)],
-            [resistance_type, resistance_display, "RSI (14)", f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"],
+        # COMPACT MODE: Table format organized as requested
+        # Main price table with CTP, 52W High, % from CTP, 52W Low, % from CTP
+        main_price_data = [
+            [
+                format_currency(latest_price, market),
+                format_currency(year_high, market), 
+                f"+{pct_from_ctp_high:.1f}%",
+                format_currency(year_low, market),
+                f"+{pct_from_ctp_low:.1f}%"
+            ]
+        ]
+        
+        # Create DataFrame with proper headers
+        df_main_price = pd.DataFrame(main_price_data, columns=[
+            "CTP", "52W High", "% from CTP", "52W Low", "% from CTP"
+        ])
+        
+        # Display main price table
+        st.dataframe(df_main_price, hide_index=True, use_container_width=True)
+        
+        # Additional metrics table
+        additional_data = [
+            [support_type, support_display, "RSI (14)", f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"],
+            [resistance_type, resistance_display, "Beta", beta_value],
             ["MA 50", format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A", "MA 200", format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A"],
-            ["Beta", beta_value, "Since Earnings", earnings_performance],
             ["Safe Low", format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A", "Safe High", format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A"]
         ]
         
-        # Convert to DataFrame for better display
-        df_price = pd.DataFrame(price_data)
+        # Convert to DataFrame for additional metrics
+        df_additional = pd.DataFrame(additional_data)
         
-        # Display table without index
-        st.dataframe(df_price, hide_index=True, use_container_width=True)
+        # Display additional metrics table
+        st.dataframe(df_additional, hide_index=True, use_container_width=True)
         
         # Compact earnings and schedule table
         st.markdown("**📅 Earnings & Schedule**")
@@ -2926,13 +2947,15 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         with col2:
             st.metric(
                 label="52W High",
-                value=format_currency(year_high, market)
+                value=format_currency(year_high, market),
+                delta=f"+{pct_from_ctp_high:.1f}% from CTP"
             )
 
         with col3:
             st.metric(
                 label="52W Low", 
-                value=format_currency(year_low, market)
+                value=format_currency(year_low, market),
+                delta=f"+{pct_from_ctp_low:.1f}% from CTP"
             )
 
         with col4:
