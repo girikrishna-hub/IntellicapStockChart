@@ -261,9 +261,19 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 fib_level = metrics['Next Fibonacci Level'] 
                 tech_summary_data.append(["Next Fibonacci Level", fib_level, "Technical target level"])
             else:
-                # Always show Fibonacci analysis with separate levels for better readability
-                period_high = data['High'].max()
-                period_low = data['Low'].min()
+                # Always show Fibonacci analysis with separate levels for better readability (3-month period)
+                import datetime as dt
+                three_months_ago = dt.datetime.now() - dt.timedelta(days=90)
+                # Filter data to last 3 months by date
+                if hasattr(data.index, 'tz_localize'):
+                    three_months_ago = pd.Timestamp(three_months_ago).tz_localize(data.index.tz)
+                else:
+                    three_months_ago = pd.Timestamp(three_months_ago)
+                period_data = data[data.index >= three_months_ago]
+                if period_data.empty:
+                    period_data = data.tail(66)  # Fallback to last ~3 months of trading days
+                period_high = period_data['High'].max()
+                period_low = period_data['Low'].min()
                 fib_236 = period_low + (period_high - period_low) * 0.236
                 fib_382 = period_low + (period_high - period_low) * 0.382
                 fib_618 = period_low + (period_high - period_low) * 0.618
@@ -1179,9 +1189,17 @@ def calculate_fibonacci_levels(data, period_months=3):
     try:
         current_price = data['Close'].iloc[-1]
         
-        # Calculate period for high/low range
-        days_back = period_months * 30  # Approximate days
-        period_data = data.tail(days_back)
+        # Calculate period for high/low range using actual date filtering
+        import datetime as dt
+        months_ago = dt.datetime.now() - dt.timedelta(days=period_months * 30)
+        # Filter data to specified months by date
+        if hasattr(data.index, 'tz_localize'):
+            months_ago = pd.Timestamp(months_ago).tz_localize(data.index.tz)
+        else:
+            months_ago = pd.Timestamp(months_ago)
+        period_data = data[data.index >= months_ago]
+        if period_data.empty:
+            period_data = data.tail(period_months * 22)  # Fallback to trading days
         
         # Get reference high and low
         reference_high = period_data['High'].max()
