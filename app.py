@@ -243,8 +243,8 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             ["52-Week Low", f"{currency}{week_52_low:.2f}", f"CTP is {((current_price - week_52_low) / week_52_low * 100):+.1f}% from 52W Low"],
             ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
              f"CTP is {((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from 50-Day MA" if not ma_50.empty else "N/A"],
-            ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else f"Need 200+ days (have {len(data)})",
-             f"CTP is {((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from 200-Day MA" if not ma_200.empty else "Insufficient data"],
+            ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "Not enough data",
+             f"CTP is {((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from 200-Day MA" if not ma_200.empty else "Not enough data"],
             ["RSI (14)", f"{rsi.iloc[-1]:.1f}" if not rsi.empty else "N/A",
              "Overbought" if not rsi.empty and rsi.iloc[-1] > 70 else "Oversold" if not rsi.empty and rsi.iloc[-1] < 30 else "Neutral"],
             ["Support Level", f"{currency}{support_level:.2f}", f"CTP is {((current_price - support_level) / support_level * 100):+.1f}% from Support"],
@@ -3026,8 +3026,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             '52-Week Low': format_currency(year_low, market),
             'Distance from High (%)': f"{distance_from_high:.1f}%",
             'Distance from Low (%)': f"{distance_from_low:.1f}%",
-            '50-Day MA': format_currency(latest_ma_50, market) if ma_50_available else f"Need 50+ days (have {data_days})",
-            '200-Day MA': format_currency(latest_ma_200, market) if ma_200_available else f"Need 200+ days (have {data_days})",
+            '50-Day MA': format_currency(latest_ma_50, market) if ma_50_available else "Not enough data",
+            '200-Day MA': format_currency(latest_ma_200, market) if ma_200_available else "Not enough data",
             'Price vs 50-Day MA (%)': f"{price_vs_ma_50:.1f}%" if price_vs_ma_50 is not None else "N/A",
             'Price vs 200-Day MA (%)': f"{price_vs_ma_200:.1f}%" if price_vs_ma_200 is not None else "N/A",
             'Support Level': format_currency(support_level, market),
@@ -6365,8 +6365,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}")
                 st.markdown(f"<span style='color: {ma_200_color}; font-size: 12px;'>{ma_200_delta}</span>", unsafe_allow_html=True)
             else:
-                st.metric("200-Day MA", f"Need 200+ days (have {data_days})")
-                st.markdown(f"<span style='color: orange; font-size: 12px;'>Insufficient historical data</span>", unsafe_allow_html=True)
+                st.metric("200-Day MA", "Not enough data")
+                st.markdown(f"<span style='color: orange; font-size: 12px;'>Not enough data</span>", unsafe_allow_html=True)
         
         with col_ma3:
             # Trend analysis - only show if both MAs are available
@@ -6383,8 +6383,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                     trend = "🟡 Neutral"
                 st.metric("Trend", trend)
             else:
-                st.metric("Trend", "Need MA data")
-                st.markdown(f"<span style='color: orange; font-size: 12px;'>Requires both 50 & 200-day MA</span>", unsafe_allow_html=True)
+                st.metric("Trend", "Not enough data")
+                st.markdown(f"<span style='color: orange; font-size: 12px;'>Not enough data</span>", unsafe_allow_html=True)
         
         # Support and resistance levels
         st.markdown("---")
