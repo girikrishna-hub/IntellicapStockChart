@@ -329,7 +329,52 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         
         # Add comprehensive technical analysis charts using matplotlib
         story.append(PageBreak())
-        story.append(Paragraph("Technical Chart Analysis", heading_style))
+        story.append(Paragraph("Technical Analysis Summary", heading_style))
+        
+        # Create technical analysis summary table
+        tech_summary_data = [
+            ["Metric", "Value", "Analysis"],
+            ["Current Price", f"{currency}{current_price:.2f}", f"{price_change_pct:+.2f}% from previous close"],
+            ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
+             f"{((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current" if not ma_50.empty else "N/A"],
+            ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "N/A",
+             f"{((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from current" if not ma_200.empty else "N/A"],
+            ["RSI (14)", f"{rsi.iloc[-1]:.1f}" if not rsi.empty else "N/A",
+             "Overbought" if not rsi.empty and rsi.iloc[-1] > 70 else "Oversold" if not rsi.empty and rsi.iloc[-1] < 30 else "Neutral"],
+            ["Support Level", f"{currency}{support_level:.2f}", f"{((current_price - support_level) / support_level * 100):+.1f}% from current"],
+            ["Resistance Level", f"{currency}{resistance_level:.2f}", f"{((current_price - resistance_level) / resistance_level * 100):+.1f}% from current"]
+        ]
+        
+        # Add Fibonacci analysis if available
+        if 'fibonacci_analysis' in metrics and metrics['fibonacci_analysis'] != 'N/A':
+            fib_info = metrics['fibonacci_analysis']
+            tech_summary_data.append(["Fibonacci Analysis", fib_info, "Key technical level"])
+        
+        # Add safe trading levels
+        safe_low = current_price * 0.875  # CTP - 12.5%
+        safe_high = current_price * 1.125  # CTP + 12.5%
+        tech_summary_data.extend([
+            ["Safe Level Low", f"{currency}{safe_low:.2f}", "-12.5% from CTP"],
+            ["Safe Level High", f"{currency}{safe_high:.2f}", "+12.5% from CTP"]
+        ])
+        
+        tech_summary_table = Table(tech_summary_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
+        tech_summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(tech_summary_table)
+        story.append(Spacer(1, 20))
+        
+        story.append(Paragraph("Technical Charts", heading_style))
         
         try:
             # Generate matplotlib-based charts
@@ -408,68 +453,14 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             story.append(img)
             story.append(Spacer(1, 20))
             
-            # Add technical summary with Fibonacci analysis
-            chart_summary = f"""
-            <b>Technical Analysis Summary:</b><br/>
-            • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
-            • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
-            • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
-            • Support Level: {currency}{support_level:.2f}<br/>
-            • Resistance Level: {currency}{resistance_level:.2f}<br/>
-            """
-            
-            # Add Fibonacci analysis if available
-            if 'fibonacci_analysis' in metrics and metrics['fibonacci_analysis'] != 'N/A':
-                fib_info = metrics['fibonacci_analysis']
-                chart_summary += f"""<br/>
-            <b>Fibonacci Analysis:</b><br/>
-            • {fib_info}<br/>
-            """
-            
-            # Add safe trading levels
-            current_price = data['Close'].iloc[-1]
-            safe_low = current_price * 0.875  # CTP - 12.5%
-            safe_high = current_price * 1.125  # CTP + 12.5%
-            chart_summary += f"""<br/>
-            <b>Safe Trading Levels:</b><br/>
-            • Safe Level Low: {currency}{safe_low:.2f} (-12.5% from CTP)<br/>
-            • Safe Level High: {currency}{safe_high:.2f} (+12.5% from CTP)<br/>
-            """
-            
-            story.append(Paragraph(chart_summary, styles['Normal']))
+            # Add note about chart completion
+            chart_note = "Technical charts generated successfully with price action, moving averages, MACD, RSI, and volume analysis."
+            story.append(Paragraph(chart_note, styles['Normal']))
             
         except Exception as chart_error:
-            # Fallback to text summary if matplotlib fails
-            chart_summary = f"""
-            <b>Technical Analysis Summary for {symbol}:</b><br/>
-            <br/>
-            • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
-            • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
-            • 200-Day MA: {currency}{ma_200.iloc[-1] if not ma_200.empty else 'N/A'}<br/>
-            • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
-            • Support Level: {currency}{support_level:.2f}<br/>
-            • Resistance Level: {currency}{resistance_level:.2f}<br/>
-            """
-            
-            # Add Fibonacci analysis if available
-            if 'fibonacci_analysis' in metrics and metrics['fibonacci_analysis'] != 'N/A':
-                fib_info = metrics['fibonacci_analysis']
-                chart_summary += f"""<br/>
-            <b>Fibonacci Analysis:</b><br/>
-            • {fib_info}<br/>
-            """
-            
-            # Add safe trading levels
-            current_price = data['Close'].iloc[-1]
-            safe_low = current_price * 0.875  # CTP - 12.5%
-            safe_high = current_price * 1.125  # CTP + 12.5%
-            chart_summary += f"""<br/>
-            <b>Safe Trading Levels:</b><br/>
-            • Safe Level Low: {currency}{safe_low:.2f} (-12.5% from CTP)<br/>
-            • Safe Level High: {currency}{safe_high:.2f} (+12.5% from CTP)<br/>
-            """
-            
-            story.append(Paragraph(chart_summary, styles['Normal']))
+            # Fallback message if chart generation fails
+            fallback_note = f"Chart generation encountered an issue: {str(chart_error)}. Technical analysis summary table is available above."
+            story.append(Paragraph(fallback_note, styles['Normal']))
         
         # Build PDF
         doc.build(story)
