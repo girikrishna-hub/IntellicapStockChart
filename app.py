@@ -5252,6 +5252,10 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         pct_change_from_52w_high = ((current_price - week_52_high) / week_52_high) * 100 if week_52_high else 0
         pct_change_from_52w_low = ((current_price - week_52_low) / week_52_low) * 100 if week_52_low else 0
         
+        # % change of CTP from MA50 and MA200 calculations
+        pct_change_from_ma_50 = ((current_price - ma_50_current) / ma_50_current) * 100 if ma_50_current else 0
+        pct_change_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100 if ma_200_current else 0
+        
         # Format display text with colors and descriptive language
         if pct_change_from_52w_high < 0:
             high_display_text = f"CTP is {abs(pct_change_from_52w_high):.1f}% below"
@@ -5262,6 +5266,16 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             low_display_text = f"CTP is {abs(pct_change_from_52w_low):.1f}% below"
         else:
             low_display_text = f"CTP is {pct_change_from_52w_low:.1f}% above"
+        
+        if pct_change_from_ma_50 < 0:
+            ma_50_display_text = f"CTP is {abs(pct_change_from_ma_50):.1f}% below"
+        else:
+            ma_50_display_text = f"CTP is {pct_change_from_ma_50:.1f}% above"
+        
+        if pct_change_from_ma_200 < 0:
+            ma_200_display_text = f"CTP is {abs(pct_change_from_ma_200):.1f}% below"
+        else:
+            ma_200_display_text = f"CTP is {pct_change_from_ma_200:.1f}% above"
         
         # Format market cap
         if market_cap >= 1e12:
@@ -5276,16 +5290,22 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         # Create colored HTML for % from CTP values
         high_color = "red" if pct_change_from_52w_high < 0 else "green"
         low_color = "red" if pct_change_from_52w_low < 0 else "green"
+        ma_50_color = "red" if pct_change_from_ma_50 < 0 else "green"
+        ma_200_color = "red" if pct_change_from_ma_200 < 0 else "green"
+        
         high_colored_text = f"<span style='color: {high_color}; font-weight: bold;'>{high_display_text}</span>"
         low_colored_text = f"<span style='color: {low_color}; font-weight: bold;'>{low_display_text}</span>"
+        ma_50_colored_text = f"<span style='color: {ma_50_color}; font-weight: bold;'>{ma_50_display_text}</span>"
+        ma_200_colored_text = f"<span style='color: {ma_200_color}; font-weight: bold;'>{ma_200_display_text}</span>"
         
         # Price Action Table with % from CTP (with embedded colors)
         price_data = [
             ["Current Price", f"{currency}{current_price:.2f}", "52W High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A"],
             ["% from CTP (High)", high_colored_text, "52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A"],
             ["% from CTP (Low)", low_colored_text, "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
+            ["MA 50", f"{currency}{ma_50_current:.2f}" if ma_50_current else "N/A", "MA 200", f"{currency}{ma_200_current:.2f}" if ma_200_current else "N/A"],
+            ["% from CTP (MA50)", ma_50_colored_text, "% from CTP (MA200)", ma_200_colored_text],
             ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", "Volume Ratio", f"{volume_ratio:.2f}x" if volume_ratio else "N/A"],
-            ["MA 50", f"{currency}{ma_50_current:.2f} ({ma_50_change:+.2f}%)" if ma_50_current else "N/A", "MA 200", f"{currency}{ma_200_current:.2f} ({ma_200_change:+.2f}%)" if ma_200_current else "N/A"],
             ["Market Cap", cap_display, "Beta", f"{beta:.2f}" if beta else "N/A"],
             ["Avg Volume", f"{avg_volume:,}" if avg_volume else "N/A", "Current Vol", f"{current_volume:,}" if current_volume else "N/A"]
         ]
@@ -5402,7 +5422,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 st.metric("Beta", "N/A")
         
         with col_add4:
-            st.metric("", "")
+            # Empty space for layout
+            st.write("")
         
         # Moving average analysis
         st.markdown("---")
@@ -5412,13 +5433,21 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         
         with col_ma1:
             ma_50_current = ma_50.iloc[-1] if not ma_50.empty else 0
-            ma_50_change = ((current_price - ma_50_current) / ma_50_current * 100) if ma_50_current != 0 else 0
-            st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}", f"{ma_50_change:+.2f}%")
+            pct_change_from_ma_50 = ((current_price - ma_50_current) / ma_50_current) * 100 if ma_50_current else 0
+            ma_50_color = "red" if pct_change_from_ma_50 < 0 else "green"
+            ma_50_delta = f"CTP is {abs(pct_change_from_ma_50):.1f}% {'below' if pct_change_from_ma_50 < 0 else 'above'}"
+            
+            st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}")
+            st.markdown(f"<span style='color: {ma_50_color}; font-size: 12px;'>{ma_50_delta}</span>", unsafe_allow_html=True)
         
         with col_ma2:
             ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
-            ma_200_change = ((current_price - ma_200_current) / ma_200_current * 100) if ma_200_current != 0 else 0
-            st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}", f"{ma_200_change:+.2f}%")
+            pct_change_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100 if ma_200_current else 0
+            ma_200_color = "red" if pct_change_from_ma_200 < 0 else "green"
+            ma_200_delta = f"CTP is {abs(pct_change_from_ma_200):.1f}% {'below' if pct_change_from_ma_200 < 0 else 'above'}"
+            
+            st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}")
+            st.markdown(f"<span style='color: {ma_200_color}; font-size: 12px;'>{ma_200_delta}</span>", unsafe_allow_html=True)
         
         with col_ma3:
             # Trend analysis
