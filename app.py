@@ -239,16 +239,16 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         tech_summary_data = [
             ["Metric", "Value", "Analysis"],
             ["Current Price", f"{currency}{current_price:.2f}", f"{price_change_pct:+.2f}% from previous close"],
-            ["52-Week High", f"{currency}{week_52_high:.2f}", f"{((week_52_high - current_price) / current_price * 100):+.1f}% from CTP"],
-            ["52-Week Low", f"{currency}{week_52_low:.2f}", f"{((week_52_low - current_price) / current_price * 100):+.1f}% from CTP"],
+            ["52-Week High", f"{currency}{week_52_high:.2f}", f"CTP is {((current_price - week_52_high) / week_52_high * 100):+.1f}% from 52W High"],
+            ["52-Week Low", f"{currency}{week_52_low:.2f}", f"CTP is {((current_price - week_52_low) / week_52_low * 100):+.1f}% from 52W Low"],
             ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
-             f"{((ma_50.iloc[-1] - current_price) / current_price * 100):+.1f}% from CTP" if not ma_50.empty else "N/A"],
+             f"CTP is {((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from 50-Day MA" if not ma_50.empty else "N/A"],
             ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "N/A",
-             f"{((ma_200.iloc[-1] - current_price) / current_price * 100):+.1f}% from CTP" if not ma_200.empty else "N/A"],
+             f"CTP is {((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from 200-Day MA" if not ma_200.empty else "N/A"],
             ["RSI (14)", f"{rsi.iloc[-1]:.1f}" if not rsi.empty else "N/A",
              "Overbought" if not rsi.empty and rsi.iloc[-1] > 70 else "Oversold" if not rsi.empty and rsi.iloc[-1] < 30 else "Neutral"],
-            ["Support Level", f"{currency}{support_level:.2f}", f"{((support_level - current_price) / current_price * 100):+.1f}% from CTP"],
-            ["Resistance Level", f"{currency}{resistance_level:.2f}", f"{((resistance_level - current_price) / current_price * 100):+.1f}% from CTP"]
+            ["Support Level", f"{currency}{support_level:.2f}", f"CTP is {((current_price - support_level) / support_level * 100):+.1f}% from Support"],
+            ["Resistance Level", f"{currency}{resistance_level:.2f}", f"CTP is {((current_price - resistance_level) / resistance_level * 100):+.1f}% from Resistance"]
         ]
         
         # Add Fibonacci analysis if available
@@ -272,22 +272,22 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 tech_summary_data.append(["Fibonacci Range", f"High: {currency}{period_high:.2f}", f"Low: {currency}{period_low:.2f}"])
                 
                 # Add individual Fibonacci levels with distance analysis
-                fib_236_dist = ((fib_236 - current_price) / current_price * 100)
-                fib_382_dist = ((fib_382 - current_price) / current_price * 100)
-                fib_618_dist = ((fib_618 - current_price) / current_price * 100)
+                fib_236_dist = ((current_price - fib_236) / fib_236 * 100)
+                fib_382_dist = ((current_price - fib_382) / fib_382 * 100)
+                fib_618_dist = ((current_price - fib_618) / fib_618 * 100)
                 
                 tech_summary_data.extend([
-                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"{fib_236_dist:+.1f}% from CTP"],
-                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"{fib_382_dist:+.1f}% from CTP"],
-                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"{fib_618_dist:+.1f}% from CTP"]
+                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"CTP is {fib_236_dist:+.1f}% from Fib 23.6%"],
+                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"CTP is {fib_382_dist:+.1f}% from Fib 38.2%"],
+                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"CTP is {fib_618_dist:+.1f}% from Fib 61.8%"]
                 ])
         
         # Add safe trading levels
         safe_low = current_price * 0.875  # CTP - 12.5%
         safe_high = current_price * 1.125  # CTP + 12.5%
         tech_summary_data.extend([
-            ["Safe Level Low", f"{currency}{safe_low:.2f}", "-12.5% from CTP"],
-            ["Safe Level High", f"{currency}{safe_high:.2f}", "+12.5% from CTP"]
+            ["Safe Level Low", f"{currency}{safe_low:.2f}", "CTP is +12.5% from Safe Low"],
+            ["Safe Level High", f"{currency}{safe_high:.2f}", "CTP is -12.5% from Safe High"]
         ])
         
         tech_summary_table = Table(tech_summary_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
