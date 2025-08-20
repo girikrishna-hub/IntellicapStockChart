@@ -199,15 +199,23 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(Paragraph("Executive Summary", heading_style))
         
         summary_data = [
+            ["Metric", "Value"],
             ["Company", company_name],
             ["Symbol", symbol],
             ["Current Price", f"{currency}{current_price:.2f}"],
             ["Price Change", f"{currency}{price_change:+.2f} ({price_change_pct:+.2f}%)"],
+            ["Market Cap", f"{currency}{ticker_info.get('marketCap', 0)/1e9:.2f}B" if ticker_info.get('marketCap') else "N/A"],
+            ["P/E Ratio", f"{ticker_info.get('trailingPE', 0):.2f}" if ticker_info.get('trailingPE') else "N/A"],
+            ["P/B Ratio", f"{ticker_info.get('priceToBook', 0):.2f}" if ticker_info.get('priceToBook') else "N/A"],
+            ["Beta", f"{ticker_info.get('beta', 0):.2f}" if ticker_info.get('beta') else "N/A"],
+            ["Debt-to-Equity", f"{ticker_info.get('debtToEquity', 0):.2f}" if ticker_info.get('debtToEquity') else "N/A"],
+            ["ROE", f"{ticker_info.get('returnOnEquity', 0)*100:.1f}%" if ticker_info.get('returnOnEquity') else "N/A"],
+            ["ROA", f"{ticker_info.get('returnOnAssets', 0)*100:.1f}%" if ticker_info.get('returnOnAssets') else "N/A"],
             ["Market", market],
             ["Report Date", datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
         
-        summary_table = Table(summary_data, colWidths=[2*inch, 3*inch])
+        summary_table = Table(summary_data, colWidths=[2.5*inch, 3.5*inch])
         summary_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
@@ -256,35 +264,42 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             story.append(Paragraph("Piotroski Score Breakdown", heading_style))
             for detail in piotroski_details[:9]:  # Limit to 9 items to fit on page
                 story.append(Paragraph(f"• {detail}", styles['Normal']))
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 15))
         
-        # Additional Financial Metrics
-        story.append(Paragraph("Additional Financial Metrics", heading_style))
+        # Altman Z-Score Details
+        if z_score is not None:
+            story.append(Paragraph("Altman Z-Score Analysis", heading_style))
+            z_details = [
+                f"Working Capital/Total Assets: Component of financial liquidity assessment",
+                f"Retained Earnings/Total Assets: Measures cumulative profitability",
+                f"EBIT/Total Assets: Evaluates earning power relative to assets",
+                f"Market Value Equity/Book Value Total Debt: Market-based leverage metric",
+                f"Sales/Total Assets: Asset turnover efficiency measure",
+                f"Final Z-Score: {z_score:.2f}" if z_score else "N/A",
+                f"Interpretation: {z_interpretation}" if z_interpretation else "N/A"
+            ]
+            for detail in z_details[:7]:  # Limit to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 15))
         
-        additional_data = [
-            ["Metric", "Value"],
-            ["Market Cap", f"{currency}{ticker_info.get('marketCap', 0)/1e9:.2f}B" if ticker_info.get('marketCap') else "N/A"],
-            ["P/E Ratio", f"{ticker_info.get('trailingPE', 0):.2f}" if ticker_info.get('trailingPE') else "N/A"],
-            ["P/B Ratio", f"{ticker_info.get('priceToBook', 0):.2f}" if ticker_info.get('priceToBook') else "N/A"],
-            ["Beta", f"{ticker_info.get('beta', 0):.2f}" if ticker_info.get('beta') else "N/A"],
-            ["Debt-to-Equity", f"{ticker_info.get('debtToEquity', 0):.2f}" if ticker_info.get('debtToEquity') else "N/A"],
-            ["ROE", f"{ticker_info.get('returnOnEquity', 0)*100:.1f}%" if ticker_info.get('returnOnEquity') else "N/A"],
-            ["ROA", f"{ticker_info.get('returnOnAssets', 0)*100:.1f}%" if ticker_info.get('returnOnAssets') else "N/A"]
-        ]
-        
-        additional_table = Table(additional_data, colWidths=[3*inch, 2*inch])
-        additional_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 11),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
-        ]))
-        story.append(additional_table)
-        story.append(Spacer(1, 20))
+        # Beneish M-Score Details  
+        if m_score is not None:
+            story.append(Paragraph("Beneish M-Score Analysis", heading_style))
+            m_details = [
+                f"Days Sales Outstanding Index: Measures receivables quality changes",
+                f"Gross Margin Index: Evaluates gross margin deterioration",
+                f"Asset Quality Index: Assesses non-current asset composition",
+                f"Sales Growth Index: Measures revenue growth patterns",
+                f"Depreciation Index: Analyzes depreciation rate changes",
+                f"SG&A Index: Evaluates selling and admin expense efficiency",
+                f"Leverage Index: Measures debt level changes",
+                f"Total Accruals/Total Assets: Assesses earnings quality",
+                f"Final M-Score: {m_score:.2f}" if m_score else "N/A",
+                f"Interpretation: {m_interpretation}" if m_interpretation else "N/A"
+            ]
+            for detail in m_details[:8]:  # Limit to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 15))
         
         # Add comprehensive technical analysis charts using matplotlib
         story.append(PageBreak())
