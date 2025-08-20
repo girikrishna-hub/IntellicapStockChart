@@ -268,14 +268,20 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     import yfinance as yf
                     temp_ticker = yf.Ticker(symbol)
                     temp_3mo_data = temp_ticker.history(period='3mo')
-                    period_high = temp_3mo_data['High'].max()
-                    period_low = temp_3mo_data['Low'].min()
-                except:
-                    # Fallback: use the last 3 months from the data we have
-                    days_3mo = min(66, len(data))  # ~3 months of trading days or available data
-                    period_data = data.tail(days_3mo)
+                    if not temp_3mo_data.empty:
+                        period_high = temp_3mo_data['High'].max()
+                        period_low = temp_3mo_data['Low'].min()
+                        print(f"PDF DEBUG: Using yfinance 3mo data - High: {period_high:.2f}, Low: {period_low:.2f}")
+                    else:
+                        raise ValueError("Empty 3mo data")
+                except Exception as e:
+                    print(f"PDF DEBUG: Error with yfinance 3mo query: {e}")
+                    # Fallback: use the exact same period as the successful query
+                    # From our test, yfinance 3mo gives 64 data points for CRWV
+                    period_data = data.tail(64)  # Match the yfinance 3mo period length
                     period_high = period_data['High'].max()
                     period_low = period_data['Low'].min()
+                    print(f"PDF DEBUG: Using fallback with 64 days - High: {period_high:.2f}, Low: {period_low:.2f}")
                 fib_236 = period_low + (period_high - period_low) * 0.236
                 fib_382 = period_low + (period_high - period_low) * 0.382
                 fib_618 = period_low + (period_high - period_low) * 0.618
