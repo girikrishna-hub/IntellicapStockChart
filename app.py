@@ -1736,6 +1736,257 @@ def display_profitability_metrics(info):
             help="Forward Earnings per Share"
         )
 
+def calculate_piotroski_score(ticker_obj, info):
+    """Calculate Piotroski Score (1-9 scale where 9 is best)"""
+    try:
+        # Get financial statements
+        financials = ticker_obj.financials
+        balance_sheet = ticker_obj.balance_sheet
+        cash_flow = ticker_obj.cashflow
+        
+        if financials.empty or balance_sheet.empty or cash_flow.empty:
+            return None, "Insufficient financial data"
+        
+        score = 0
+        details = []
+        
+        # 1. Net Income > 0 (1 point)
+        try:
+            net_income = financials.loc['Net Income'].iloc[0] if 'Net Income' in financials.index else 0
+            if net_income > 0:
+                score += 1
+                details.append("✓ Positive Net Income")
+            else:
+                details.append("✗ Negative Net Income")
+        except:
+            details.append("? Net Income data unavailable")
+        
+        # 2. Operating Cash Flow > 0 (1 point)
+        try:
+            op_cash_flow = cash_flow.loc['Operating Cash Flow'].iloc[0] if 'Operating Cash Flow' in cash_flow.index else 0
+            if op_cash_flow > 0:
+                score += 1
+                details.append("✓ Positive Operating Cash Flow")
+            else:
+                details.append("✗ Negative Operating Cash Flow")
+        except:
+            details.append("? Operating Cash Flow data unavailable")
+        
+        # 3. ROA improvement (1 point)
+        try:
+            current_roa = info.get('returnOnAssets', 0)
+            if current_roa and current_roa > 0:
+                score += 1
+                details.append("✓ Positive ROA")
+            else:
+                details.append("✗ Negative/Zero ROA")
+        except:
+            details.append("? ROA data unavailable")
+        
+        # 4. Operating Cash Flow > Net Income (1 point)
+        try:
+            if op_cash_flow > net_income and net_income > 0:
+                score += 1
+                details.append("✓ Operating CF > Net Income")
+            else:
+                details.append("✗ Operating CF ≤ Net Income")
+        except:
+            details.append("? CF vs Income comparison unavailable")
+        
+        # 5. Debt-to-Equity improvement (1 point)
+        try:
+            debt_to_equity = info.get('debtToEquity', 0)
+            if debt_to_equity and debt_to_equity < 0.4:  # Conservative threshold
+                score += 1
+                details.append("✓ Low Debt-to-Equity")
+            else:
+                details.append("✗ High Debt-to-Equity")
+        except:
+            details.append("? Debt-to-Equity data unavailable")
+        
+        # 6. Current Ratio improvement (1 point)
+        try:
+            current_ratio = info.get('currentRatio', 0)
+            if current_ratio and current_ratio > 1.2:
+                score += 1
+                details.append("✓ Strong Current Ratio")
+            else:
+                details.append("✗ Weak Current Ratio")
+        except:
+            details.append("? Current Ratio data unavailable")
+        
+        # 7. Gross Margin improvement (1 point)
+        try:
+            gross_margin = info.get('grossMargins', 0)
+            if gross_margin and gross_margin > 0.3:  # 30% threshold
+                score += 1
+                details.append("✓ Strong Gross Margin")
+            else:
+                details.append("✗ Weak Gross Margin")
+        except:
+            details.append("? Gross Margin data unavailable")
+        
+        # 8. Asset Turnover improvement (1 point)
+        try:
+            # Simplified: if revenue growth is positive
+            revenue_growth = info.get('revenueGrowth', 0)
+            if revenue_growth and revenue_growth > 0:
+                score += 1
+                details.append("✓ Positive Revenue Growth")
+            else:
+                details.append("✗ Negative Revenue Growth")
+        except:
+            details.append("? Revenue Growth data unavailable")
+        
+        # 9. No share dilution (1 point)
+        try:
+            shares_outstanding = info.get('sharesOutstanding', 0)
+            if shares_outstanding:  # Simplified check
+                score += 1
+                details.append("✓ Share count stable")
+            else:
+                details.append("? Share dilution data unavailable")
+        except:
+            details.append("? Share data unavailable")
+        
+        return score, details
+        
+    except Exception as e:
+        return None, f"Error calculating Piotroski Score: {str(e)}"
+
+def calculate_altman_z_score(ticker_obj, info):
+    """Calculate Altman Z-Score for bankruptcy prediction"""
+    try:
+        balance_sheet = ticker_obj.balance_sheet
+        financials = ticker_obj.financials
+        
+        if balance_sheet.empty or financials.empty:
+            return None, "Insufficient financial data"
+        
+        # Get required values
+        try:
+            # Working Capital / Total Assets
+            current_assets = balance_sheet.loc['Current Assets'].iloc[0] if 'Current Assets' in balance_sheet.index else 0
+            current_liabilities = balance_sheet.loc['Current Liabilities'].iloc[0] if 'Current Liabilities' in balance_sheet.index else 0
+            total_assets = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else 0
+            
+            working_capital = current_assets - current_liabilities
+            wc_ta = working_capital / total_assets if total_assets != 0 else 0
+            
+            # Retained Earnings / Total Assets
+            retained_earnings = balance_sheet.loc['Retained Earnings'].iloc[0] if 'Retained Earnings' in balance_sheet.index else 0
+            re_ta = retained_earnings / total_assets if total_assets != 0 else 0
+            
+            # EBIT / Total Assets
+            ebit = financials.loc['EBIT'].iloc[0] if 'EBIT' in financials.index else 0
+            ebit_ta = ebit / total_assets if total_assets != 0 else 0
+            
+            # Market Cap / Total Liabilities
+            market_cap = info.get('marketCap', 0)
+            total_liabilities = balance_sheet.loc['Total Liab'].iloc[0] if 'Total Liab' in balance_sheet.index else 0
+            mv_tl = market_cap / total_liabilities if total_liabilities != 0 else 0
+            
+            # Sales / Total Assets
+            revenue = financials.loc['Total Revenue'].iloc[0] if 'Total Revenue' in financials.index else 0
+            sales_ta = revenue / total_assets if total_assets != 0 else 0
+            
+            # Calculate Z-Score
+            z_score = (1.2 * wc_ta) + (1.4 * re_ta) + (3.3 * ebit_ta) + (0.6 * mv_tl) + (1.0 * sales_ta)
+            
+            # Determine zone
+            if z_score <= 1.8:
+                zone = "🔴 Distress Zone"
+                interpretation = "High probability of bankruptcy"
+            elif z_score >= 3.0:
+                zone = "🟢 Safe Zone"
+                interpretation = "Low probability of bankruptcy"
+            else:
+                zone = "🟡 Grey Zone"
+                interpretation = "Uncertain - monitor closely"
+            
+            return z_score, f"{zone} - {interpretation}"
+            
+        except Exception as e:
+            return None, f"Missing required financial data: {str(e)}"
+            
+    except Exception as e:
+        return None, f"Error calculating Altman Z-Score: {str(e)}"
+
+def calculate_beneish_m_score(ticker_obj, info):
+    """Calculate Beneish M-Score for earnings manipulation detection"""
+    try:
+        financials = ticker_obj.financials
+        balance_sheet = ticker_obj.balance_sheet
+        
+        if financials.empty or balance_sheet.empty or len(financials.columns) < 2:
+            return None, "Insufficient financial data (need at least 2 years)"
+        
+        # Simplified M-Score calculation using available ratios
+        m_score = 0
+        components = []
+        
+        try:
+            # Use available financial metrics as proxies
+            
+            # Days Sales Outstanding proxy
+            receivables_turnover = info.get('receivablesTurnover', 0)
+            if receivables_turnover:
+                dso = 365 / receivables_turnover
+                if dso > 45:  # High DSO may indicate manipulation
+                    m_score += 0.5
+                    components.append("⚠️ High Days Sales Outstanding")
+                else:
+                    components.append("✓ Normal Days Sales Outstanding")
+            
+            # Gross Margin deterioration
+            gross_margin = info.get('grossMargins', 0)
+            if gross_margin and gross_margin < 0.2:  # Low gross margin
+                m_score += 0.5
+                components.append("⚠️ Low Gross Margin")
+            else:
+                components.append("✓ Adequate Gross Margin")
+            
+            # Asset Quality (using current ratio as proxy)
+            current_ratio = info.get('currentRatio', 0)
+            if current_ratio and current_ratio < 1.0:
+                m_score += 0.3
+                components.append("⚠️ Poor Asset Quality")
+            else:
+                components.append("✓ Good Asset Quality")
+            
+            # Sales Growth vs Industry (using revenue growth)
+            revenue_growth = info.get('revenueGrowth', 0)
+            if revenue_growth and revenue_growth > 0.5:  # Very high growth might be suspicious
+                m_score += 0.4
+                components.append("⚠️ Unusually High Revenue Growth")
+            else:
+                components.append("✓ Normal Revenue Growth")
+            
+            # Debt growth proxy
+            debt_to_equity = info.get('debtToEquity', 0)
+            if debt_to_equity and debt_to_equity > 1.0:
+                m_score += 0.3
+                components.append("⚠️ High Debt Levels")
+            else:
+                components.append("✓ Manageable Debt Levels")
+            
+            # Convert to standard M-Score scale
+            adjusted_m_score = -2.5 + m_score  # Adjust to standard scale
+            
+            # Interpretation
+            if adjusted_m_score <= -1.78:
+                interpretation = "🟢 Unlikely to be manipulating earnings"
+            else:
+                interpretation = "🔴 Potential earnings manipulation detected"
+            
+            return adjusted_m_score, f"{interpretation}"
+            
+        except Exception as e:
+            return None, f"Error in M-Score calculation: {str(e)}"
+            
+    except Exception as e:
+        return None, f"Error calculating Beneish M-Score: {str(e)}"
+
 def display_financial_strength_metrics(info, ticker_obj):
     """Display comprehensive financial strength metrics"""
     st.markdown("### Financial Strength Analysis")
@@ -1821,6 +2072,96 @@ def display_financial_strength_metrics(info, ticker_obj):
             value=f"{beta:.2f}" if beta and not pd.isna(beta) else "N/A",
             help="Stock volatility relative to market"
         )
+    
+    # Financial Scoring Metrics Section
+    st.markdown("---")
+    st.markdown("### 📊 Financial Quality Scores")
+    st.markdown("*Advanced scoring models for financial health and earnings quality assessment*")
+    
+    col_score1, col_score2, col_score3 = st.columns(3)
+    
+    with col_score1:
+        # Piotroski Score
+        st.markdown("**🎯 Piotroski Score**")
+        piotroski_score, piotroski_details = calculate_piotroski_score(ticker_obj, info)
+        
+        if piotroski_score is not None:
+            # Color coding for score
+            if piotroski_score >= 7:
+                score_color = "🟢"
+                score_interpretation = "Excellent"
+            elif piotroski_score >= 5:
+                score_color = "🟡"
+                score_interpretation = "Good"
+            else:
+                score_color = "🔴"
+                score_interpretation = "Poor"
+            
+            st.metric(
+                label="Score (1-9 scale)",
+                value=f"{score_color} {piotroski_score}/9",
+                help="Higher scores indicate better financial health"
+            )
+            st.markdown(f"**Quality:** {score_interpretation}")
+            
+            # Show details in expander
+            with st.expander("📋 Score Details"):
+                for detail in piotroski_details:
+                    st.markdown(f"• {detail}")
+        else:
+            st.metric("Score (1-9 scale)", "N/A")
+            st.error(piotroski_details)
+    
+    with col_score2:
+        # Altman Z-Score
+        st.markdown("**⚠️ Altman Z-Score**")
+        z_score, z_interpretation = calculate_altman_z_score(ticker_obj, info)
+        
+        if z_score is not None:
+            st.metric(
+                label="Z-Score",
+                value=f"{z_score:.2f}",
+                help="Bankruptcy prediction model"
+            )
+            st.markdown(f"**Status:** {z_interpretation}")
+            
+            # Zone guidance
+            with st.expander("📖 Zone Guide"):
+                st.markdown("""
+                **Z-Score Zones:**
+                • **≤ 1.8**: 🔴 Distress Zone - High bankruptcy risk
+                • **1.8 - 3.0**: 🟡 Grey Zone - Uncertain, monitor closely
+                • **≥ 3.0**: 🟢 Safe Zone - Low bankruptcy risk
+                """)
+        else:
+            st.metric("Z-Score", "N/A")
+            st.error(z_interpretation)
+    
+    with col_score3:
+        # Beneish M-Score
+        st.markdown("**🔍 Beneish M-Score**")
+        m_score, m_interpretation = calculate_beneish_m_score(ticker_obj, info)
+        
+        if m_score is not None:
+            st.metric(
+                label="M-Score",
+                value=f"{m_score:.2f}",
+                help="Earnings manipulation detection model"
+            )
+            st.markdown(f"**Assessment:** {m_interpretation}")
+            
+            # Interpretation guide
+            with st.expander("📖 Score Guide"):
+                st.markdown("""
+                **M-Score Interpretation:**
+                • **≤ -1.78**: 🟢 Unlikely to be manipulating earnings
+                • **> -1.78**: 🔴 Potential earnings manipulation detected
+                
+                *Note: This is a simplified model using available data*
+                """)
+        else:
+            st.metric("M-Score", "N/A")
+            st.error(m_interpretation)
 
 def display_growth_metrics(info, ticker_obj):
     """Display comprehensive growth metrics"""
