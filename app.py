@@ -2771,6 +2771,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         support_level (float): Calculated support level
         resistance_level (float): Calculated resistance level
     """
+    st.write("🔍 DEBUG: display_key_metrics function started!")
     # Get latest values
     latest_price = data['Close'].iloc[-1]
     latest_ma_50 = ma_50.iloc[-1]
