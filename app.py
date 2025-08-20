@@ -243,8 +243,8 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             ["52-Week Low", f"{currency}{week_52_low:.2f}", f"CTP is {((current_price - week_52_low) / week_52_low * 100):+.1f}% from 52W Low"],
             ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
              f"CTP is {((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from 50-Day MA" if not ma_50.empty else "N/A"],
-            ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "N/A",
-             f"CTP is {((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from 200-Day MA" if not ma_200.empty else "N/A"],
+            ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else f"Need 200+ days (have {len(data)})",
+             f"CTP is {((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from 200-Day MA" if not ma_200.empty else "Insufficient data"],
             ["RSI (14)", f"{rsi.iloc[-1]:.1f}" if not rsi.empty else "N/A",
              "Overbought" if not rsi.empty and rsi.iloc[-1] > 70 else "Oversold" if not rsi.empty and rsi.iloc[-1] < 30 else "Neutral"],
             ["Support Level", f"{currency}{support_level:.2f}", f"CTP is {((current_price - support_level) / support_level * 100):+.1f}% from Support"],
@@ -2915,6 +2915,11 @@ def get_stock_metrics(symbol, period="1y", market="US"):
         latest_ma_50 = ma_50.iloc[-1] if not ma_50.empty else None
         latest_ma_200 = ma_200.iloc[-1] if not ma_200.empty else None
         
+        # Check data availability for meaningful error messages
+        data_days = len(data)
+        ma_200_available = data_days >= 200 and latest_ma_200 and not pd.isna(latest_ma_200)
+        ma_50_available = data_days >= 50 and latest_ma_50 and not pd.isna(latest_ma_50)
+        
         # Technical indicators
         macd_line, signal_line, histogram = calculate_macd(data)
         rsi = calculate_rsi(data)
@@ -3021,8 +3026,8 @@ def get_stock_metrics(symbol, period="1y", market="US"):
             '52-Week Low': format_currency(year_low, market),
             'Distance from High (%)': f"{distance_from_high:.1f}%",
             'Distance from Low (%)': f"{distance_from_low:.1f}%",
-            '50-Day MA': format_currency(latest_ma_50, market) if latest_ma_50 and not pd.isna(latest_ma_50) else "N/A",
-            '200-Day MA': format_currency(latest_ma_200, market) if latest_ma_200 and not pd.isna(latest_ma_200) else "N/A",
+            '50-Day MA': format_currency(latest_ma_50, market) if ma_50_available else f"Need 50+ days (have {data_days})",
+            '200-Day MA': format_currency(latest_ma_200, market) if ma_200_available else f"Need 200+ days (have {data_days})",
             'Price vs 50-Day MA (%)': f"{price_vs_ma_50:.1f}%" if price_vs_ma_50 is not None else "N/A",
             'Price vs 200-Day MA (%)': f"{price_vs_ma_200:.1f}%" if price_vs_ma_200 is not None else "N/A",
             'Support Level': format_currency(support_level, market),
