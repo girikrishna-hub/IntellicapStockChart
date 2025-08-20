@@ -1423,10 +1423,14 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                     continue
                     
                 post_earnings_open = data[post_earnings_mask]['Open'].iloc[0]
+                post_earnings_close = data[post_earnings_mask]['Close'].iloc[0]
                 post_earnings_date = data[post_earnings_mask].index[0]
                 
-                # Calculate overnight change
+                # Calculate overnight change (pre-close to next open)
                 overnight_change = ((post_earnings_open - pre_earnings_price) / pre_earnings_price) * 100
+                
+                # Calculate next day change (pre-close to next day close)
+                next_day_change = ((post_earnings_close - pre_earnings_price) / pre_earnings_price) * 100
                 
                 # Calculate week performance (up to 5 trading days)
                 week_end_mask = data.index >= post_earnings_date
@@ -1461,7 +1465,9 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                     'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
                     'Pre-Earnings Close': format_currency(pre_earnings_price, market),
                     'Next Day Open': format_currency(post_earnings_open, market),
+                    'Next Day Close': format_currency(post_earnings_close, market),
                     'Overnight Change (%)': f"{overnight_change:+.2f}%",
+                    'Next Day Change (%)': f"{next_day_change:+.2f}%",
                     'End of Week Close': format_currency(week_end_price, market),
                     'Week Performance (%)': f"{week_performance:+.2f}%",
                     'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
@@ -1478,7 +1484,7 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 analysis_data.append(analysis_row)
                 successful_analyses += 1
                 
-                print(f"✅ Analysis successful: {overnight_change:+.2f}% overnight, {week_performance:+.2f}% week")
+                print(f"✅ Analysis successful: {overnight_change:+.2f}% overnight, {next_day_change:+.2f}% next day, {week_performance:+.2f}% week")
                 
             except Exception as e:
                 print(f"❌ Error processing {earnings_date}: {e}")
