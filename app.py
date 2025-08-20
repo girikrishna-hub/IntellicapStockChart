@@ -355,21 +355,26 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 fib_level = metrics['Next Fibonacci Level'] 
                 tech_summary_data.append(["Next Fibonacci Level", fib_level, "Technical target level"])
             else:
-                # Always show Fibonacci analysis row with calculation
+                # Always show Fibonacci analysis with separate levels for better readability
                 period_high = data['High'].max()
                 period_low = data['Low'].min()
                 fib_236 = period_low + (period_high - period_low) * 0.236
                 fib_382 = period_low + (period_high - period_low) * 0.382
                 fib_618 = period_low + (period_high - period_low) * 0.618
                 
-                # Determine which Fibonacci level is closest to current price
-                distances = {
-                    f"23.6% ({currency}{fib_236:.2f})": abs(current_price - fib_236),
-                    f"38.2% ({currency}{fib_382:.2f})": abs(current_price - fib_382),
-                    f"61.8% ({currency}{fib_618:.2f})": abs(current_price - fib_618)
-                }
-                closest_fib = min(distances, key=distances.get)
-                tech_summary_data.append(["Fibonacci Levels", f"High: {currency}{period_high:.2f}, Low: {currency}{period_low:.2f}", f"Closest: {closest_fib}"])
+                # Add Fibonacci range
+                tech_summary_data.append(["Fibonacci Range", f"High: {currency}{period_high:.2f}", f"Low: {currency}{period_low:.2f}"])
+                
+                # Add individual Fibonacci levels with distance analysis
+                fib_236_dist = ((fib_236 - current_price) / current_price * 100)
+                fib_382_dist = ((fib_382 - current_price) / current_price * 100)
+                fib_618_dist = ((fib_618 - current_price) / current_price * 100)
+                
+                tech_summary_data.extend([
+                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"{fib_236_dist:+.1f}% from current"],
+                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"{fib_382_dist:+.1f}% from current"],
+                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"{fib_618_dist:+.1f}% from current"]
+                ])
         
         # Add safe trading levels
         safe_low = current_price * 0.875  # CTP - 12.5%
