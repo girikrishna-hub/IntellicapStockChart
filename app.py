@@ -1286,20 +1286,39 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 # Calculate next day change (from previous close to next day close)
                 next_day_change = ((post_earnings_close - pre_earnings_price) / pre_earnings_price) * 100
                 
-                # Find end of week price (5 trading days after earnings, or last available)
+                # Find end of week price (Friday following earnings, or Thursday if Friday not available)
                 week_end_mask = data.index >= post_earnings_date
-                week_data = data[week_end_mask].head(5)  # Get up to 5 trading days
+                week_data = data[week_end_mask]
                 
-                if not week_data.empty:
+                # Find the Friday following earnings
+                week_end_price = None
+                week_end_date = None
+                
+                # Look for Friday (weekday 4) in the week following earnings
+                for i, date in enumerate(week_data.index):
+                    if date.weekday() == 4:  # Friday
+                        week_end_price = week_data['Close'].iloc[i]
+                        week_end_date = date
+                        break
+                
+                # If no Friday found, look for Thursday (weekday 3)
+                if week_end_price is None:
+                    for i, date in enumerate(week_data.index):
+                        if date.weekday() == 3:  # Thursday
+                            week_end_price = week_data['Close'].iloc[i]
+                            week_end_date = date
+                            break
+                
+                # Fallback to last available day if neither Friday nor Thursday found
+                if week_end_price is None and not week_data.empty:
                     week_end_price = week_data['Close'].iloc[-1]
                     week_end_date = week_data.index[-1]
-                    
-                    # Calculate week performance (from pre-earnings close to end of week)
-                    week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
-                else:
+                elif week_end_price is None:
                     week_end_price = post_earnings_open
                     week_end_date = post_earnings_date
-                    week_performance = overnight_change
+                
+                # Calculate week performance (from pre-earnings close to end of week)
+                week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
                 
                 # Determine quarter
                 quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
@@ -1432,16 +1451,39 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 # Calculate next day change (pre-close to next day close)
                 next_day_change = ((post_earnings_close - pre_earnings_price) / pre_earnings_price) * 100
                 
-                # Calculate week performance (up to 5 trading days)
+                # Calculate week performance (Friday following earnings, or Thursday if Friday not available)
                 week_end_mask = data.index >= post_earnings_date
-                week_data = data[week_end_mask].head(5)
+                week_data = data[week_end_mask]
                 
-                if not week_data.empty:
+                # Find the Friday following earnings
+                week_end_price = None
+                week_end_date = None
+                
+                # Look for Friday (weekday 4) in the week following earnings
+                for i, date in enumerate(week_data.index):
+                    if date.weekday() == 4:  # Friday
+                        week_end_price = week_data['Close'].iloc[i]
+                        week_end_date = date
+                        break
+                
+                # If no Friday found, look for Thursday (weekday 3)
+                if week_end_price is None:
+                    for i, date in enumerate(week_data.index):
+                        if date.weekday() == 3:  # Thursday
+                            week_end_price = week_data['Close'].iloc[i]
+                            week_end_date = date
+                            break
+                
+                # Fallback to last available day if neither Friday nor Thursday found
+                if week_end_price is None and not week_data.empty:
                     week_end_price = week_data['Close'].iloc[-1]
-                    week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
-                else:
+                    week_end_date = week_data.index[-1]
+                elif week_end_price is None:
                     week_end_price = post_earnings_open
-                    week_performance = overnight_change
+                    week_end_date = post_earnings_date
+                
+                # Calculate week performance (from pre-earnings close to end of week)
+                week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
                 
                 # Get EPS data if available
                 eps_estimate = None
