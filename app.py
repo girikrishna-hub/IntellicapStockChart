@@ -2771,7 +2771,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         support_level (float): Calculated support level
         resistance_level (float): Calculated resistance level
     """
-    st.write("🔍 DEBUG: display_key_metrics function started!")
+
     # Get latest values
     latest_price = data['Close'].iloc[-1]
     latest_ma_50 = ma_50.iloc[-1]
@@ -5248,6 +5248,21 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ma_50_change = ((current_price - ma_50_current) / ma_50_current * 100) if ma_50_current != 0 else 0
         ma_200_change = ((current_price - ma_200_current) / ma_200_current * 100) if ma_200_current != 0 else 0
         
+        # % change of CTP from 52W high/low calculations
+        pct_change_from_52w_high = ((current_price - week_52_high) / week_52_high) * 100 if week_52_high else 0
+        pct_change_from_52w_low = ((current_price - week_52_low) / week_52_low) * 100 if week_52_low else 0
+        
+        # Format display text with colors and descriptive language
+        if pct_change_from_52w_high < 0:
+            high_display_text = f"CTP is {abs(pct_change_from_52w_high):.1f}% below"
+        else:
+            high_display_text = f"CTP is {pct_change_from_52w_high:.1f}% above"
+        
+        if pct_change_from_52w_low < 0:
+            low_display_text = f"CTP is {abs(pct_change_from_52w_low):.1f}% below"
+        else:
+            low_display_text = f"CTP is {pct_change_from_52w_low:.1f}% above"
+        
         # Format market cap
         if market_cap >= 1e12:
             cap_display = f"{currency}{market_cap/1e12:.2f}T"
@@ -5258,10 +5273,11 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         else:
             cap_display = f"{currency}{market_cap:.0f}" if market_cap else "N/A"
         
-        # Price Action Table
+        # Price Action Table with % from CTP
         price_data = [
             ["Current Price", f"{currency}{current_price:.2f}", "52W High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A"],
-            ["52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A", "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
+            ["% from CTP (High)", high_display_text, "52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A"],
+            ["% from CTP (Low)", low_display_text, "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
             ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", "Volume Ratio", f"{volume_ratio:.2f}x" if volume_ratio else "N/A"],
             ["MA 50", f"{currency}{ma_50_current:.2f} ({ma_50_change:+.2f}%)" if ma_50_current else "N/A", "MA 200", f"{currency}{ma_200_current:.2f} ({ma_200_change:+.2f}%)" if ma_200_current else "N/A"],
             ["Market Cap", cap_display, "Beta", f"{beta:.2f}" if beta else "N/A"],
@@ -5272,13 +5288,27 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         html_table = df_price.to_html(index=False, header=False, table_id="metrics_table", classes="compact-table")
         st.markdown(html_table, unsafe_allow_html=True)
         
-        # Support/Resistance Analysis Table
-        st.markdown("**📊 Support/Resistance Analysis**")
+        # Add colored text for % from CTP
+        col_high, col_low = st.columns(2)
+        with col_high:
+            color = "red" if pct_change_from_52w_high < 0 else "green"
+            st.markdown(f"<span style='color: {color}; font-size: 14px;'>52W High: {high_display_text}</span>", unsafe_allow_html=True)
+        with col_low:
+            color = "red" if pct_change_from_52w_low < 0 else "green"
+            st.markdown(f"<span style='color: {color}; font-size: 14px;'>52W Low: {low_display_text}</span>", unsafe_allow_html=True)
         
-        # Calculate support/resistance (simplified version for table)
+        # Support/Resistance & Safe Level Analysis Table
+        st.markdown("**📊 Support/Resistance & Safe Levels**")
+        
+        # Calculate safe levels (CTP ± 12.5%)
+        safe_level_low = current_price * 0.875  # CTP - 12.5%
+        safe_level_high = current_price * 1.125  # CTP + 12.5%
+        
         resistance_table_data = [
             ["Support Level", f"{currency}{support_level:.2f}" if support_level else "N/A", "Resistance Level", f"{currency}{resistance_level:.2f}" if resistance_level else "N/A"],
-            ["Distance to Support", f"{((current_price - support_level)/support_level*100):+.2f}%" if support_level else "N/A", "Distance to Resistance", f"{((resistance_level - current_price)/current_price*100):+.2f}%" if resistance_level else "N/A"]
+            ["Distance to Support", f"{((current_price - support_level)/support_level*100):+.2f}%" if support_level else "N/A", "Distance to Resistance", f"{((resistance_level - current_price)/current_price*100):+.2f}%" if resistance_level else "N/A"],
+            ["Safe Level Low", f"{currency}{safe_level_low:.2f}", "Safe Level High", f"{currency}{safe_level_high:.2f}"],
+            ["To Safe Low", f"{((safe_level_low - current_price)/current_price*100):+.2f}%", "To Safe High", f"{((safe_level_high - current_price)/current_price*100):+.2f}%"]
         ]
         
         df_resistance = pd.DataFrame(resistance_table_data)
@@ -5290,17 +5320,29 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         st.info("💡 Switch to Compact view above for table format that eliminates scrolling")
         
         # STANDARD MODE - Original metric columns
+        # Calculate % from CTP for standard view
+        week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
+        week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
+        pct_change_from_52w_high = ((current_price - week_52_high) / week_52_high) * 100 if week_52_high else 0
+        pct_change_from_52w_low = ((current_price - week_52_low) / week_52_low) * 100 if week_52_low else 0
+        
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            # 52-week analysis
-            week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
-            week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
-            
+            # 52-week analysis with % from CTP
             if week_52_high and week_52_low:
                 position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
                 st.metric("52W Position", f"{position_52w:.1f}%")
                 st.caption(f"Range: {currency}{week_52_low:.2f} - {currency}{week_52_high:.2f}")
+                
+                # Show % from CTP with color coding
+                high_color = "red" if pct_change_from_52w_high < 0 else "green"
+                low_color = "red" if pct_change_from_52w_low < 0 else "green"
+                high_text = f"CTP is {abs(pct_change_from_52w_high):.1f}% {'below' if pct_change_from_52w_high < 0 else 'above'}"
+                low_text = f"CTP is {abs(pct_change_from_52w_low):.1f}% {'below' if pct_change_from_52w_low < 0 else 'above'}"
+                
+                st.markdown(f"<span style='color: {high_color}; font-size: 12px;'>52W High: {high_text}</span>", unsafe_allow_html=True)
+                st.markdown(f"<span style='color: {low_color}; font-size: 12px;'>52W Low: {low_text}</span>", unsafe_allow_html=True)
             else:
                 st.metric("52W Position", "N/A")
         
