@@ -1239,6 +1239,22 @@ def calculate_fibonacci_levels(data, period_months=3, symbol=None):
                     'label': f"Fib {label}",
                     'type': 'retracement'
                 })
+            
+            # If price is close to the low end of range (within 10% of range), also add downward extensions
+            distance_from_low = current_price - reference_low
+            range_threshold = price_range * 0.1  # 10% of the range
+            
+            if distance_from_low <= range_threshold:
+                # Add downward extension levels for support below current price
+                for ratio, label in zip(extension_ratios, extension_labels):
+                    level_price = reference_low - (price_range * (ratio - 1.0))
+                    # Only add levels with positive prices
+                    if level_price > 0:
+                        all_levels.append({
+                            'price': level_price,
+                            'label': f"Fib {label} Ext",
+                            'type': 'extension_down'
+                        })
         
         elif current_price > reference_high:
             # Price is above range - use upward extensions
