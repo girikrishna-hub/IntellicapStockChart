@@ -229,80 +229,7 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(summary_table)
         story.append(Spacer(1, 20))
         
-        # Financial Quality Scores
-        story.append(Paragraph("Financial Quality Scores", heading_style))
-        
-        # Calculate scores
-        piotroski_score, piotroski_details = calculate_piotroski_score(ticker_obj, ticker_info)
-        z_score, z_interpretation = calculate_altman_z_score(ticker_obj, ticker_info)
-        m_score, m_interpretation = calculate_beneish_m_score(ticker_obj, ticker_info)
-        
-        scores_data = [
-            ["Score Type", "Value", "Interpretation"],
-            ["Piotroski Score (1-9)", f"{piotroski_score}/9" if piotroski_score is not None else "N/A", 
-             "Excellent" if piotroski_score and piotroski_score >= 7 else "Good" if piotroski_score and piotroski_score >= 5 else "Poor" if piotroski_score else "N/A"],
-            ["Altman Z-Score", f"{z_score:.2f}" if z_score is not None else "N/A", z_interpretation if z_score else "N/A"],
-            ["Beneish M-Score", f"{m_score:.2f}" if m_score is not None else "N/A", m_interpretation if m_score else "N/A"]
-        ]
-        
-        scores_table = Table(scores_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
-        scores_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 11),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
-        ]))
-        story.append(scores_table)
-        story.append(Spacer(1, 20))
-        
-        # Piotroski Score Details
-        if piotroski_score is not None and piotroski_details:
-            story.append(Paragraph("Piotroski Score Breakdown", heading_style))
-            for detail in piotroski_details[:9]:  # Limit to 9 items to fit on page
-                story.append(Paragraph(f"• {detail}", styles['Normal']))
-            story.append(Spacer(1, 15))
-        
-        # Altman Z-Score Details
-        if z_score is not None:
-            story.append(Paragraph("Altman Z-Score Analysis", heading_style))
-            z_details = [
-                f"Working Capital/Total Assets: Component of financial liquidity assessment",
-                f"Retained Earnings/Total Assets: Measures cumulative profitability",
-                f"EBIT/Total Assets: Evaluates earning power relative to assets",
-                f"Market Value Equity/Book Value Total Debt: Market-based leverage metric",
-                f"Sales/Total Assets: Asset turnover efficiency measure",
-                f"Final Z-Score: {z_score:.2f}" if z_score else "N/A",
-                f"Interpretation: {z_interpretation}" if z_interpretation else "N/A"
-            ]
-            for detail in z_details[:7]:  # Limit to fit on page
-                story.append(Paragraph(f"• {detail}", styles['Normal']))
-            story.append(Spacer(1, 15))
-        
-        # Beneish M-Score Details  
-        if m_score is not None:
-            story.append(Paragraph("Beneish M-Score Analysis", heading_style))
-            m_details = [
-                f"Days Sales Outstanding Index: Measures receivables quality changes",
-                f"Gross Margin Index: Evaluates gross margin deterioration",
-                f"Asset Quality Index: Assesses non-current asset composition",
-                f"Sales Growth Index: Measures revenue growth patterns",
-                f"Depreciation Index: Analyzes depreciation rate changes",
-                f"SG&A Index: Evaluates selling and admin expense efficiency",
-                f"Leverage Index: Measures debt level changes",
-                f"Total Accruals/Total Assets: Assesses earnings quality",
-                f"Final M-Score: {m_score:.2f}" if m_score else "N/A",
-                f"Interpretation: {m_interpretation}" if m_interpretation else "N/A"
-            ]
-            for detail in m_details[:8]:  # Limit to fit on page
-                story.append(Paragraph(f"• {detail}", styles['Normal']))
-            story.append(Spacer(1, 15))
-        
-        # Add comprehensive technical analysis charts using matplotlib
-        story.append(PageBreak())
+        # Technical Analysis Summary
         story.append(Paragraph("Technical Analysis Summary", heading_style))
         
         # Create technical analysis summary table with 52-week levels
@@ -379,6 +306,80 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(tech_summary_table)
         story.append(Spacer(1, 20))
         
+        # Financial Quality Scores
+        story.append(Paragraph("Financial Quality Scores", heading_style))
+        
+        # Calculate scores
+        piotroski_score, piotroski_details = calculate_piotroski_score(ticker_obj, ticker_info)
+        z_score, z_interpretation = calculate_altman_z_score(ticker_obj, ticker_info)
+        m_score, m_interpretation = calculate_beneish_m_score(ticker_obj, ticker_info)
+        
+        scores_data = [
+            ["Score Type", "Value", "Interpretation"],
+            ["Piotroski Score (1-9)", f"{piotroski_score}/9" if piotroski_score is not None else "N/A", 
+             "Excellent" if piotroski_score and piotroski_score >= 7 else "Good" if piotroski_score and piotroski_score >= 5 else "Poor" if piotroski_score else "N/A"],
+            ["Altman Z-Score", f"{z_score:.2f}" if z_score is not None else "N/A", z_interpretation if z_score else "N/A"],
+            ["Beneish M-Score", f"{m_score:.2f}" if m_score is not None else "N/A", m_interpretation if m_score else "N/A"]
+        ]
+        
+        scores_table = Table(scores_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
+        scores_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        story.append(scores_table)
+        story.append(Spacer(1, 20))
+        
+        # Piotroski Score Details
+        if piotroski_score is not None and piotroski_details:
+            story.append(Paragraph("Piotroski Score Breakdown", heading_style))
+            for detail in piotroski_details[:9]:  # Limit to 9 items to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 15))
+        
+        # Altman Z-Score Details
+        if z_score is not None:
+            story.append(Paragraph("Altman Z-Score Analysis", heading_style))
+            z_details = [
+                f"Working Capital/Total Assets: Component of financial liquidity assessment",
+                f"Retained Earnings/Total Assets: Measures cumulative profitability",
+                f"EBIT/Total Assets: Evaluates earning power relative to assets",
+                f"Market Value Equity/Book Value Total Debt: Market-based leverage metric",
+                f"Sales/Total Assets: Asset turnover efficiency measure",
+                f"Final Z-Score: {z_score:.2f}" if z_score else "N/A",
+                f"Interpretation: {z_interpretation}" if z_interpretation else "N/A"
+            ]
+            for detail in z_details[:7]:  # Limit to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 15))
+        
+        # Beneish M-Score Details  
+        if m_score is not None:
+            story.append(Paragraph("Beneish M-Score Analysis", heading_style))
+            m_details = [
+                f"Days Sales Outstanding Index: Measures receivables quality changes",
+                f"Gross Margin Index: Evaluates gross margin deterioration",
+                f"Asset Quality Index: Assesses non-current asset composition",
+                f"Sales Growth Index: Measures revenue growth patterns",
+                f"Depreciation Index: Analyzes depreciation rate changes",
+                f"SG&A Index: Evaluates selling and admin expense efficiency",
+                f"Leverage Index: Measures debt level changes",
+                f"Total Accruals/Total Assets: Assesses earnings quality",
+                f"Final M-Score: {m_score:.2f}" if m_score else "N/A",
+                f"Interpretation: {m_interpretation}" if m_interpretation else "N/A"
+            ]
+            for detail in m_details[:8]:  # Limit to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 15))
+        
+        # Add comprehensive technical analysis charts using matplotlib
+        story.append(PageBreak())
         story.append(Paragraph("Technical Charts", heading_style))
         
         try:
