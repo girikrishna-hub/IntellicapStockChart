@@ -2791,9 +2791,24 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     distance_from_high = ((year_high - latest_price) / year_high) * 100
     distance_from_low = ((latest_price - year_low) / year_low) * 100
     
-    # % from Current Trading Price (CTP) calculations
-    pct_from_ctp_high = ((year_high - latest_price) / latest_price) * 100
-    pct_from_ctp_low = ((latest_price - year_low) / latest_price) * 100
+    # % change of CTP from 52W high/low calculations
+    pct_change_from_52w_high = ((latest_price - year_high) / year_high) * 100
+    pct_change_from_52w_low = ((latest_price - year_low) / year_low) * 100
+    
+    # Format display text with colors and descriptive language
+    if pct_change_from_52w_high < 0:
+        high_display_text = f"CTP is {abs(pct_change_from_52w_high):.1f}% below"
+        high_color = "red"
+    else:
+        high_display_text = f"CTP is {pct_change_from_52w_high:.1f}% above"
+        high_color = "green"
+    
+    if pct_change_from_52w_low < 0:
+        low_display_text = f"CTP is {abs(pct_change_from_52w_low):.1f}% below"
+        low_color = "red"
+    else:
+        low_display_text = f"CTP is {pct_change_from_52w_low:.1f}% above"
+        low_color = "green"
     
     # Price vs MA comparison
     price_vs_ma_50 = ((latest_price - latest_ma_50) / latest_ma_50) * 100 if not pd.isna(latest_ma_50) else 0
@@ -2852,24 +2867,37 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     # Display based on view mode
     if view_mode == 'Compact':
         # COMPACT MODE: Table format organized as requested
-        # Main price table with CTP, 52W High, % from CTP, 52W Low, % from CTP
+        # Main price table with CTP, 52W High, % change, 52W Low, % change
         main_price_data = [
             [
                 format_currency(latest_price, market),
                 format_currency(year_high, market), 
-                f"+{pct_from_ctp_high:.1f}%",
+                high_display_text,
                 format_currency(year_low, market),
-                f"+{pct_from_ctp_low:.1f}%"
+                low_display_text
             ]
         ]
         
         # Create DataFrame with proper headers
         df_main_price = pd.DataFrame(main_price_data, columns=[
-            "CTP", "52W High", "% from CTP", "52W Low", "% from CTP"
+            "CTP", "52W High", "% Change", "52W Low", "% Change"
         ])
         
         # Display main price table
         st.dataframe(df_main_price, hide_index=True, use_container_width=True)
+        
+        # Add colored text display for the percentages
+        col_high, col_low = st.columns(2)
+        with col_high:
+            if high_color == "red":
+                st.markdown(f"<span style='color: red;'>52W High: {high_display_text}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<span style='color: green;'>52W High: {high_display_text}</span>", unsafe_allow_html=True)
+        with col_low:
+            if low_color == "red":
+                st.markdown(f"<span style='color: red;'>52W Low: {low_display_text}</span>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<span style='color: green;'>52W Low: {low_display_text}</span>", unsafe_allow_html=True)
         
         # Additional metrics table
         additional_data = [
@@ -2948,14 +2976,16 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             st.metric(
                 label="52W High",
                 value=format_currency(year_high, market),
-                delta=f"+{pct_from_ctp_high:.1f}% from CTP"
+                delta=high_display_text,
+                delta_color="inverse" if high_color == "red" else "normal"
             )
 
         with col3:
             st.metric(
                 label="52W Low", 
                 value=format_currency(year_low, market),
-                delta=f"+{pct_from_ctp_low:.1f}% from CTP"
+                delta=low_display_text,
+                delta_color="inverse" if low_color == "red" else "normal"
             )
 
         with col4:
