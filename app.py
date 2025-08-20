@@ -5273,11 +5273,17 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         else:
             cap_display = f"{currency}{market_cap:.0f}" if market_cap else "N/A"
         
-        # Price Action Table with % from CTP
+        # Create colored HTML for % from CTP values
+        high_color = "red" if pct_change_from_52w_high < 0 else "green"
+        low_color = "red" if pct_change_from_52w_low < 0 else "green"
+        high_colored_text = f"<span style='color: {high_color}; font-weight: bold;'>{high_display_text}</span>"
+        low_colored_text = f"<span style='color: {low_color}; font-weight: bold;'>{low_display_text}</span>"
+        
+        # Price Action Table with % from CTP (with embedded colors)
         price_data = [
             ["Current Price", f"{currency}{current_price:.2f}", "52W High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A"],
-            ["% from CTP (High)", high_display_text, "52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A"],
-            ["% from CTP (Low)", low_display_text, "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
+            ["% from CTP (High)", high_colored_text, "52W Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A"],
+            ["% from CTP (Low)", low_colored_text, "52W Position", f"{position_52w:.1f}%" if position_52w else "N/A"],
             ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", "Volume Ratio", f"{volume_ratio:.2f}x" if volume_ratio else "N/A"],
             ["MA 50", f"{currency}{ma_50_current:.2f} ({ma_50_change:+.2f}%)" if ma_50_current else "N/A", "MA 200", f"{currency}{ma_200_current:.2f} ({ma_200_change:+.2f}%)" if ma_200_current else "N/A"],
             ["Market Cap", cap_display, "Beta", f"{beta:.2f}" if beta else "N/A"],
@@ -5285,17 +5291,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         ]
         
         df_price = pd.DataFrame(price_data)
-        html_table = df_price.to_html(index=False, header=False, table_id="metrics_table", classes="compact-table")
+        html_table = df_price.to_html(index=False, header=False, table_id="metrics_table", classes="compact-table", escape=False)
         st.markdown(html_table, unsafe_allow_html=True)
-        
-        # Add colored text for % from CTP
-        col_high, col_low = st.columns(2)
-        with col_high:
-            color = "red" if pct_change_from_52w_high < 0 else "green"
-            st.markdown(f"<span style='color: {color}; font-size: 14px;'>52W High: {high_display_text}</span>", unsafe_allow_html=True)
-        with col_low:
-            color = "red" if pct_change_from_52w_low < 0 else "green"
-            st.markdown(f"<span style='color: {color}; font-size: 14px;'>52W Low: {low_display_text}</span>", unsafe_allow_html=True)
         
         # Support/Resistance & Safe Level Analysis Table
         st.markdown("**📊 Support/Resistance & Safe Levels**")
@@ -5329,24 +5326,26 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            # 52-week analysis with % from CTP
-            if week_52_high and week_52_low:
-                position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
-                st.metric("52W Position", f"{position_52w:.1f}%")
-                st.caption(f"Range: {currency}{week_52_low:.2f} - {currency}{week_52_high:.2f}")
-                
-                # Show % from CTP with color coding
+            # 52-week high with % from CTP
+            if week_52_high:
                 high_color = "red" if pct_change_from_52w_high < 0 else "green"
-                low_color = "red" if pct_change_from_52w_low < 0 else "green"
-                high_text = f"CTP is {abs(pct_change_from_52w_high):.1f}% {'below' if pct_change_from_52w_high < 0 else 'above'}"
-                low_text = f"CTP is {abs(pct_change_from_52w_low):.1f}% {'below' if pct_change_from_52w_low < 0 else 'above'}"
-                
-                st.markdown(f"<span style='color: {high_color}; font-size: 12px;'>52W High: {high_text}</span>", unsafe_allow_html=True)
-                st.markdown(f"<span style='color: {low_color}; font-size: 12px;'>52W Low: {low_text}</span>", unsafe_allow_html=True)
+                high_delta = f"CTP is {abs(pct_change_from_52w_high):.1f}% {'below' if pct_change_from_52w_high < 0 else 'above'}"
+                st.metric("52W High", f"{currency}{week_52_high:.2f}")
+                st.markdown(f"<span style='color: {high_color}; font-size: 12px;'>{high_delta}</span>", unsafe_allow_html=True)
             else:
-                st.metric("52W Position", "N/A")
+                st.metric("52W High", "N/A")
         
         with col2:
+            # 52-week low with % from CTP
+            if week_52_low:
+                low_color = "red" if pct_change_from_52w_low < 0 else "green"
+                low_delta = f"CTP is {abs(pct_change_from_52w_low):.1f}% {'below' if pct_change_from_52w_low < 0 else 'above'}"
+                st.metric("52W Low", f"{currency}{week_52_low:.2f}")
+                st.markdown(f"<span style='color: {low_color}; font-size: 12px;'>{low_delta}</span>", unsafe_allow_html=True)
+            else:
+                st.metric("52W Low", "N/A")
+        
+        with col3:
             # Volume analysis
             avg_volume = ticker_info.get('averageVolume', 0)
             current_volume = data['Volume'].iloc[-1]
@@ -5358,8 +5357,28 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             else:
                 st.metric("Volume Ratio", "N/A")
         
-        with col3:
-            # Market cap and beta
+        with col4:
+            # 52W Position
+            if week_52_high and week_52_low:
+                position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
+                st.metric("52W Position", f"{position_52w:.1f}%")
+                st.caption(f"Within 52W range")
+            else:
+                st.metric("52W Position", "N/A")
+        
+        # Additional metrics row
+        st.markdown("#### 📊 Additional Metrics")
+        col_add1, col_add2, col_add3, col_add4 = st.columns(4)
+        
+        with col_add1:
+            # RSI
+            current_rsi = rsi.iloc[-1] if not rsi.empty else 0
+            rsi_status = "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral"
+            st.metric("RSI", f"{current_rsi:.1f}")
+            st.caption(rsi_status)
+        
+        with col_add2:
+            # Market cap
             market_cap = ticker_info.get('marketCap', 0)
             if market_cap:
                 if market_cap >= 1e12:
@@ -5373,17 +5392,17 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 st.metric("Market Cap", cap_display)
             else:
                 st.metric("Market Cap", "N/A")
-            
+        
+        with col_add3:
+            # Beta
             beta = ticker_info.get('beta', 0)
             if beta:
-                st.caption(f"Beta: {beta:.2f}")
+                st.metric("Beta", f"{beta:.2f}")
+            else:
+                st.metric("Beta", "N/A")
         
-        with col4:
-            # RSI and trend
-            current_rsi = rsi.iloc[-1] if not rsi.empty else 0
-            rsi_status = "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral"
-            st.metric("RSI", f"{current_rsi:.1f}")
-            st.caption(rsi_status)
+        with col_add4:
+            st.metric("", "")
         
         # Moving average analysis
         st.markdown("---")
