@@ -2834,6 +2834,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
     # Ultra-compact table view - all price action metrics in one table
     view_mode = st.session_state.get('view_mode', 'Standard')
     st.write(f"DEBUG: Current view mode is: {view_mode}")  # Debug info
+    st.write(f"DEBUG: 52W High: {year_high:.2f}, CTP: {latest_price:.2f}")  # Debug price info
+    st.write(f"DEBUG: High display text: {high_display_text}, Low display text: {low_display_text}")  # Debug calculations
     if view_mode == 'Compact':
         st.markdown("**📈 Price Action (Table View)**")
         st.success("✅ COMPACT MODE ACTIVE - Table format is now displayed")
