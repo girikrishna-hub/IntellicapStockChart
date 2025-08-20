@@ -239,16 +239,16 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         tech_summary_data = [
             ["Metric", "Value", "Analysis"],
             ["Current Price", f"{currency}{current_price:.2f}", f"{price_change_pct:+.2f}% from previous close"],
-            ["52-Week High", f"{currency}{week_52_high:.2f}", f"{((current_price - week_52_high) / week_52_high * 100):+.1f}% from current"],
-            ["52-Week Low", f"{currency}{week_52_low:.2f}", f"{((current_price - week_52_low) / week_52_low * 100):+.1f}% from current"],
+            ["52-Week High", f"{currency}{week_52_high:.2f}", f"{((week_52_high - current_price) / current_price * 100):+.1f}% from CTP"],
+            ["52-Week Low", f"{currency}{week_52_low:.2f}", f"{((week_52_low - current_price) / current_price * 100):+.1f}% from CTP"],
             ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
-             f"{((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current" if not ma_50.empty else "N/A"],
+             f"{((ma_50.iloc[-1] - current_price) / current_price * 100):+.1f}% from CTP" if not ma_50.empty else "N/A"],
             ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "N/A",
-             f"{((current_price - ma_200.iloc[-1]) / ma_200.iloc[-1] * 100):+.1f}% from current" if not ma_200.empty else "N/A"],
+             f"{((ma_200.iloc[-1] - current_price) / current_price * 100):+.1f}% from CTP" if not ma_200.empty else "N/A"],
             ["RSI (14)", f"{rsi.iloc[-1]:.1f}" if not rsi.empty else "N/A",
              "Overbought" if not rsi.empty and rsi.iloc[-1] > 70 else "Oversold" if not rsi.empty and rsi.iloc[-1] < 30 else "Neutral"],
-            ["Support Level", f"{currency}{support_level:.2f}", f"{((current_price - support_level) / support_level * 100):+.1f}% from current"],
-            ["Resistance Level", f"{currency}{resistance_level:.2f}", f"{((current_price - resistance_level) / resistance_level * 100):+.1f}% from current"]
+            ["Support Level", f"{currency}{support_level:.2f}", f"{((support_level - current_price) / current_price * 100):+.1f}% from CTP"],
+            ["Resistance Level", f"{currency}{resistance_level:.2f}", f"{((resistance_level - current_price) / current_price * 100):+.1f}% from CTP"]
         ]
         
         # Add Fibonacci analysis if available
@@ -277,9 +277,9 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 fib_618_dist = ((fib_618 - current_price) / current_price * 100)
                 
                 tech_summary_data.extend([
-                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"{fib_236_dist:+.1f}% from current"],
-                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"{fib_382_dist:+.1f}% from current"],
-                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"{fib_618_dist:+.1f}% from current"]
+                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"{fib_236_dist:+.1f}% from CTP"],
+                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"{fib_382_dist:+.1f}% from CTP"],
+                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"{fib_618_dist:+.1f}% from CTP"]
                 ])
         
         # Add safe trading levels
