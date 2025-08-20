@@ -221,47 +221,6 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(summary_table)
         story.append(Spacer(1, 20))
         
-        # Key Financial Metrics with % from CTP
-        story.append(Paragraph("Key Financial Metrics", heading_style))
-        
-        # Calculate additional metrics
-        week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
-        week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
-        ma_50_current = ma_50.iloc[-1] if not ma_50.empty else 0
-        ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
-        current_rsi = rsi.iloc[-1] if not rsi.empty else 0
-        
-        # % from CTP calculations
-        pct_from_52w_high = ((current_price - week_52_high) / week_52_high) * 100 if week_52_high else 0
-        pct_from_52w_low = ((current_price - week_52_low) / week_52_low) * 100 if week_52_low else 0
-        pct_from_ma_50 = ((current_price - ma_50_current) / ma_50_current) * 100 if ma_50_current else 0
-        pct_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100 if ma_200_current else 0
-        
-        metrics_data = [
-            ["Metric", "Value", "% from Current Price"],
-            ["52-Week High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A", f"{pct_from_52w_high:+.1f}%" if week_52_high else "N/A"],
-            ["52-Week Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A", f"{pct_from_52w_low:+.1f}%" if week_52_low else "N/A"],
-            ["50-Day MA", f"{currency}{ma_50_current:.2f}" if ma_50_current else "N/A", f"{pct_from_ma_50:+.1f}%" if ma_50_current else "N/A"],
-            ["200-Day MA", f"{currency}{ma_200_current:.2f}" if ma_200_current else "N/A", f"{pct_from_ma_200:+.1f}%" if ma_200_current else "N/A"],
-            ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", ""],
-            ["Support Level", f"{currency}{support_level:.2f}", ""],
-            ["Resistance Level", f"{currency}{resistance_level:.2f}", ""]
-        ]
-        
-        metrics_table = Table(metrics_data, colWidths=[2*inch, 1.5*inch, 1.5*inch])
-        metrics_table.setStyle(TableStyle([
-            ('BACKGROUND', (0,0), (-1,0), colors.grey),
-            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
-            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 11),
-            ('BOTTOMPADDING', (0,0), (-1,0), 12),
-            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
-        ]))
-        story.append(metrics_table)
-        story.append(Spacer(1, 20))
-        
         # Financial Quality Scores
         story.append(Paragraph("Financial Quality Scores", heading_style))
         
@@ -331,10 +290,15 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(PageBreak())
         story.append(Paragraph("Technical Analysis Summary", heading_style))
         
-        # Create technical analysis summary table
+        # Create technical analysis summary table with 52-week levels
+        week_52_high = data['High'].rolling(window=252, min_periods=1).max().iloc[-1]
+        week_52_low = data['Low'].rolling(window=252, min_periods=1).min().iloc[-1]
+        
         tech_summary_data = [
             ["Metric", "Value", "Analysis"],
             ["Current Price", f"{currency}{current_price:.2f}", f"{price_change_pct:+.2f}% from previous close"],
+            ["52-Week High", f"{currency}{week_52_high:.2f}", f"{((current_price - week_52_high) / week_52_high * 100):+.1f}% from current"],
+            ["52-Week Low", f"{currency}{week_52_low:.2f}", f"{((current_price - week_52_low) / week_52_low * 100):+.1f}% from current"],
             ["50-Day MA", f"{currency}{ma_50.iloc[-1]:.2f}" if not ma_50.empty else "N/A", 
              f"{((current_price - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current" if not ma_50.empty else "N/A"],
             ["200-Day MA", f"{currency}{ma_200.iloc[-1]:.2f}" if not ma_200.empty else "N/A",
