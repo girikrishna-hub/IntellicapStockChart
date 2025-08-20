@@ -185,7 +185,10 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
         
         # Calculate metrics for PDF including Fibonacci analysis
-        metrics = get_stock_metrics(data, ticker_info, ticker_obj, current_price, previous_close, ma_50, ma_200, rsi, support_level, resistance_level, market)
+        # Convert period parameter format for get_stock_metrics
+        period_map = {"1y": "1y", "6mo": "6mo", "3mo": "3mo", "1mo": "1mo", "5d": "5d"}
+        period_for_metrics = "1y"  # Default to 1 year for comprehensive analysis
+        metrics = get_stock_metrics(symbol, period_for_metrics, market)
         
         # Title
         title_text = f"Comprehensive Stock Analysis Report: {company_name} ({symbol})"
