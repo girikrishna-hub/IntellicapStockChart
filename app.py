@@ -5359,6 +5359,96 @@ def gurufocus_tab():
                                 st.metric("Analyst Rating", "N/A")
                             st.metric("# of Analysts", f"{number_of_analyst_opinions}" if number_of_analyst_opinions else "N/A")
                         
+                        # Financial Quality Scores Section
+                        st.markdown("---")
+                        st.markdown("### 📊 Financial Quality Scores")
+                        st.markdown("*Advanced scoring models for financial health and earnings quality assessment*")
+                        
+                        score_col1, score_col2, score_col3 = st.columns(3)
+                        
+                        with score_col1:
+                            # Piotroski Score
+                            st.markdown("**🎯 Piotroski Score**")
+                            piotroski_score, piotroski_details = calculate_piotroski_score(ticker_obj, info)
+                            
+                            if piotroski_score is not None:
+                                # Color coding for score
+                                if piotroski_score >= 7:
+                                    score_color = "🟢"
+                                    score_interpretation = "Excellent"
+                                elif piotroski_score >= 5:
+                                    score_color = "🟡"
+                                    score_interpretation = "Good"
+                                else:
+                                    score_color = "🔴"
+                                    score_interpretation = "Poor"
+                                
+                                st.metric(
+                                    label="Score (1-9 scale)",
+                                    value=f"{score_color} {piotroski_score}/9",
+                                    help="Higher scores indicate better financial health"
+                                )
+                                st.markdown(f"**Quality:** {score_interpretation}")
+                                
+                                # Show details in expander
+                                with st.expander("📋 Score Details"):
+                                    for detail in piotroski_details:
+                                        st.markdown(f"• {detail}")
+                            else:
+                                st.metric("Score (1-9 scale)", "N/A")
+                                st.error(piotroski_details)
+                        
+                        with score_col2:
+                            # Altman Z-Score
+                            st.markdown("**⚠️ Altman Z-Score**")
+                            z_score, z_interpretation = calculate_altman_z_score(ticker_obj, info)
+                            
+                            if z_score is not None:
+                                st.metric(
+                                    label="Z-Score",
+                                    value=f"{z_score:.2f}",
+                                    help="Bankruptcy prediction model"
+                                )
+                                st.markdown(f"**Status:** {z_interpretation}")
+                                
+                                # Zone guidance
+                                with st.expander("📖 Zone Guide"):
+                                    st.markdown("""
+                                    **Z-Score Zones:**
+                                    • **≤ 1.8**: 🔴 Distress Zone - High bankruptcy risk
+                                    • **1.8 - 3.0**: 🟡 Grey Zone - Uncertain, monitor closely
+                                    • **≥ 3.0**: 🟢 Safe Zone - Low bankruptcy risk
+                                    """)
+                            else:
+                                st.metric("Z-Score", "N/A")
+                                st.error(z_interpretation)
+                        
+                        with score_col3:
+                            # Beneish M-Score
+                            st.markdown("**🔍 Beneish M-Score**")
+                            m_score, m_interpretation = calculate_beneish_m_score(ticker_obj, info)
+                            
+                            if m_score is not None:
+                                st.metric(
+                                    label="M-Score",
+                                    value=f"{m_score:.2f}",
+                                    help="Earnings manipulation detection model"
+                                )
+                                st.markdown(f"**Assessment:** {m_interpretation}")
+                                
+                                # Interpretation guide
+                                with st.expander("📖 Score Guide"):
+                                    st.markdown("""
+                                    **M-Score Interpretation:**
+                                    • **≤ -1.78**: 🟢 Unlikely to be manipulating earnings
+                                    • **> -1.78**: 🔴 Potential earnings manipulation detected
+                                    
+                                    *Note: This is a simplified model using available data*
+                                    """)
+                            else:
+                                st.metric("M-Score", "N/A")
+                                st.error(m_interpretation)
+                        
                     except Exception as e:
                         st.warning(f"Some institutional metrics may not be available: {str(e)}")
                         
