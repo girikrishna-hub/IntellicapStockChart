@@ -1174,13 +1174,14 @@ def calculate_support_resistance(data, window=20):
     
     return recent_support, recent_resistance
 
-def calculate_fibonacci_levels(data, period_months=3):
+def calculate_fibonacci_levels(data, period_months=3, symbol=None):
     """
     Calculate next two Fibonacci levels above and below current price
     
     Args:
         data (pd.DataFrame): Stock price data
         period_months (int): Period in months for high/low range (3 or 6)
+        symbol (str): Stock symbol for direct yfinance query (optional)
     
     Returns:
         dict: Fibonacci analysis results with next levels above/below current price
@@ -1188,14 +1189,33 @@ def calculate_fibonacci_levels(data, period_months=3):
     try:
         current_price = data['Close'].iloc[-1]
         
-        # Calculate period for high/low range using same approach as PDF calculation
-        # Use a reasonable fallback based on trading days
-        days_back = min(period_months * 22, len(data))  # Approximate trading days
-        period_data = data.tail(days_back)
+        # Use the same accurate 3-month calculation as PDF to ensure consistency
+        if period_months == 3 and symbol:
+            try:
+                # Get the correct 3-month period data directly from yfinance
+                import yfinance as yf
+                temp_ticker = yf.Ticker(symbol)
+                temp_3mo_data = temp_ticker.history(period='3mo')
+                if not temp_3mo_data.empty:
+                    reference_high = temp_3mo_data['High'].max()
+                    reference_low = temp_3mo_data['Low'].min()
+                    print(f"UI DEBUG: Using yfinance 3mo data for {symbol} - High: {reference_high:.2f}, Low: {reference_low:.2f}")
+                else:
+                    raise ValueError("Empty 3mo data")
+            except Exception as e:
+                print(f"UI DEBUG: Error with yfinance 3mo query for {symbol}: {e}")
+                # Fallback: use 3-month equivalent from existing data (approximately 64 trading days)
+                period_data = data.tail(64)  # Match the yfinance 3mo period length
+                reference_high = period_data['High'].max()
+                reference_low = period_data['Low'].min()
+                print(f"UI DEBUG: Using fallback with 64 days for {symbol} - High: {reference_high:.2f}, Low: {reference_low:.2f}")
+        else:
+            # For 6-month or when symbol not provided, use trading days calculation
+            days_back = min(period_months * 22, len(data))  # Approximate trading days
+            period_data = data.tail(days_back)
+            reference_high = period_data['High'].max()
+            reference_low = period_data['Low'].min()
         
-        # Get reference high and low
-        reference_high = period_data['High'].max()
-        reference_low = period_data['Low'].min()
         price_range = reference_high - reference_low
         
         # Fibonacci retracement ratios (0.236, 0.382, 0.5, 0.618, 0.786)
@@ -3181,7 +3201,7 @@ def create_chart(data, symbol, ma_50, ma_200, period_label="1 Year", market="US"
     
     # Add Fibonacci retracement levels
     if show_fibonacci:
-        fib_data = calculate_fibonacci_levels(data, period_months=3)
+        fib_data = calculate_fibonacci_levels(data, period_months=3, symbol=symbol)
         if fib_data:
             fib_colors = ['rgba(255, 215, 0, 0.7)', 'rgba(255, 165, 0, 0.7)', 'rgba(255, 140, 0, 0.7)', 
                          'rgba(255, 69, 0, 0.7)', 'rgba(255, 0, 0, 0.7)', 'rgba(139, 0, 0, 0.7)']
@@ -3588,7 +3608,7 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         st.info("💡 Switch to Compact view below for table format that eliminates scrolling")
     
     # Get all required data first
-    fib_data = calculate_fibonacci_levels(data, period_months=3)
+    fib_data = calculate_fibonacci_levels(data, period_months=3, symbol=symbol)
     latest_rsi = rsi.iloc[-1] if not rsi.empty else None
     beta_value = get_beta_value(ticker_info)
     ctp_levels = calculate_ctp_levels(latest_price)
@@ -4298,7 +4318,7 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     # Add comprehensive Fibonacci analysis
     try:
-        fib_data = calculate_fibonacci_levels(data)
+        fib_data = calculate_fibonacci_levels(data, symbol=symbol)
         if fib_data and 'next_two_levels' in fib_data:
             levels = fib_data['next_two_levels'][:4]  # Get up to 4 Fibonacci levels
             for i, level in enumerate(levels, 1):
@@ -6384,7 +6404,7 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         )
     
     # Calculate Fibonacci levels
-    fibonacci_data = calculate_fibonacci_levels(data, period_months=period_months)
+    fibonacci_data = calculate_fibonacci_levels(data, period_months=period_months, symbol=symbol)
     if fibonacci_data:
         current_price = fibonacci_data['current_price']
         reference_high = fibonacci_data['reference_high']
