@@ -324,16 +324,37 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         # Add chart if provided
         if fig:
             try:
-                img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
+                # Try different image formats and engines
+                img_bytes = None
+                
+                # First try with kaleido engine
+                try:
+                    img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
+                except:
+                    # If kaleido fails, try without specifying engine
+                    try:
+                        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
+                    except:
+                        # If still fails, try with different parameters
+                        img_bytes = fig.to_image(format="png", width=800, height=600)
+                
+                if img_bytes:
+                    story.append(PageBreak())
+                    story.append(Paragraph("Technical Chart Analysis", heading_style))
+                    img_stream = io.BytesIO(img_bytes)
+                    from reportlab.platypus import Image as ReportLabImage
+                    img = ReportLabImage(img_stream, width=6*inch, height=4*inch)
+                    story.append(img)
+                    story.append(Spacer(1, 20))
+                else:
+                    story.append(PageBreak())
+                    story.append(Paragraph("Chart Analysis", heading_style))
+                    story.append(Paragraph("Chart image could not be generated. Technical analysis data is available in the tables above.", styles['Normal']))
+                    
+            except Exception as chart_error:
                 story.append(PageBreak())
-                story.append(Paragraph("Technical Chart Analysis", heading_style))
-                img_stream = io.BytesIO(img_bytes)
-                from reportlab.platypus import Image as ReportLabImage
-                img = ReportLabImage(img_stream, width=6*inch, height=4*inch)
-                story.append(img)
-            except:
                 story.append(Paragraph("Chart Analysis", heading_style))
-                story.append(Paragraph("Chart image could not be embedded. Please use the chart's built-in download feature.", styles['Normal']))
+                story.append(Paragraph(f"Chart generation failed: {str(chart_error)}. Technical analysis data is available in the tables above.", styles['Normal']))
         
         # Build PDF
         doc.build(story)
