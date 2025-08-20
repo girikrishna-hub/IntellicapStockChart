@@ -5093,10 +5093,60 @@ def yahoo_finance_tab():
                 if pdf_button:
                     with st.spinner('Generating comprehensive PDF report...'):
                         try:
-                            # Generate comprehensive analysis PDF with all new metrics
+                            # Create a comprehensive price chart for the PDF
+                            import plotly.graph_objects as go
+                            currency = "₹" if market == "India" else "$"
+                            
+                            price_fig = go.Figure()
+                            
+                            # Add candlestick chart
+                            price_fig.add_trace(go.Candlestick(
+                                x=data.index,
+                                open=data['Open'],
+                                high=data['High'],
+                                low=data['Low'],
+                                close=data['Close'],
+                                name='Price',
+                                increasing_line_color='green',
+                                decreasing_line_color='red'
+                            ))
+                            
+                            # Add moving averages
+                            if not ma_50.empty:
+                                price_fig.add_trace(go.Scatter(
+                                    x=data.index,
+                                    y=ma_50,
+                                    mode='lines',
+                                    name='50-Day MA',
+                                    line=dict(color='blue', width=2)
+                                ))
+                            
+                            if not ma_200.empty:
+                                price_fig.add_trace(go.Scatter(
+                                    x=data.index,
+                                    y=ma_200,
+                                    mode='lines',
+                                    name='200-Day MA',
+                                    line=dict(color='red', width=2)
+                                ))
+                            
+                            # Add support/resistance lines
+                            price_fig.add_hline(y=support_level, line_dash="dash", line_color="green", annotation_text="Support")
+                            price_fig.add_hline(y=resistance_level, line_dash="dash", line_color="red", annotation_text="Resistance")
+                            
+                            price_fig.update_layout(
+                                title=f'{symbol} Technical Analysis Chart',
+                                xaxis_title='Date',
+                                yaxis_title=f'Price ({currency})',
+                                height=600,
+                                xaxis_rangeslider_visible=False,
+                                showlegend=True
+                            )
+                            
+                            # Generate comprehensive analysis PDF with chart included
                             pdf_data, pdf_filename = export_comprehensive_analysis_pdf(
                                 symbol, data, ticker_info, ticker_obj, ma_50, ma_200, 
-                                rsi, support_level, resistance_level, market
+                                rsi, support_level, resistance_level, market, price_fig
                             )
                             
                             if pdf_data and pdf_filename:
