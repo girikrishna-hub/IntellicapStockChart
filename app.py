@@ -184,6 +184,9 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         currency = "₹" if market == "India" else "$"
         company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
         
+        # Calculate metrics for PDF including Fibonacci analysis
+        metrics = get_stock_metrics(data, ticker_info, ticker_obj, current_price, previous_close, ma_50, ma_200, rsi, support_level, resistance_level, market)
+        
         # Title
         title_text = f"Comprehensive Stock Analysis Report: {company_name} ({symbol})"
         story.append(Paragraph(title_text, title_style))
