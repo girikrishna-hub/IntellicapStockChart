@@ -6352,23 +6352,39 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             st.markdown(f"<span style='color: {ma_50_color}; font-size: 12px;'>{ma_50_delta}</span>", unsafe_allow_html=True)
         
         with col_ma2:
-            ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
-            pct_change_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100 if ma_200_current else 0
-            ma_200_color = "red" if pct_change_from_ma_200 < 0 else "green"
-            ma_200_delta = f"CTP is {abs(pct_change_from_ma_200):.1f}% {'below' if pct_change_from_ma_200 < 0 else 'above'}"
+            # Check if we have enough data for 200-day MA
+            data_days = len(data)
+            ma_200_available = data_days >= 200 and not ma_200.empty and not pd.isna(ma_200.iloc[-1])
             
-            st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}")
-            st.markdown(f"<span style='color: {ma_200_color}; font-size: 12px;'>{ma_200_delta}</span>", unsafe_allow_html=True)
+            if ma_200_available:
+                ma_200_current = ma_200.iloc[-1]
+                pct_change_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100
+                ma_200_color = "red" if pct_change_from_ma_200 < 0 else "green"
+                ma_200_delta = f"CTP is {abs(pct_change_from_ma_200):.1f}% {'below' if pct_change_from_ma_200 < 0 else 'above'}"
+                
+                st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}")
+                st.markdown(f"<span style='color: {ma_200_color}; font-size: 12px;'>{ma_200_delta}</span>", unsafe_allow_html=True)
+            else:
+                st.metric("200-Day MA", f"Need 200+ days (have {data_days})")
+                st.markdown(f"<span style='color: orange; font-size: 12px;'>Insufficient historical data</span>", unsafe_allow_html=True)
         
         with col_ma3:
-            # Trend analysis
-            if ma_50_current > ma_200_current:
-                trend = "🟢 Bullish"
-            elif ma_50_current < ma_200_current:
-                trend = "🔴 Bearish"
+            # Trend analysis - only show if both MAs are available
+            ma_50_available = len(data) >= 50 and not ma_50.empty and not pd.isna(ma_50.iloc[-1])
+            
+            if ma_50_available and ma_200_available:
+                ma_50_current = ma_50.iloc[-1]
+                ma_200_current = ma_200.iloc[-1]
+                if ma_50_current > ma_200_current:
+                    trend = "🟢 Bullish"
+                elif ma_50_current < ma_200_current:
+                    trend = "🔴 Bearish"
+                else:
+                    trend = "🟡 Neutral"
+                st.metric("Trend", trend)
             else:
-                trend = "🟡 Neutral"
-            st.metric("Trend", trend)
+                st.metric("Trend", "Need MA data")
+                st.markdown(f"<span style='color: orange; font-size: 12px;'>Requires both 50 & 200-day MA</span>", unsafe_allow_html=True)
         
         # Support and resistance levels
         st.markdown("---")
