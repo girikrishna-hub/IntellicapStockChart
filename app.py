@@ -322,16 +322,18 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             ["Beneish M-Score", f"{m_score:.2f}" if m_score is not None else "N/A", m_interpretation if m_score else "N/A"]
         ]
         
-        scores_table = Table(scores_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
+        scores_table = Table(scores_data, colWidths=[2*inch, 1.2*inch, 2.8*inch])
         scores_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.grey),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
             ('ALIGN', (0,0), (-1,-1), 'LEFT'),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
             ('FONTSIZE', (0,0), (-1,0), 11),
+            ('FONTSIZE', (0,1), (-1,-1), 9),
             ('BOTTOMPADDING', (0,0), (-1,0), 12),
             ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-            ('GRID', (0,0), (-1,-1), 1, colors.black)
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('VALIGN', (0,0), (-1,-1), 'TOP')
         ]))
         story.append(scores_table)
         story.append(Spacer(1, 20))
@@ -2286,13 +2288,13 @@ def calculate_altman_z_score(ticker_obj, info):
             # Determine zone
             if z_score <= 1.8:
                 zone = "🔴 Distress Zone"
-                interpretation = "High probability of bankruptcy"
+                interpretation = "High bankruptcy risk"
             elif z_score >= 3.0:
                 zone = "🟢 Safe Zone"
-                interpretation = "Low probability of bankruptcy"
+                interpretation = "Low bankruptcy risk"
             else:
                 zone = "🟡 Grey Zone"
-                interpretation = "Uncertain - monitor closely"
+                interpretation = "Moderate risk"
             
             return z_score, f"{zone} - {interpretation}"
             
