@@ -251,54 +251,45 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             ["Resistance Level", f"{currency}{resistance_level:.2f}", f"CTP is {((current_price - resistance_level) / resistance_level * 100):+.1f}% from Resistance"]
         ]
         
-        # Add Fibonacci analysis if available
-        fib_info = metrics.get('fibonacci_analysis', 'N/A')
-        if fib_info and fib_info != 'N/A' and fib_info.strip():
-            tech_summary_data.append(["Fibonacci Analysis", fib_info, "Key technical level"])
-        else:
-            # Check for Fibonacci in support/resistance columns
-            if 'Next Fibonacci Level' in metrics and metrics['Next Fibonacci Level'] != 'N/A':
-                fib_level = metrics['Next Fibonacci Level'] 
-                tech_summary_data.append(["Next Fibonacci Level", fib_level, "Technical target level"])
+        # Always show Fibonacci analysis using 3-month period for accurate calculations
+        # Remove all checks for old metrics data to ensure fresh calculation
+        try:
+            # Get the correct 3-month period data directly from yfinance
+            import yfinance as yf
+            temp_ticker = yf.Ticker(symbol)
+            temp_3mo_data = temp_ticker.history(period='3mo')
+            if not temp_3mo_data.empty:
+                period_high = temp_3mo_data['High'].max()
+                period_low = temp_3mo_data['Low'].min()
+                print(f"PDF DEBUG: Using yfinance 3mo data - High: {period_high:.2f}, Low: {period_low:.2f}")
             else:
-                # Always show Fibonacci analysis with separate levels for better readability (3-month period)
-                # Use the exact same 3-month period as yfinance for consistency
-                try:
-                    # Get the correct 3-month period data like yfinance does
-                    import yfinance as yf
-                    temp_ticker = yf.Ticker(symbol)
-                    temp_3mo_data = temp_ticker.history(period='3mo')
-                    if not temp_3mo_data.empty:
-                        period_high = temp_3mo_data['High'].max()
-                        period_low = temp_3mo_data['Low'].min()
-                        print(f"PDF DEBUG: Using yfinance 3mo data - High: {period_high:.2f}, Low: {period_low:.2f}")
-                    else:
-                        raise ValueError("Empty 3mo data")
-                except Exception as e:
-                    print(f"PDF DEBUG: Error with yfinance 3mo query: {e}")
-                    # Fallback: use the exact same period as the successful query
-                    # From our test, yfinance 3mo gives 64 data points for CRWV
-                    period_data = data.tail(64)  # Match the yfinance 3mo period length
-                    period_high = period_data['High'].max()
-                    period_low = period_data['Low'].min()
-                    print(f"PDF DEBUG: Using fallback with 64 days - High: {period_high:.2f}, Low: {period_low:.2f}")
-                fib_236 = period_low + (period_high - period_low) * 0.236
-                fib_382 = period_low + (period_high - period_low) * 0.382
-                fib_618 = period_low + (period_high - period_low) * 0.618
-                
-                # Add Fibonacci range
-                tech_summary_data.append(["Fibonacci Range", f"High: {currency}{period_high:.2f}", f"Low: {currency}{period_low:.2f}"])
-                
-                # Add individual Fibonacci levels with distance analysis
-                fib_236_dist = ((current_price - fib_236) / fib_236 * 100)
-                fib_382_dist = ((current_price - fib_382) / fib_382 * 100)
-                fib_618_dist = ((current_price - fib_618) / fib_618 * 100)
-                
-                tech_summary_data.extend([
-                    ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"CTP is {fib_236_dist:+.1f}% from Fib 23.6%"],
-                    ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"CTP is {fib_382_dist:+.1f}% from Fib 38.2%"],
-                    ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"CTP is {fib_618_dist:+.1f}% from Fib 61.8%"]
-                ])
+                raise ValueError("Empty 3mo data")
+        except Exception as e:
+            print(f"PDF DEBUG: Error with yfinance 3mo query: {e}")
+            # Fallback: use 3-month equivalent from existing data (approximately 64 trading days)
+            period_data = data.tail(64)  # Match the yfinance 3mo period length
+            period_high = period_data['High'].max()
+            period_low = period_data['Low'].min()
+            print(f"PDF DEBUG: Using fallback with 64 days - High: {period_high:.2f}, Low: {period_low:.2f}")
+        
+        # Calculate Fibonacci levels
+        fib_236 = period_low + (period_high - period_low) * 0.236
+        fib_382 = period_low + (period_high - period_low) * 0.382
+        fib_618 = period_low + (period_high - period_low) * 0.618
+        
+        # Add Fibonacci range
+        tech_summary_data.append(["Fibonacci Range", f"High: {currency}{period_high:.2f}", f"Low: {currency}{period_low:.2f}"])
+        
+        # Add individual Fibonacci levels with distance analysis
+        fib_236_dist = ((current_price - fib_236) / fib_236 * 100)
+        fib_382_dist = ((current_price - fib_382) / fib_382 * 100)
+        fib_618_dist = ((current_price - fib_618) / fib_618 * 100)
+        
+        tech_summary_data.extend([
+            ["Fib 23.6% Level", f"{currency}{fib_236:.2f}", f"CTP is {fib_236_dist:+.1f}% from Fib 23.6%"],
+            ["Fib 38.2% Level", f"{currency}{fib_382:.2f}", f"CTP is {fib_382_dist:+.1f}% from Fib 38.2%"],
+            ["Fib 61.8% Level", f"{currency}{fib_618:.2f}", f"CTP is {fib_618_dist:+.1f}% from Fib 61.8%"]
+        ])
         
         # Add safe trading levels
         safe_low = current_price * 0.875  # CTP - 12.5%
