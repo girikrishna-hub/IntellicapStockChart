@@ -2879,9 +2879,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
         ]
         
         # Create DataFrame with proper headers
-        df_main_price = pd.DataFrame(main_price_data, columns=[
-            "CTP", "52W High", "% Change", "52W Low", "% Change"
-        ])
+        df_main_price = pd.DataFrame(main_price_data)
+        df_main_price.columns = ["CTP", "52W High", "% Change", "52W Low", "% Change"]
         
         # Display main price table
         st.dataframe(df_main_price, hide_index=True, use_container_width=True)
