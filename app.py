@@ -321,50 +321,111 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(additional_table)
         story.append(Spacer(1, 20))
         
-        # Add chart if provided - using matplotlib approach as fallback
-        if fig:
-            try:
-                story.append(PageBreak())
-                story.append(Paragraph("Technical Chart Analysis", heading_style))
+        # Add comprehensive technical analysis charts using matplotlib
+        story.append(PageBreak())
+        story.append(Paragraph("Technical Chart Analysis", heading_style))
+        
+        try:
+            # Generate matplotlib-based charts
+            import matplotlib
+            matplotlib.use('Agg')  # Use non-GUI backend
+            import matplotlib.pyplot as plt
+            import matplotlib.dates as mdates
+            
+            # Create comprehensive technical analysis chart
+            fig_mpl, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 8))
+            
+            # Chart 1: Price with Moving Averages
+            ax1.plot(data.index, data['Close'], label=f'{symbol.upper()} Price', color='black', linewidth=1.5)
+            if not ma_50.empty:
+                ax1.plot(data.index, ma_50, label='50-Day MA', color='blue', linewidth=1)
+            if not ma_200.empty:
+                ax1.plot(data.index, ma_200, label='200-Day MA', color='red', linewidth=1)
+            ax1.axhline(y=support_level, color='green', linestyle='--', alpha=0.7, label='Support')
+            ax1.axhline(y=resistance_level, color='red', linestyle='--', alpha=0.7, label='Resistance')
+            ax1.set_title(f'{symbol.upper()} Price & Moving Averages', fontsize=10, fontweight='bold')
+            ax1.set_ylabel(f'Price ({currency})', fontsize=9)
+            ax1.grid(True, alpha=0.3)
+            ax1.legend(fontsize=7)
+            
+            # Chart 2: MACD (calculate if not provided)
+            if not rsi.empty:
+                # Simple MACD calculation for display
+                exp1 = data['Close'].ewm(span=12).mean()
+                exp2 = data['Close'].ewm(span=26).mean()
+                macd_calc = exp1 - exp2
+                signal_calc = macd_calc.ewm(span=9).mean()
                 
-                # Create a simplified chart visualization using reportlab graphics
-                from reportlab.graphics.shapes import Drawing, Rect, String
-                from reportlab.graphics.charts.linecharts import HorizontalLineChart
-                from reportlab.graphics import renderPDF
-                
-                # Create basic chart summary instead of complex plotly image
-                chart_summary = f"""
-                <b>Technical Analysis Summary for {symbol}:</b><br/>
-                <br/>
-                • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
-                • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
-                • 200-Day MA: {currency}{ma_200.iloc[-1] if not ma_200.empty else 'N/A'}<br/>
-                • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
-                • Support Level: {currency}{support_level:.2f}<br/>
-                • Resistance Level: {currency}{resistance_level:.2f}<br/>
-                <br/>
-                <b>Price Action Analysis:</b><br/>
-                • Period High: {currency}{data['High'].max():.2f}<br/>
-                • Period Low: {currency}{data['Low'].min():.2f}<br/>
-                • Volume (Latest): {data['Volume'].iloc[-1]:,.0f} shares<br/>
-                • Volatility (30-day): {(data['Close'].pct_change().rolling(30).std() * np.sqrt(252) * 100):.1f}%<br/>
-                """
-                
-                story.append(Paragraph(chart_summary, styles['Normal']))
-                story.append(Spacer(1, 20))
-                
-                # Add a note about full chart availability
-                chart_note = """
-                <i>Note: Full interactive charts with candlesticks, moving averages, and technical indicators 
-                are available in the web application. Use the 'Generate Chart' button to view detailed 
-                technical analysis with MACD, RSI, and Chaikin Money Flow indicators.</i>
-                """
-                story.append(Paragraph(chart_note, styles['Normal']))
-                
-            except Exception as chart_error:
-                story.append(PageBreak())
-                story.append(Paragraph("Technical Chart Analysis", heading_style))
-                story.append(Paragraph("Technical analysis data is summarized in the tables above. Full interactive charts are available in the web application.", styles['Normal']))
+                ax2.plot(data.index, macd_calc, label='MACD', color='blue', linewidth=1)
+                ax2.plot(data.index, signal_calc, label='Signal', color='red', linewidth=1)
+                ax2.axhline(y=0, color='gray', linestyle='-', alpha=0.5)
+            ax2.set_title('MACD', fontsize=10, fontweight='bold')
+            ax2.set_ylabel('MACD', fontsize=9)
+            ax2.grid(True, alpha=0.3)
+            ax2.legend(fontsize=7)
+            
+            # Chart 3: RSI
+            if not rsi.empty:
+                ax3.plot(data.index, rsi, label='RSI', color='purple', linewidth=1)
+                ax3.axhline(y=70, color='red', linestyle='--', alpha=0.7, label='Overbought')
+                ax3.axhline(y=30, color='green', linestyle='--', alpha=0.7, label='Oversold')
+                ax3.set_ylim(0, 100)
+            ax3.set_title('RSI (14)', fontsize=10, fontweight='bold')
+            ax3.set_ylabel('RSI', fontsize=9)
+            ax3.grid(True, alpha=0.3)
+            ax3.legend(fontsize=7)
+            
+            # Chart 4: Volume
+            ax4.bar(data.index, data['Volume'], alpha=0.7, color='orange', label='Volume')
+            ax4.set_title('Trading Volume', fontsize=10, fontweight='bold')
+            ax4.set_ylabel('Volume', fontsize=9)
+            ax4.grid(True, alpha=0.3)
+            ax4.legend(fontsize=7)
+            
+            # Format x-axis dates for all subplots
+            for ax in [ax1, ax2, ax3, ax4]:
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+                ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
+                plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right', fontsize=8)
+            
+            plt.tight_layout()
+            
+            # Save chart to buffer
+            img_buffer = io.BytesIO()
+            plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight')
+            plt.close(fig_mpl)
+            img_buffer.seek(0)
+            
+            # Add chart image to PDF
+            from reportlab.platypus import Image as ReportLabImage
+            img = ReportLabImage(img_buffer, width=7*inch, height=5*inch)
+            story.append(img)
+            story.append(Spacer(1, 20))
+            
+            # Add technical summary
+            chart_summary = f"""
+            <b>Technical Analysis Summary:</b><br/>
+            • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
+            • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
+            • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
+            • Support Level: {currency}{support_level:.2f}<br/>
+            • Resistance Level: {currency}{resistance_level:.2f}<br/>
+            """
+            story.append(Paragraph(chart_summary, styles['Normal']))
+            
+        except Exception as chart_error:
+            # Fallback to text summary if matplotlib fails
+            chart_summary = f"""
+            <b>Technical Analysis Summary for {symbol}:</b><br/>
+            <br/>
+            • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
+            • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
+            • 200-Day MA: {currency}{ma_200.iloc[-1] if not ma_200.empty else 'N/A'}<br/>
+            • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
+            • Support Level: {currency}{support_level:.2f}<br/>
+            • Resistance Level: {currency}{resistance_level:.2f}<br/>
+            """
+            story.append(Paragraph(chart_summary, styles['Normal']))
         
         # Build PDF
         doc.build(story)
