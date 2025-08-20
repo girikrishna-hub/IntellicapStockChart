@@ -402,7 +402,7 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             story.append(img)
             story.append(Spacer(1, 20))
             
-            # Add technical summary
+            # Add technical summary with Fibonacci analysis
             chart_summary = f"""
             <b>Technical Analysis Summary:</b><br/>
             • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
@@ -411,6 +411,25 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             • Support Level: {currency}{support_level:.2f}<br/>
             • Resistance Level: {currency}{resistance_level:.2f}<br/>
             """
+            
+            # Add Fibonacci analysis if available
+            if 'fibonacci_analysis' in metrics and metrics['fibonacci_analysis'] != 'N/A':
+                fib_info = metrics['fibonacci_analysis']
+                chart_summary += f"""<br/>
+            <b>Fibonacci Analysis:</b><br/>
+            • {fib_info}<br/>
+            """
+            
+            # Add safe trading levels
+            current_price = data['Close'].iloc[-1]
+            safe_low = current_price * 0.875  # CTP - 12.5%
+            safe_high = current_price * 1.125  # CTP + 12.5%
+            chart_summary += f"""<br/>
+            <b>Safe Trading Levels:</b><br/>
+            • Safe Level Low: {currency}{safe_low:.2f} (-12.5% from CTP)<br/>
+            • Safe Level High: {currency}{safe_high:.2f} (+12.5% from CTP)<br/>
+            """
+            
             story.append(Paragraph(chart_summary, styles['Normal']))
             
         except Exception as chart_error:
@@ -425,6 +444,25 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             • Support Level: {currency}{support_level:.2f}<br/>
             • Resistance Level: {currency}{resistance_level:.2f}<br/>
             """
+            
+            # Add Fibonacci analysis if available
+            if 'fibonacci_analysis' in metrics and metrics['fibonacci_analysis'] != 'N/A':
+                fib_info = metrics['fibonacci_analysis']
+                chart_summary += f"""<br/>
+            <b>Fibonacci Analysis:</b><br/>
+            • {fib_info}<br/>
+            """
+            
+            # Add safe trading levels
+            current_price = data['Close'].iloc[-1]
+            safe_low = current_price * 0.875  # CTP - 12.5%
+            safe_high = current_price * 1.125  # CTP + 12.5%
+            chart_summary += f"""<br/>
+            <b>Safe Trading Levels:</b><br/>
+            • Safe Level Low: {currency}{safe_low:.2f} (-12.5% from CTP)<br/>
+            • Safe Level High: {currency}{safe_high:.2f} (+12.5% from CTP)<br/>
+            """
+            
             story.append(Paragraph(chart_summary, styles['Normal']))
         
         # Build PDF
