@@ -321,40 +321,50 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(additional_table)
         story.append(Spacer(1, 20))
         
-        # Add chart if provided
+        # Add chart if provided - using matplotlib approach as fallback
         if fig:
             try:
-                # Try different image formats and engines
-                img_bytes = None
+                story.append(PageBreak())
+                story.append(Paragraph("Technical Chart Analysis", heading_style))
                 
-                # First try with kaleido engine
-                try:
-                    img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
-                except:
-                    # If kaleido fails, try without specifying engine
-                    try:
-                        img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2)
-                    except:
-                        # If still fails, try with different parameters
-                        img_bytes = fig.to_image(format="png", width=800, height=600)
+                # Create a simplified chart visualization using reportlab graphics
+                from reportlab.graphics.shapes import Drawing, Rect, String
+                from reportlab.graphics.charts.linecharts import HorizontalLineChart
+                from reportlab.graphics import renderPDF
                 
-                if img_bytes:
-                    story.append(PageBreak())
-                    story.append(Paragraph("Technical Chart Analysis", heading_style))
-                    img_stream = io.BytesIO(img_bytes)
-                    from reportlab.platypus import Image as ReportLabImage
-                    img = ReportLabImage(img_stream, width=6*inch, height=4*inch)
-                    story.append(img)
-                    story.append(Spacer(1, 20))
-                else:
-                    story.append(PageBreak())
-                    story.append(Paragraph("Chart Analysis", heading_style))
-                    story.append(Paragraph("Chart image could not be generated. Technical analysis data is available in the tables above.", styles['Normal']))
-                    
+                # Create basic chart summary instead of complex plotly image
+                chart_summary = f"""
+                <b>Technical Analysis Summary for {symbol}:</b><br/>
+                <br/>
+                • Current Price: {currency}{data['Close'].iloc[-1]:.2f}<br/>
+                • 50-Day MA: {currency}{ma_50.iloc[-1]:.2f} ({((data['Close'].iloc[-1] - ma_50.iloc[-1]) / ma_50.iloc[-1] * 100):+.1f}% from current)<br/>
+                • 200-Day MA: {currency}{ma_200.iloc[-1] if not ma_200.empty else 'N/A'}<br/>
+                • RSI: {rsi.iloc[-1]:.1f} {'(Overbought)' if rsi.iloc[-1] > 70 else '(Oversold)' if rsi.iloc[-1] < 30 else '(Neutral)'}<br/>
+                • Support Level: {currency}{support_level:.2f}<br/>
+                • Resistance Level: {currency}{resistance_level:.2f}<br/>
+                <br/>
+                <b>Price Action Analysis:</b><br/>
+                • Period High: {currency}{data['High'].max():.2f}<br/>
+                • Period Low: {currency}{data['Low'].min():.2f}<br/>
+                • Volume (Latest): {data['Volume'].iloc[-1]:,.0f} shares<br/>
+                • Volatility (30-day): {(data['Close'].pct_change().rolling(30).std() * np.sqrt(252) * 100):.1f}%<br/>
+                """
+                
+                story.append(Paragraph(chart_summary, styles['Normal']))
+                story.append(Spacer(1, 20))
+                
+                # Add a note about full chart availability
+                chart_note = """
+                <i>Note: Full interactive charts with candlesticks, moving averages, and technical indicators 
+                are available in the web application. Use the 'Generate Chart' button to view detailed 
+                technical analysis with MACD, RSI, and Chaikin Money Flow indicators.</i>
+                """
+                story.append(Paragraph(chart_note, styles['Normal']))
+                
             except Exception as chart_error:
                 story.append(PageBreak())
-                story.append(Paragraph("Chart Analysis", heading_style))
-                story.append(Paragraph(f"Chart generation failed: {str(chart_error)}. Technical analysis data is available in the tables above.", styles['Normal']))
+                story.append(Paragraph("Technical Chart Analysis", heading_style))
+                story.append(Paragraph("Technical analysis data is summarized in the tables above. Full interactive charts are available in the web application.", styles['Normal']))
         
         # Build PDF
         doc.build(story)
