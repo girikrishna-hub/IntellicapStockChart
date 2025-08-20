@@ -123,6 +123,235 @@ def export_chart_as_png(fig, filename_prefix="chart"):
             st.error(f"Error exporting PNG: {str(e)}. Please try using the chart's built-in download feature (camera icon) or PDF export.")
             return None, None
 
+def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, rsi, support_level, resistance_level, market="US", fig=None):
+    """
+    Export comprehensive stock analysis as PDF including all metrics, scores, and charts
+    
+    Args:
+        symbol (str): Stock symbol
+        data (DataFrame): Stock price data
+        ticker_info (dict): Stock information from yfinance
+        ticker_obj: yfinance Ticker object
+        ma_50, ma_200: Moving averages
+        rsi: RSI values
+        support_level, resistance_level: Support/resistance levels
+        market (str): Market type ("US" or "India")
+        fig: Optional Plotly figure object
+        
+    Returns:
+        tuple: (bytes_data, filename)
+    """
+    try:
+        from reportlab.lib.pagesizes import A4, letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.graphics.shapes import Drawing
+        from reportlab.graphics.charts.linecharts import HorizontalLineChart
+        import io
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        
+        # Styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            textColor=colors.black,
+            spaceAfter=20,
+            alignment=1
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.black,
+            spaceAfter=12
+        )
+        
+        # Story content
+        story = []
+        
+        # Get basic data
+        current_price = data['Close'].iloc[-1]
+        previous_close = ticker_info.get('previousClose', data['Close'].iloc[-2] if len(data) > 1 else current_price)
+        price_change = current_price - previous_close
+        price_change_pct = (price_change / previous_close) * 100 if previous_close != 0 else 0
+        currency = "₹" if market == "India" else "$"
+        company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
+        
+        # Title
+        title_text = f"Comprehensive Stock Analysis Report: {company_name} ({symbol})"
+        story.append(Paragraph(title_text, title_style))
+        story.append(Spacer(1, 20))
+        
+        # Executive Summary
+        story.append(Paragraph("Executive Summary", heading_style))
+        
+        summary_data = [
+            ["Company", company_name],
+            ["Symbol", symbol],
+            ["Current Price", f"{currency}{current_price:.2f}"],
+            ["Price Change", f"{currency}{price_change:+.2f} ({price_change_pct:+.2f}%)"],
+            ["Market", market],
+            ["Report Date", datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[2*inch, 3*inch])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 20))
+        
+        # Key Financial Metrics with % from CTP
+        story.append(Paragraph("Key Financial Metrics", heading_style))
+        
+        # Calculate additional metrics
+        week_52_high = ticker_info.get('fiftyTwoWeekHigh', 0)
+        week_52_low = ticker_info.get('fiftyTwoWeekLow', 0)
+        ma_50_current = ma_50.iloc[-1] if not ma_50.empty else 0
+        ma_200_current = ma_200.iloc[-1] if not ma_200.empty else 0
+        current_rsi = rsi.iloc[-1] if not rsi.empty else 0
+        
+        # % from CTP calculations
+        pct_from_52w_high = ((current_price - week_52_high) / week_52_high) * 100 if week_52_high else 0
+        pct_from_52w_low = ((current_price - week_52_low) / week_52_low) * 100 if week_52_low else 0
+        pct_from_ma_50 = ((current_price - ma_50_current) / ma_50_current) * 100 if ma_50_current else 0
+        pct_from_ma_200 = ((current_price - ma_200_current) / ma_200_current) * 100 if ma_200_current else 0
+        
+        metrics_data = [
+            ["Metric", "Value", "% from Current Price"],
+            ["52-Week High", f"{currency}{week_52_high:.2f}" if week_52_high else "N/A", f"{pct_from_52w_high:+.1f}%" if week_52_high else "N/A"],
+            ["52-Week Low", f"{currency}{week_52_low:.2f}" if week_52_low else "N/A", f"{pct_from_52w_low:+.1f}%" if week_52_low else "N/A"],
+            ["50-Day MA", f"{currency}{ma_50_current:.2f}" if ma_50_current else "N/A", f"{pct_from_ma_50:+.1f}%" if ma_50_current else "N/A"],
+            ["200-Day MA", f"{currency}{ma_200_current:.2f}" if ma_200_current else "N/A", f"{pct_from_ma_200:+.1f}%" if ma_200_current else "N/A"],
+            ["RSI", f"{current_rsi:.1f}" if current_rsi else "N/A", ""],
+            ["Support Level", f"{currency}{support_level:.2f}", ""],
+            ["Resistance Level", f"{currency}{resistance_level:.2f}", ""]
+        ]
+        
+        metrics_table = Table(metrics_data, colWidths=[2*inch, 1.5*inch, 1.5*inch])
+        metrics_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        story.append(metrics_table)
+        story.append(Spacer(1, 20))
+        
+        # Financial Quality Scores
+        story.append(Paragraph("Financial Quality Scores", heading_style))
+        
+        # Calculate scores
+        piotroski_score, piotroski_details = calculate_piotroski_score(ticker_obj, ticker_info)
+        z_score, z_interpretation = calculate_altman_z_score(ticker_obj, ticker_info)
+        m_score, m_interpretation = calculate_beneish_m_score(ticker_obj, ticker_info)
+        
+        scores_data = [
+            ["Score Type", "Value", "Interpretation"],
+            ["Piotroski Score (1-9)", f"{piotroski_score}/9" if piotroski_score is not None else "N/A", 
+             "Excellent" if piotroski_score and piotroski_score >= 7 else "Good" if piotroski_score and piotroski_score >= 5 else "Poor" if piotroski_score else "N/A"],
+            ["Altman Z-Score", f"{z_score:.2f}" if z_score is not None else "N/A", z_interpretation if z_score else "N/A"],
+            ["Beneish M-Score", f"{m_score:.2f}" if m_score is not None else "N/A", m_interpretation if m_score else "N/A"]
+        ]
+        
+        scores_table = Table(scores_data, colWidths=[2*inch, 1.5*inch, 2.5*inch])
+        scores_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        story.append(scores_table)
+        story.append(Spacer(1, 20))
+        
+        # Piotroski Score Details
+        if piotroski_score is not None and piotroski_details:
+            story.append(Paragraph("Piotroski Score Breakdown", heading_style))
+            for detail in piotroski_details[:9]:  # Limit to 9 items to fit on page
+                story.append(Paragraph(f"• {detail}", styles['Normal']))
+            story.append(Spacer(1, 20))
+        
+        # Additional Financial Metrics
+        story.append(Paragraph("Additional Financial Metrics", heading_style))
+        
+        additional_data = [
+            ["Metric", "Value"],
+            ["Market Cap", f"{currency}{ticker_info.get('marketCap', 0)/1e9:.2f}B" if ticker_info.get('marketCap') else "N/A"],
+            ["P/E Ratio", f"{ticker_info.get('trailingPE', 0):.2f}" if ticker_info.get('trailingPE') else "N/A"],
+            ["P/B Ratio", f"{ticker_info.get('priceToBook', 0):.2f}" if ticker_info.get('priceToBook') else "N/A"],
+            ["Beta", f"{ticker_info.get('beta', 0):.2f}" if ticker_info.get('beta') else "N/A"],
+            ["Debt-to-Equity", f"{ticker_info.get('debtToEquity', 0):.2f}" if ticker_info.get('debtToEquity') else "N/A"],
+            ["ROE", f"{ticker_info.get('returnOnEquity', 0)*100:.1f}%" if ticker_info.get('returnOnEquity') else "N/A"],
+            ["ROA", f"{ticker_info.get('returnOnAssets', 0)*100:.1f}%" if ticker_info.get('returnOnAssets') else "N/A"]
+        ]
+        
+        additional_table = Table(additional_data, colWidths=[3*inch, 2*inch])
+        additional_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black)
+        ]))
+        story.append(additional_table)
+        story.append(Spacer(1, 20))
+        
+        # Add chart if provided
+        if fig:
+            try:
+                img_bytes = fig.to_image(format="png", width=1200, height=800, scale=2, engine="kaleido")
+                story.append(PageBreak())
+                story.append(Paragraph("Technical Chart Analysis", heading_style))
+                img_stream = io.BytesIO(img_bytes)
+                from reportlab.platypus import Image as ReportLabImage
+                img = ReportLabImage(img_stream, width=6*inch, height=4*inch)
+                story.append(img)
+            except:
+                story.append(Paragraph("Chart Analysis", heading_style))
+                story.append(Paragraph("Chart image could not be embedded. Please use the chart's built-in download feature.", styles['Normal']))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Get PDF bytes
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{symbol}_comprehensive_analysis_{timestamp}.pdf"
+        
+        return pdf_bytes, filename
+        
+    except Exception as e:
+        st.error(f"Error creating comprehensive PDF: {str(e)}")
+        return None, None
+
 def export_chart_as_pdf(fig, filename_prefix="chart", title="Stock Analysis Chart"):
     """
     Export a Plotly figure as PDF and return download data
@@ -232,7 +461,7 @@ def export_chart_as_pdf(fig, filename_prefix="chart", title="Stock Analysis Char
         st.error(f"Error exporting PDF: {str(e)}")
         return None, None
 
-def create_export_buttons(fig, chart_name, symbol=""):
+def create_export_buttons(fig, chart_name, symbol="", include_comprehensive=False, stock_data=None, ticker_info=None, ticker_obj=None, ma_50=None, ma_200=None, rsi=None, support_level=None, resistance_level=None, market="US"):
     """
     Create export buttons for PNG and PDF download
     
@@ -240,6 +469,11 @@ def create_export_buttons(fig, chart_name, symbol=""):
         fig: Plotly figure object
         chart_name (str): Name of the chart for filename
         symbol (str): Stock symbol for filename
+        include_comprehensive (bool): Include comprehensive analysis PDF option
+        stock_data, ticker_info, ticker_obj: Stock data for comprehensive analysis
+        ma_50, ma_200, rsi: Technical indicators
+        support_level, resistance_level: Support/resistance levels
+        market (str): Market type
     """
     # Prepare filename prefix
     filename_prefix = f"{symbol}_{chart_name}".replace(" ", "_").replace("/", "_") if symbol else chart_name.replace(" ", "_")
@@ -247,7 +481,10 @@ def create_export_buttons(fig, chart_name, symbol=""):
     # Show built-in chart download option first
     st.info("💡 **Tip:** You can also download charts directly using the camera icon (📷) in the chart's toolbar (top-right corner when you hover over the chart).")
     
-    col_png, col_pdf = st.columns(2)
+    if include_comprehensive:
+        col_png, col_pdf, col_comprehensive = st.columns(3)
+    else:
+        col_png, col_pdf = st.columns(2)
     
     with col_png:
         if st.button(f"📷 Export PNG", key=f"png_{chart_name}_{symbol}", help="Download chart as PNG image (may require browser setup)"):
@@ -262,17 +499,37 @@ def create_export_buttons(fig, chart_name, symbol=""):
                 )
     
     with col_pdf:
-        if st.button(f"📄 Export PDF", key=f"pdf_{chart_name}_{symbol}", help="Download chart as PDF document"):
+        if st.button(f"📄 Chart PDF", key=f"pdf_{chart_name}_{symbol}", help="Download chart as PDF document"):
             pdf_title = f"{symbol.upper()} - {chart_name}" if symbol else chart_name
             pdf_data, pdf_filename = export_chart_as_pdf(fig, filename_prefix, pdf_title)
             if pdf_data:
                 st.download_button(
-                    label="⬇️ Download PDF",
+                    label="⬇️ Download Chart PDF",
                     data=pdf_data,
                     file_name=pdf_filename,
                     mime="application/pdf",
                     key=f"download_pdf_{chart_name}_{symbol}"
                 )
+    
+    if include_comprehensive:
+        with col_comprehensive:
+            if st.button(f"📊 Full Analysis", key=f"comprehensive_{chart_name}_{symbol}", help="Download comprehensive analysis report with all metrics and scores"):
+                if all([stock_data is not None, ticker_info is not None, ticker_obj is not None]):
+                    with st.spinner('Generating comprehensive report...'):
+                        pdf_data, pdf_filename = export_comprehensive_analysis_pdf(
+                            symbol, stock_data, ticker_info, ticker_obj, ma_50, ma_200, 
+                            rsi, support_level, resistance_level, market, fig
+                        )
+                        if pdf_data:
+                            st.download_button(
+                                label="⬇️ Download Full Report",
+                                data=pdf_data,
+                                file_name=pdf_filename,
+                                mime="application/pdf",
+                                key=f"download_comprehensive_{chart_name}_{symbol}"
+                            )
+                else:
+                    st.error("Stock data not available for comprehensive analysis.")
 
 def create_shareable_insight(symbol, data, metrics, privacy_level="public", fibonacci_data=None):
     """
@@ -4832,25 +5089,28 @@ def yahoo_finance_tab():
                 cmf = calculate_chaikin_money_flow(data)
                 support_level, resistance_level = calculate_support_resistance(data)
                 
-                # Handle PDF export
+                # Handle comprehensive PDF export
                 if pdf_button:
                     with st.spinner('Generating comprehensive PDF report...'):
                         try:
-                            pdf_buffer = generate_comprehensive_pdf_report(
+                            # Generate comprehensive analysis PDF with all new metrics
+                            pdf_data, pdf_filename = export_comprehensive_analysis_pdf(
                                 symbol, data, ticker_info, ticker_obj, ma_50, ma_200, 
-                                macd_line, signal_line, histogram, rsi, cmf, 
-                                support_level, resistance_level, selected_period, market
+                                rsi, support_level, resistance_level, market
                             )
                             
-                            # Create download button
-                            st.download_button(
-                                label="📄 Download PDF Report",
-                                data=pdf_buffer,
-                                file_name=f"{symbol.upper()}_Analysis_Report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
-                                mime="application/pdf",
-                                type="primary"
-                            )
-                            st.success("PDF report generated successfully!")
+                            if pdf_data and pdf_filename:
+                                # Create download button
+                                st.download_button(
+                                    label="📄 Download Comprehensive Report",
+                                    data=pdf_data,
+                                    file_name=pdf_filename,
+                                    mime="application/pdf",
+                                    type="primary"
+                                )
+                                st.success("✅ Comprehensive PDF report generated successfully! The report includes all financial metrics, quality scores, % from CTP calculations, and technical analysis.")
+                            else:
+                                st.error("Failed to generate PDF report. Please try again.")
                             
                         except Exception as e:
                             st.error(f"Error generating PDF: {str(e)}")
