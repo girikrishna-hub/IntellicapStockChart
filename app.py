@@ -1275,12 +1275,16 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                     print(f"No post-earnings data found for {earnings_date}")
                     continue
                     
-                # Opening price the day after earnings
+                # Opening and closing prices the day after earnings
                 post_earnings_open = data[post_earnings_mask]['Open'].iloc[0]
+                post_earnings_close = data[post_earnings_mask]['Close'].iloc[0]
                 post_earnings_date = data[post_earnings_mask].index[0]
                 
                 # Calculate overnight change (from previous close to next open)
                 overnight_change = ((post_earnings_open - pre_earnings_price) / pre_earnings_price) * 100
+                
+                # Calculate next day change (from previous close to next day close)
+                next_day_change = ((post_earnings_close - pre_earnings_price) / pre_earnings_price) * 100
                 
                 # Find end of week price (5 trading days after earnings, or last available)
                 week_end_mask = data.index >= post_earnings_date
@@ -1300,14 +1304,16 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 # Determine quarter
                 quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
                 
-                print(f"Analysis successful for {earnings_date}: {overnight_change:+.2f}% overnight, {week_performance:+.2f}% week")
+                print(f"Analysis successful for {earnings_date}: {overnight_change:+.2f}% overnight, {next_day_change:+.2f}% next day, {week_performance:+.2f}% week")
                 
                 analysis_data.append({
                     'Quarter': quarter,
                     'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
                     'Pre-Earnings Close': format_currency(pre_earnings_price, market),
                     'Next Day Open': format_currency(post_earnings_open, market),
+                    'Next Day Close': format_currency(post_earnings_close, market),
                     'Overnight Change (%)': f"{overnight_change:+.2f}%",
+                    'Next Day Change (%)': f"{next_day_change:+.2f}%",
                     'End of Week Close': format_currency(week_end_price, market),
                     'Week Performance (%)': f"{week_performance:+.2f}%",
                     'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
