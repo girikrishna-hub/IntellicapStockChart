@@ -608,10 +608,11 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         
         try:
             # Get market intelligence data using the same logic as the Market Intelligence tab
-            from free_data_sources import get_comprehensive_analysis
+            import os
+            fmp_api_key = os.environ.get("FMP_API_KEY")
             
             # Fetch comprehensive market analysis
-            advanced_metrics = get_comprehensive_analysis(symbol, market)
+            advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
             
             if advanced_metrics and advanced_metrics != {}:
                 # Create market intelligence summary table
