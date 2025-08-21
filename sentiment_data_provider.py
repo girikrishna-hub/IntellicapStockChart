@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import time
 import os
 from typing import Dict, List, Optional, Any
+from free_data_sources import get_fallback_data, get_yahoo_institutional_data, get_yahoo_analyst_data
 
 class AdvancedFinancialDataProvider:
     """Comprehensive financial data provider integrating multiple sources"""
@@ -43,6 +44,16 @@ class AdvancedFinancialDataProvider:
         try:
             self._rate_limit(source)
             response = requests.get(url, params=params, timeout=10)
+            
+            # Log the actual response for debugging
+            if response.status_code == 403:
+                print(f"403 Forbidden for {source}: Check API key subscription level")
+                print(f"URL: {url}")
+                return None
+            elif response.status_code == 429:
+                print(f"429 Rate Limit for {source}: Too many requests")
+                return None
+            
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -230,7 +241,7 @@ class AdvancedFinancialDataProvider:
     
     def get_institutional_holdings(self, symbol: str, api_key: str = None) -> Dict[str, Any]:
         """
-        Get institutional holdings data (13F filings) from Financial Modeling Prep
+        Get institutional holdings data from multiple sources
         
         Args:
             symbol (str): Stock symbol
@@ -241,63 +252,69 @@ class AdvancedFinancialDataProvider:
         """
         if not api_key:
             return {
-                'institutional_ownership': 'API key required',
-                'top_holders': 'N/A',
-                'ownership_change': 'N/A'
+                'institutional_ownership': 'API key required for premium data',
+                'top_holders': 'Try free Finnhub alternative',
+                'ownership_change': 'N/A',
+                'total_institutions': 0
             }
         
         try:
+            # Try FMP first
             url = f"{self.fmp_base_url}/v3/institutional-holder/{symbol}"
             params = {'apikey': api_key}
             
             data = self._make_request(url, params, "fmp_institutional")
             
-            if not data or len(data) == 0:
-                return {
-                    'institutional_ownership': 'No data available',
-                    'top_holders': 'N/A',
-                    'ownership_change': 'N/A',
-                    'total_institutions': 0
-                }
-            
-            # Calculate total institutional ownership
-            total_shares = sum(holding.get('sharesNumber', 0) for holding in data)
-            total_value = sum(holding.get('marketValue', 0) for holding in data)
-            
-            # Get top 5 institutional holders
-            top_holders = []
-            for holding in data[:5]:
-                holder_name = holding.get('holder', 'Unknown')
-                shares = holding.get('sharesNumber', 0)
-                value = holding.get('marketValue', 0)
-                date_reported = holding.get('dateReported', '')
+            if data and len(data) > 0:
+                # FMP data available
+                total_shares = sum(holding.get('sharesNumber', 0) for holding in data)
+                total_value = sum(holding.get('marketValue', 0) for holding in data)
                 
-                top_holders.append({
-                    'name': holder_name,
-                    'shares': shares,
-                    'value': value,
-                    'date': date_reported
-                })
-            
-            return {
-                'institutional_ownership': f"{len(data)} institutions",
-                'top_holders': f"Top: {top_holders[0]['name'] if top_holders else 'N/A'}",
-                'ownership_change': f"${total_value:,.0f} total value",
-                'total_institutions': len(data),
-                'total_shares_held': total_shares,
-                'total_market_value': total_value,
-                'top_5_holders': top_holders,
-                'last_updated': datetime.now().strftime('%Y-%m-%d')
-            }
+                top_holders = []
+                for holding in data[:5]:
+                    holder_name = holding.get('holder', 'Unknown')
+                    shares = holding.get('sharesNumber', 0)
+                    value = holding.get('marketValue', 0)
+                    date_reported = holding.get('dateReported', '')
+                    
+                    top_holders.append({
+                        'name': holder_name,
+                        'shares': shares,
+                        'value': value,
+                        'date': date_reported
+                    })
+                
+                return {
+                    'institutional_ownership': f"{len(data)} institutions",
+                    'top_holders': f"Top: {top_holders[0]['name'] if top_holders else 'N/A'}",
+                    'ownership_change': f"${total_value:,.0f} total value",
+                    'total_institutions': len(data),
+                    'total_shares_held': total_shares,
+                    'total_market_value': total_value,
+                    'top_5_holders': top_holders,
+                    'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                    'source': 'FMP Premium'
+                }
+            else:
+                # Fallback to alternative sources or basic info
+                return {
+                    'institutional_ownership': 'Premium data unavailable',
+                    'top_holders': 'Upgrade FMP plan required',
+                    'ownership_change': '403 Forbidden - Check subscription',
+                    'total_institutions': 0,
+                    'source': 'Limited Access',
+                    'note': 'Institutional data requires FMP paid subscription'
+                }
             
         except Exception as e:
             print(f"Error fetching institutional holdings for {symbol}: {str(e)}")
             return {
-                'institutional_ownership': 'Error',
-                'top_holders': 'Error',
+                'institutional_ownership': 'API Error',
+                'top_holders': 'Check API key & subscription',
                 'ownership_change': 'Error',
                 'total_institutions': 0,
-                'error': str(e)
+                'error': str(e),
+                'source': 'Error'
             }
     
     def get_social_sentiment(self, symbol: str, api_key: str = None) -> Dict[str, Any]:
@@ -355,7 +372,7 @@ class AdvancedFinancialDataProvider:
     
     def get_comprehensive_analysis(self, symbol: str, api_key: str = None) -> Dict[str, Any]:
         """
-        Get comprehensive analysis combining all data sources
+        Get comprehensive analysis combining all data sources with fallback support
         
         Args:
             symbol (str): Stock symbol
@@ -366,11 +383,36 @@ class AdvancedFinancialDataProvider:
         """
         print(f"Gathering comprehensive analysis for {symbol}...")
         
-        # Gather all data sources
+        # Try premium data sources first
         analyst_data = self.get_analyst_ratings(symbol, api_key)
         insider_data = self.get_insider_activity(symbol, api_key)
         institutional_data = self.get_institutional_holdings(symbol, api_key)
         sentiment_data = self.get_social_sentiment(symbol, api_key)
+        
+        # Check if premium data failed and use fallbacks
+        fallback_used = False
+        
+        # If analyst data failed, try Yahoo Finance fallback
+        if analyst_data.get('error') or 'API key required' in str(analyst_data.get('rating', '')):
+            try:
+                yahoo_analyst = get_yahoo_analyst_data(symbol)
+                if not yahoo_analyst.get('error'):
+                    analyst_data = yahoo_analyst
+                    fallback_used = True
+            except:
+                pass
+        
+        # If institutional data failed, try Yahoo Finance fallback
+        if institutional_data.get('error') or 'Premium data unavailable' in str(institutional_data.get('institutional_ownership', '')):
+            try:
+                yahoo_institutional = get_yahoo_institutional_data(symbol)
+                if not yahoo_institutional.get('error'):
+                    institutional_data = yahoo_institutional
+                    fallback_used = True
+            except:
+                pass
+        
+        data_quality = 'Premium' if api_key and not fallback_used else 'Mixed (Premium + Free)' if fallback_used else 'Limited'
         
         return {
             'symbol': symbol,
@@ -379,7 +421,8 @@ class AdvancedFinancialDataProvider:
             'insider_activity': insider_data,
             'institutional_holdings': institutional_data,
             'social_sentiment': sentiment_data,
-            'data_quality': 'Premium' if api_key else 'Limited'
+            'data_quality': data_quality,
+            'fallback_used': fallback_used
         }
 
 # Global instance for use in the main app

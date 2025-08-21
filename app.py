@@ -6951,7 +6951,16 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
             - Advanced sentiment metrics
             """)
         else:
-            st.success("✅ Premium data sources enabled")
+            st.info("""
+            ⚙️ **API Key Detected**
+            
+            Note: Some endpoints require paid FMP subscription.
+            Free tier may have limited access to:
+            - Institutional holdings
+            - Advanced analyst data
+            - Social sentiment metrics
+            """)
+            st.caption("If you see 403 errors, consider upgrading your FMP plan")
     
     # Get advanced metrics
     try:
