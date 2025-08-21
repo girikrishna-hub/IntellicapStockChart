@@ -4814,6 +4814,26 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
         else:
             data_rows.append(['Free Cash Flow', 'N/A'])
     
+    # Add A-D Stock Ratings and 1-5 Investment Ratings
+    try:
+        # A-D Rating System
+        stock_ratings = calculate_stock_ratings(ticker_obj, ticker_info)
+        data_rows.append(['═══ RATINGS ═══', ''])
+        data_rows.append(['Value Rating', f"{stock_ratings['value']} - {stock_ratings['value_explanation'][:30]}..."])
+        data_rows.append(['Growth Rating', f"{stock_ratings['growth']} - {stock_ratings['growth_explanation'][:30]}..."])
+        data_rows.append(['Momentum Rating', f"{stock_ratings['momentum']} - {stock_ratings['momentum_explanation'][:30]}..."])
+        data_rows.append(['Profitability Rating', f"{stock_ratings['profitability']} - {stock_ratings['profitability_explanation'][:30]}..."])
+        
+        # 1-5 Scale Investment Ratings
+        investment_ratings = calculate_investment_ratings(ticker_info, ticker_obj)
+        data_rows.append(['Quantitative (1-5)', f"{investment_ratings['quantitative']}/5 - {investment_ratings['quantitative_explanation'][:40]}..."])
+        data_rows.append(['Author (1-5)', f"{investment_ratings['author']}/5 - {investment_ratings['author_explanation'][:40]}..."])
+        data_rows.append(['Sellside (1-5)', f"{investment_ratings['sellside']}/5 - {investment_ratings['sellside_explanation'][:40]}..."])
+        
+    except Exception as e:
+        print(f"Rating calculation error: {e}")
+        data_rows.append(['Ratings', 'Error calculating ratings'])
+    
     # Add earnings dates and analysis
     try:
         earnings_info = get_earnings_info(ticker_obj, ticker_info, symbol)
@@ -6292,6 +6312,38 @@ def gurufocus_tab():
                             book_value = info.get('bookValue')
                             st.metric("Revenue/Share", f"{currency}{revenue_per_share:.2f}" if revenue_per_share else "N/A")
                             st.metric("Book Value/Share", f"{currency}{book_value:.2f}" if book_value else "N/A")
+                        
+                        # Investment Ratings (1-5 Scale)
+                        st.markdown("### ⭐ Investment Ratings (1-5 Scale)")
+                        st.caption("Rating scale: 5 = Excellent/Most Desired, 4 = Good, 3 = Average, 2 = Below Average, 1 = Poor/Least Desired")
+                        
+                        # Calculate investment ratings
+                        ratings = calculate_investment_ratings(info, ticker_obj)
+                        
+                        rating_col1, rating_col2, rating_col3 = st.columns(3)
+                        
+                        with rating_col1:
+                            quant_rating = ratings['quantitative']
+                            color = get_rating_color(quant_rating)
+                            st.markdown(f"**Quantitative Rating**")
+                            st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{quant_rating}/5</div>", unsafe_allow_html=True)
+                            st.caption(ratings['quantitative_explanation'])
+                        
+                        with rating_col2:
+                            author_rating = ratings['author']
+                            color = get_rating_color(author_rating)
+                            st.markdown(f"**Author Rating**")
+                            st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{author_rating}/5</div>", unsafe_allow_html=True)
+                            st.caption(ratings['author_explanation'])
+                        
+                        with rating_col3:
+                            sellside_rating = ratings['sellside']
+                            color = get_rating_color(sellside_rating)
+                            st.markdown(f"**Sellside Rating**")
+                            st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{sellside_rating}/5</div>", unsafe_allow_html=True)
+                            st.caption(ratings['sellside_explanation'])
+                        
+                        st.divider()
                         
                         # Financial Strength
                         st.markdown("### 💪 Financial Strength")
@@ -7843,6 +7895,265 @@ def display_news_sentiment_analysis(symbol):
             st.error(f"Error loading sentiment analysis: {str(e)}")
             st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
 
+
+def calculate_investment_ratings(ticker_info, ticker_obj):
+    """
+    Calculate 1-5 scale investment ratings for Quantitative, Author, and Sellside analysis
+    
+    Args:
+        ticker_info: Stock information dictionary from yfinance
+        ticker_obj: yfinance Ticker object
+    
+    Returns:
+        dict: Ratings and explanations for each category (1-5 scale)
+    """
+    try:
+        # Initialize ratings
+        ratings = {
+            'quantitative': 3,
+            'author': 3, 
+            'sellside': 3,
+            'quantitative_explanation': '',
+            'author_explanation': '',
+            'sellside_explanation': ''
+        }
+        
+        # QUANTITATIVE RATING (Based on financial metrics and ratios)
+        quant_score = 0
+        quant_factors = []
+        
+        # P/E Ratio assessment
+        pe_ratio = ticker_info.get('trailingPE')
+        if pe_ratio:
+            if pe_ratio < 15:
+                quant_score += 1
+                quant_factors.append("Attractive P/E (<15)")
+            elif pe_ratio < 25:
+                quant_score += 0.5
+                quant_factors.append("Reasonable P/E (<25)")
+            else:
+                quant_factors.append("High P/E (>25)")
+        
+        # ROE assessment
+        roe = ticker_info.get('returnOnEquity')
+        if roe:
+            if roe > 0.15:  # 15%+
+                quant_score += 1
+                quant_factors.append("Strong ROE (>15%)")
+            elif roe > 0.10:  # 10-15%
+                quant_score += 0.5
+                quant_factors.append("Good ROE (>10%)")
+            else:
+                quant_factors.append("Weak ROE (<10%)")
+        
+        # Debt-to-Equity assessment
+        debt_to_equity = ticker_info.get('debtToEquity')
+        if debt_to_equity is not None:
+            if debt_to_equity < 50:
+                quant_score += 1
+                quant_factors.append("Low debt (<50)")
+            elif debt_to_equity < 100:
+                quant_score += 0.5
+                quant_factors.append("Moderate debt (<100)")
+            else:
+                quant_factors.append("High debt (>100)")
+        
+        # Profit margins
+        profit_margin = ticker_info.get('profitMargins')
+        if profit_margin:
+            if profit_margin > 0.15:  # 15%+
+                quant_score += 1
+                quant_factors.append("High margins (>15%)")
+            elif profit_margin > 0.05:  # 5-15%
+                quant_score += 0.5
+                quant_factors.append("Good margins (>5%)")
+            else:
+                quant_factors.append("Low margins (<5%)")
+        
+        # Revenue growth
+        revenue_growth = ticker_info.get('revenueGrowth')
+        if revenue_growth:
+            if revenue_growth > 0.15:  # 15%+
+                quant_score += 1
+                quant_factors.append("Strong growth (>15%)")
+            elif revenue_growth > 0.05:  # 5-15%
+                quant_score += 0.5
+                quant_factors.append("Positive growth (>5%)")
+            else:
+                quant_factors.append("Slow growth (<5%)")
+        
+        # Convert to 1-5 scale
+        if quant_score >= 4:
+            ratings['quantitative'] = 5
+        elif quant_score >= 3:
+            ratings['quantitative'] = 4
+        elif quant_score >= 2:
+            ratings['quantitative'] = 3
+        elif quant_score >= 1:
+            ratings['quantitative'] = 2
+        else:
+            ratings['quantitative'] = 1
+        
+        ratings['quantitative_explanation'] = f"Based on: {', '.join(quant_factors[:3])}" if quant_factors else "Limited quantitative data available"
+        
+        # AUTHOR RATING (Based on comprehensive analysis perspective)
+        author_score = 0
+        author_factors = []
+        
+        # Market cap consideration
+        market_cap = ticker_info.get('marketCap')
+        if market_cap:
+            if market_cap > 100e9:  # Large cap
+                author_score += 0.5
+                author_factors.append("Large-cap stability")
+            elif market_cap > 10e9:  # Mid cap
+                author_score += 1
+                author_factors.append("Mid-cap potential")
+            else:  # Small cap
+                author_score += 0.5
+                author_factors.append("Small-cap risk/reward")
+        
+        # Beta consideration
+        beta = ticker_info.get('beta')
+        if beta:
+            if 0.8 <= beta <= 1.2:
+                author_score += 1
+                author_factors.append("Moderate volatility")
+            elif beta < 0.8:
+                author_score += 0.5
+                author_factors.append("Low volatility")
+            else:
+                author_factors.append("High volatility")
+        
+        # Analyst coverage
+        analyst_count = ticker_info.get('numberOfAnalystOpinions')
+        if analyst_count and analyst_count > 10:
+            author_score += 0.5
+            author_factors.append("Good analyst coverage")
+        
+        # ESG and business quality indicators
+        # Current ratio (liquidity)
+        current_ratio = ticker_info.get('currentRatio')
+        if current_ratio and current_ratio > 1.5:
+            author_score += 0.5
+            author_factors.append("Strong liquidity")
+        
+        # Quick assessment
+        if ticker_info.get('recommendationKey') in ['buy', 'strong_buy']:
+            author_score += 1
+            author_factors.append("Positive recommendation")
+        
+        # Convert to 1-5 scale
+        if author_score >= 3:
+            ratings['author'] = 5
+        elif author_score >= 2.5:
+            ratings['author'] = 4
+        elif author_score >= 1.5:
+            ratings['author'] = 3
+        elif author_score >= 1:
+            ratings['author'] = 2
+        else:
+            ratings['author'] = 1
+        
+        ratings['author_explanation'] = f"Factors: {', '.join(author_factors[:3])}" if author_factors else "Based on overall business assessment"
+        
+        # SELLSIDE RATING (Based on market perception and analyst sentiment)
+        sellside_score = 0
+        sellside_factors = []
+        
+        # Analyst recommendation
+        recommendation = ticker_info.get('recommendationKey', '').lower()
+        if 'strong_buy' in recommendation:
+            sellside_score += 2
+            sellside_factors.append("Strong Buy consensus")
+        elif 'buy' in recommendation:
+            sellside_score += 1.5
+            sellside_factors.append("Buy recommendation")
+        elif 'hold' in recommendation:
+            sellside_score += 1
+            sellside_factors.append("Hold rating")
+        else:
+            sellside_factors.append("Mixed/Sell sentiment")
+        
+        # Target price vs current price
+        target_price = ticker_info.get('targetMeanPrice')
+        current_price = ticker_info.get('currentPrice')
+        if target_price and current_price:
+            upside = (target_price - current_price) / current_price
+            if upside > 0.20:  # 20%+ upside
+                sellside_score += 1
+                sellside_factors.append("High upside potential")
+            elif upside > 0.10:  # 10-20% upside
+                sellside_score += 0.5
+                sellside_factors.append("Moderate upside")
+            else:
+                sellside_factors.append("Limited upside")
+        
+        # Price momentum (52-week range)
+        current_price_alt = ticker_info.get('regularMarketPrice', current_price)
+        week_52_high = ticker_info.get('fiftyTwoWeekHigh')
+        week_52_low = ticker_info.get('fiftyTwoWeekLow')
+        
+        if current_price_alt and week_52_high and week_52_low:
+            price_position = (current_price_alt - week_52_low) / (week_52_high - week_52_low)
+            if price_position > 0.8:  # Near 52-week high
+                sellside_score += 0.5
+                sellside_factors.append("Strong momentum")
+            elif price_position < 0.3:  # Near 52-week low
+                sellside_score += 0.5
+                sellside_factors.append("Value opportunity")
+        
+        # Earnings surprise history (if available)
+        earnings_growth = ticker_info.get('earningsGrowth')
+        if earnings_growth and earnings_growth > 0.1:
+            sellside_score += 0.5
+            sellside_factors.append("Earnings growth")
+        
+        # Convert to 1-5 scale
+        if sellside_score >= 3.5:
+            ratings['sellside'] = 5
+        elif sellside_score >= 2.5:
+            ratings['sellside'] = 4
+        elif sellside_score >= 1.5:
+            ratings['sellside'] = 3
+        elif sellside_score >= 0.5:
+            ratings['sellside'] = 2
+        else:
+            ratings['sellside'] = 1
+        
+        ratings['sellside_explanation'] = f"Based on: {', '.join(sellside_factors[:3])}" if sellside_factors else "Limited analyst data available"
+        
+        return ratings
+        
+    except Exception as e:
+        # Return default ratings if calculation fails
+        return {
+            'quantitative': 3,
+            'author': 3,
+            'sellside': 3,
+            'quantitative_explanation': 'Calculation error - using default rating',
+            'author_explanation': 'Calculation error - using default rating', 
+            'sellside_explanation': 'Calculation error - using default rating'
+        }
+
+def get_rating_color(rating):
+    """
+    Get color for rating display (1-5 scale)
+    
+    Args:
+        rating (int): Rating from 1-5
+    
+    Returns:
+        str: CSS color value
+    """
+    color_map = {
+        5: "#22c55e",  # Green - Excellent
+        4: "#84cc16",  # Light Green - Good  
+        3: "#eab308",  # Yellow - Average
+        2: "#f97316",  # Orange - Below Average
+        1: "#ef4444"   # Red - Poor
+    }
+    return color_map.get(rating, "#6b7280")  # Default gray
 
 if __name__ == "__main__":
     main()
