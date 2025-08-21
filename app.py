@@ -7665,12 +7665,18 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
                 fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
                 fallback_metrics['Last Updated'] = f"Retrieved at {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
                 
+                st.write(f"Debug: fallback_metrics = {fallback_metrics}")
+                
                 if fallback_metrics:
                     advanced_metrics = fallback_metrics
                     st.success("✓ Successfully loaded market intelligence from Yahoo Finance")
+                else:
+                    st.warning("No fallback metrics were created")
                 
             except Exception as e:
                 st.error(f"Error fetching Yahoo Finance fallback data: {e}")
+                import traceback
+                st.error(f"Traceback: {traceback.format_exc()}")
                 advanced_metrics = {'Market Intelligence': 'Data temporarily unavailable due to API limits'}
         
         # Display metrics in a structured format
