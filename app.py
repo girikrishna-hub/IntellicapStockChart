@@ -6092,6 +6092,73 @@ def gurufocus_tab():
                                 st.metric("Analyst Rating", "N/A")
                             st.metric("# of Analysts", f"{number_of_analyst_opinions}" if number_of_analyst_opinions else "N/A")
                         
+                        # Stock Ratings section
+                        st.markdown("---")
+                        st.markdown("### 🎯 Stock Ratings (A-D Scale)")
+                        st.markdown("*Comprehensive performance ratings where A = Excellent, B = Good, C = Fair, D = Poor*")
+                        
+                        # Calculate and display ratings
+                        ratings = calculate_stock_ratings(ticker_obj, info)
+                        
+                        rating_col1, rating_col2, rating_col3, rating_col4 = st.columns(4)
+                        
+                        # Helper function to get rating color
+                        def get_rating_color(rating):
+                            if rating == 'A': return '🟢'
+                            elif rating == 'B': return '🟡'
+                            elif rating == 'C': return '🟠'
+                            elif rating == 'D': return '🔴'
+                            else: return '⚪'
+                        
+                        with rating_col1:
+                            rating_color = get_rating_color(ratings['Value'])
+                            st.metric(
+                                label="💰 Value",
+                                value=f"{rating_color} {ratings['Value']}",
+                                help="Based on P/E, P/B, and P/S ratios - lower ratios get higher grades"
+                            )
+                        
+                        with rating_col2:
+                            rating_color = get_rating_color(ratings['Growth'])
+                            st.metric(
+                                label="📈 Growth", 
+                                value=f"{rating_color} {ratings['Growth']}",
+                                help="Based on revenue and earnings growth - higher growth gets higher grades"
+                            )
+                        
+                        with rating_col3:
+                            rating_color = get_rating_color(ratings['Momentum'])
+                            st.metric(
+                                label="🚀 Momentum",
+                                value=f"{rating_color} {ratings['Momentum']}",
+                                help="Based on 1-month, 3-month, and 6-month price performance"
+                            )
+                        
+                        with rating_col4:
+                            rating_color = get_rating_color(ratings['Profitability'])
+                            st.metric(
+                                label="💵 Profitability",
+                                value=f"{rating_color} {ratings['Profitability']}",
+                                help="Based on ROE, ROA, and profit margins - higher returns get higher grades"
+                            )
+                        
+                        # Rating guide
+                        with st.expander("📖 Rating Scale Guide"):
+                            st.markdown("""
+                            **A-D Rating Scale:**
+                            - **🟢 A (Excellent)**: Top 25% - Outstanding performance in this category
+                            - **🟡 B (Good)**: 25-50% - Above average performance
+                            - **🟠 C (Fair)**: 50-75% - Average performance, room for improvement
+                            - **🔴 D (Poor)**: Bottom 25% - Below average, needs attention
+                            - **⚪ N/A**: Insufficient data available for rating
+                            
+                            **Category Explanations:**
+                            - **Value**: Lower P/E, P/B, P/S ratios indicate better value
+                            - **Growth**: Higher revenue and earnings growth rates
+                            - **Momentum**: Recent price performance across multiple timeframes
+                            - **Profitability**: Return on equity, assets, and profit margins
+                            """)
+
                         # Financial Quality Scores Section
                         st.markdown("---")
                         st.markdown("### 📊 Financial Quality Scores")
