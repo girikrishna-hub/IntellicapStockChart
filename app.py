@@ -348,6 +348,40 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         ]))
         story.append(ratings_table)
         story.append(Spacer(1, 15))
+        
+        # Investment Ratings (1-5 Scale)
+        story.append(Paragraph("Investment Ratings (1-5 Scale, 5 = Most Desired)", heading_style))
+        
+        # Calculate 1-5 scale ratings
+        print("PDF DEBUG: Calculating 1-5 scale investment ratings...")
+        quantitative_rating, quantitative_explanation = calculate_quantitative_rating(ticker_obj, ticker_info)
+        author_rating, author_explanation = calculate_author_rating(ticker_obj, ticker_info)
+        sellside_rating, sellside_explanation = calculate_sellside_rating(ticker_obj, ticker_info)
+        print(f"PDF DEBUG: 1-5 ratings calculated - Quantitative: {quantitative_rating}, Author: {author_rating}, Sellside: {sellside_rating}")
+        
+        # Create 1-5 scale ratings table
+        scale_ratings_data = [
+            ["Rating Type", "Score", "Description"],
+            ["Quantitative", f"{quantitative_rating}/5", "Data-driven financial metrics and ratios"],
+            ["Author", f"{author_rating}/5", "Comprehensive business analysis and fundamentals"],
+            ["Sellside", f"{sellside_rating}/5", "Analyst sentiment and market perception"]
+        ]
+        
+        scale_ratings_table = Table(scale_ratings_data, colWidths=[2*inch, 1*inch, 3*inch])
+        scale_ratings_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('FONTSIZE', (0,1), (-1,-1), 9),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('VALIGN', (0,0), (-1,-1), 'TOP')
+        ]))
+        story.append(scale_ratings_table)
+        story.append(Spacer(1, 15))
 
         # Financial Quality Scores
         story.append(Paragraph("Financial Quality Scores", heading_style))
