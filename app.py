@@ -2175,6 +2175,171 @@ def display_profitability_metrics(info):
             help="Forward Earnings per Share"
         )
 
+def calculate_stock_ratings(ticker_obj, info):
+    """
+    Calculate A-D ratings for Value, Growth, Momentum, and Profitability
+    A = Excellent (Top 25%), B = Good (25-50%), C = Fair (50-75%), D = Poor (Bottom 25%)
+    """
+    ratings = {
+        'Value': 'N/A',
+        'Growth': 'N/A', 
+        'Momentum': 'N/A',
+        'Profitability': 'N/A'
+    }
+    
+    try:
+        # VALUE METRICS
+        pe_ratio = info.get('trailingPE', None)
+        pb_ratio = info.get('priceToBook', None)
+        ps_ratio = info.get('priceToSalesTrailing12Months', None)
+        
+        value_score = 0
+        value_count = 0
+        
+        # PE Ratio scoring (lower is better)
+        if pe_ratio and pe_ratio > 0:
+            if pe_ratio <= 15: value_score += 4
+            elif pe_ratio <= 20: value_score += 3
+            elif pe_ratio <= 30: value_score += 2
+            else: value_score += 1
+            value_count += 1
+            
+        # PB Ratio scoring (lower is better)
+        if pb_ratio and pb_ratio > 0:
+            if pb_ratio <= 1.5: value_score += 4
+            elif pb_ratio <= 3: value_score += 3
+            elif pb_ratio <= 5: value_score += 2
+            else: value_score += 1
+            value_count += 1
+            
+        # PS Ratio scoring (lower is better)
+        if ps_ratio and ps_ratio > 0:
+            if ps_ratio <= 2: value_score += 4
+            elif ps_ratio <= 4: value_score += 3
+            elif ps_ratio <= 8: value_score += 2
+            else: value_score += 1
+            value_count += 1
+            
+        if value_count > 0:
+            avg_value = value_score / value_count
+            if avg_value >= 3.5: ratings['Value'] = 'A'
+            elif avg_value >= 2.5: ratings['Value'] = 'B'
+            elif avg_value >= 1.5: ratings['Value'] = 'C'
+            else: ratings['Value'] = 'D'
+        
+        # GROWTH METRICS
+        revenue_growth = info.get('revenueGrowth', None)
+        earnings_growth = info.get('earningsGrowth', None)
+        
+        growth_score = 0
+        growth_count = 0
+        
+        # Revenue Growth scoring
+        if revenue_growth is not None:
+            if revenue_growth >= 0.20: growth_score += 4  # 20%+ growth
+            elif revenue_growth >= 0.10: growth_score += 3  # 10-20% growth
+            elif revenue_growth >= 0.05: growth_score += 2  # 5-10% growth
+            else: growth_score += 1  # <5% growth
+            growth_count += 1
+            
+        # Earnings Growth scoring
+        if earnings_growth is not None:
+            if earnings_growth >= 0.25: growth_score += 4  # 25%+ growth
+            elif earnings_growth >= 0.15: growth_score += 3  # 15-25% growth
+            elif earnings_growth >= 0.05: growth_score += 2  # 5-15% growth
+            else: growth_score += 1  # <5% growth
+            growth_count += 1
+            
+        if growth_count > 0:
+            avg_growth = growth_score / growth_count
+            if avg_growth >= 3.5: ratings['Growth'] = 'A'
+            elif avg_growth >= 2.5: ratings['Growth'] = 'B'
+            elif avg_growth >= 1.5: ratings['Growth'] = 'C'
+            else: ratings['Growth'] = 'D'
+        
+        # MOMENTUM METRICS
+        try:
+            # Get price history for momentum calculation
+            hist = ticker_obj.history(period='1y')
+            if not hist.empty:
+                current_price = hist['Close'].iloc[-1]
+                
+                # 1-month momentum
+                month_ago_price = hist['Close'].iloc[-22] if len(hist) >= 22 else hist['Close'].iloc[0]
+                month_momentum = (current_price - month_ago_price) / month_ago_price
+                
+                # 3-month momentum  
+                quarter_ago_price = hist['Close'].iloc[-66] if len(hist) >= 66 else hist['Close'].iloc[0]
+                quarter_momentum = (current_price - quarter_ago_price) / quarter_ago_price
+                
+                # 6-month momentum
+                half_year_price = hist['Close'].iloc[-132] if len(hist) >= 132 else hist['Close'].iloc[0]
+                half_year_momentum = (current_price - half_year_price) / half_year_price
+                
+                momentum_score = 0
+                momentum_count = 0
+                
+                # Score each momentum period
+                for momentum in [month_momentum, quarter_momentum, half_year_momentum]:
+                    if momentum >= 0.15: momentum_score += 4  # 15%+ gain
+                    elif momentum >= 0.05: momentum_score += 3  # 5-15% gain
+                    elif momentum >= -0.05: momentum_score += 2  # -5% to 5%
+                    else: momentum_score += 1  # >5% loss
+                    momentum_count += 1
+                    
+                if momentum_count > 0:
+                    avg_momentum = momentum_score / momentum_count
+                    if avg_momentum >= 3.5: ratings['Momentum'] = 'A'
+                    elif avg_momentum >= 2.5: ratings['Momentum'] = 'B'
+                    elif avg_momentum >= 1.5: ratings['Momentum'] = 'C'
+                    else: ratings['Momentum'] = 'D'
+        except:
+            ratings['Momentum'] = 'N/A'
+        
+        # PROFITABILITY METRICS
+        roe = info.get('returnOnEquity', None)
+        roa = info.get('returnOnAssets', None)
+        profit_margin = info.get('profitMargins', None)
+        
+        profit_score = 0
+        profit_count = 0
+        
+        # ROE scoring
+        if roe is not None:
+            if roe >= 0.20: profit_score += 4  # 20%+ ROE
+            elif roe >= 0.15: profit_score += 3  # 15-20% ROE
+            elif roe >= 0.10: profit_score += 2  # 10-15% ROE
+            else: profit_score += 1  # <10% ROE
+            profit_count += 1
+            
+        # ROA scoring
+        if roa is not None:
+            if roa >= 0.10: profit_score += 4  # 10%+ ROA
+            elif roa >= 0.07: profit_score += 3  # 7-10% ROA
+            elif roa >= 0.04: profit_score += 2  # 4-7% ROA
+            else: profit_score += 1  # <4% ROA
+            profit_count += 1
+            
+        # Profit Margin scoring
+        if profit_margin is not None:
+            if profit_margin >= 0.20: profit_score += 4  # 20%+ margin
+            elif profit_margin >= 0.10: profit_score += 3  # 10-20% margin
+            elif profit_margin >= 0.05: profit_score += 2  # 5-10% margin
+            else: profit_score += 1  # <5% margin
+            profit_count += 1
+            
+        if profit_count > 0:
+            avg_profit = profit_score / profit_count
+            if avg_profit >= 3.5: ratings['Profitability'] = 'A'
+            elif avg_profit >= 2.5: ratings['Profitability'] = 'B'
+            elif avg_profit >= 1.5: ratings['Profitability'] = 'C'
+            else: ratings['Profitability'] = 'D'
+            
+    except Exception as e:
+        print(f"Error calculating stock ratings: {str(e)}")
+    
+    return ratings
+
 def calculate_piotroski_score(ticker_obj, info):
     """Calculate Piotroski Score (1-9 scale where 9 is best)"""
     try:
@@ -2512,6 +2677,73 @@ def display_financial_strength_metrics(info, ticker_obj):
             help="Stock volatility relative to market"
         )
     
+    # Stock Ratings section
+    st.markdown("---")
+    st.markdown("### 🎯 Stock Ratings (A-D Scale)")
+    st.markdown("*Comprehensive performance ratings where A = Excellent, B = Good, C = Fair, D = Poor*")
+    
+    # Calculate and display ratings
+    ratings = calculate_stock_ratings(ticker_obj, info)
+    
+    col_rating1, col_rating2, col_rating3, col_rating4 = st.columns(4)
+    
+    # Helper function to get rating color
+    def get_rating_color(rating):
+        if rating == 'A': return '🟢'
+        elif rating == 'B': return '🟡'
+        elif rating == 'C': return '🟠'
+        elif rating == 'D': return '🔴'
+        else: return '⚪'
+    
+    with col_rating1:
+        rating_color = get_rating_color(ratings['Value'])
+        st.metric(
+            label="💰 Value",
+            value=f"{rating_color} {ratings['Value']}",
+            help="Based on P/E, P/B, and P/S ratios - lower ratios get higher grades"
+        )
+    
+    with col_rating2:
+        rating_color = get_rating_color(ratings['Growth'])
+        st.metric(
+            label="📈 Growth", 
+            value=f"{rating_color} {ratings['Growth']}",
+            help="Based on revenue and earnings growth - higher growth gets higher grades"
+        )
+    
+    with col_rating3:
+        rating_color = get_rating_color(ratings['Momentum'])
+        st.metric(
+            label="🚀 Momentum",
+            value=f"{rating_color} {ratings['Momentum']}",
+            help="Based on 1-month, 3-month, and 6-month price performance"
+        )
+    
+    with col_rating4:
+        rating_color = get_rating_color(ratings['Profitability'])
+        st.metric(
+            label="💵 Profitability",
+            value=f"{rating_color} {ratings['Profitability']}",
+            help="Based on ROE, ROA, and profit margins - higher returns get higher grades"
+        )
+    
+    # Rating guide
+    with st.expander("📖 Rating Scale Guide"):
+        st.markdown("""
+        **A-D Rating Scale:**
+        - **🟢 A (Excellent)**: Top 25% - Outstanding performance in this category
+        - **🟡 B (Good)**: 25-50% - Above average performance
+        - **🟠 C (Fair)**: 50-75% - Average performance, room for improvement
+        - **🔴 D (Poor)**: Bottom 25% - Below average, needs attention
+        - **⚪ N/A**: Insufficient data available for rating
+        
+        **Category Explanations:**
+        - **Value**: Lower P/E, P/B, P/S ratios indicate better value
+        - **Growth**: Higher revenue and earnings growth rates
+        - **Momentum**: Recent price performance across multiple timeframes
+        - **Profitability**: Return on equity, assets, and profit margins
+        """)
+
     # Financial Scoring Metrics Section
     st.markdown("---")
     st.markdown("### 📊 Financial Quality Scores")
