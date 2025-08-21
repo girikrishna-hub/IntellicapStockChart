@@ -603,6 +603,107 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             story.append(Paragraph(f"Earnings analysis error: {str(e)}", styles['Normal']))
             story.append(Spacer(1, 15))
 
+        # Market Intelligence Section
+        story.append(Paragraph("Market Intelligence", heading_style))
+        
+        try:
+            # Get market intelligence data using the same logic as the Market Intelligence tab
+            from free_data_sources import get_comprehensive_analysis
+            
+            # Fetch comprehensive market analysis
+            advanced_metrics = get_comprehensive_analysis(symbol, market)
+            
+            if advanced_metrics and advanced_metrics != {}:
+                # Create market intelligence summary table
+                intel_summary = [
+                    ["Category", "Information"]
+                ]
+                
+                # Add analyst information
+                if advanced_metrics.get('Analyst Rating', 'N/A') != 'N/A':
+                    intel_summary.append(["Analyst Rating", advanced_metrics.get('Analyst Rating')])
+                
+                if advanced_metrics.get('Price Target', 'N/A') != 'N/A':
+                    intel_summary.append(["Price Target", advanced_metrics.get('Price Target')])
+                
+                # Add insider activity
+                if advanced_metrics.get('Insider Activity', 'N/A') != 'N/A':
+                    intel_summary.append(["Insider Activity", advanced_metrics.get('Insider Activity')])
+                
+                # Add institutional ownership
+                if advanced_metrics.get('Institutional Ownership', 'N/A') != 'N/A':
+                    intel_summary.append(["Institutional Ownership", advanced_metrics.get('Institutional Ownership')])
+                
+                # Add social sentiment
+                if advanced_metrics.get('Social Sentiment', 'N/A') != 'N/A':
+                    intel_summary.append(["Social Sentiment", advanced_metrics.get('Social Sentiment')])
+                
+                # Add last updated if available
+                if advanced_metrics.get('Last Updated'):
+                    intel_summary.append(["Last Updated", advanced_metrics.get('Last Updated')])
+                
+                # Create and style market intelligence table
+                if len(intel_summary) > 1:  # Only create table if we have data
+                    intel_table = Table(intel_summary, colWidths=[2*inch, 4*inch])
+                    intel_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                        ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+                        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0,0), (-1,0), 10),
+                        ('FONTSIZE', (0,1), (-1,-1), 9),
+                        ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                        ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+                        ('GRID', (0,0), (-1,-1), 1, colors.black),
+                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+                    ]))
+                    story.append(intel_table)
+                    story.append(Spacer(1, 10))
+                    
+                    # Add detailed analysis if available
+                    if 'raw_data' in advanced_metrics:
+                        raw_data = advanced_metrics['raw_data']
+                        
+                        # Analyst details
+                        analyst_data = raw_data.get('analyst_ratings', {})
+                        if analyst_data and 'error' not in analyst_data and analyst_data.get('rating'):
+                            story.append(Paragraph("Analyst Details:", styles['Normal']))
+                            story.append(Paragraph(f"• Rating: {analyst_data.get('rating', 'N/A')}", styles['Normal']))
+                            story.append(Paragraph(f"• Recommendation: {analyst_data.get('recommendation', 'N/A')}", styles['Normal']))
+                            story.append(Spacer(1, 8))
+                        
+                        # Insider trading details
+                        insider_data = raw_data.get('insider_trading', {})
+                        if insider_data and 'error' not in insider_data:
+                            story.append(Paragraph("Recent Insider Activity:", styles['Normal']))
+                            if isinstance(insider_data, list) and len(insider_data) > 0:
+                                for i, trade in enumerate(insider_data[:3]):  # Show top 3 trades
+                                    trade_info = f"• {trade.get('name', 'N/A')}: {trade.get('transaction', 'N/A')} ({trade.get('date', 'N/A')})"
+                                    story.append(Paragraph(trade_info, styles['Normal']))
+                            story.append(Spacer(1, 8))
+                        
+                        # Institutional holdings
+                        institutional_data = raw_data.get('institutional_holdings', {})
+                        if institutional_data and 'error' not in institutional_data:
+                            story.append(Paragraph("Top Institutional Holders:", styles['Normal']))
+                            if isinstance(institutional_data, list) and len(institutional_data) > 0:
+                                for i, holder in enumerate(institutional_data[:3]):  # Show top 3 holders
+                                    holder_info = f"• {holder.get('holder', 'N/A')}: {holder.get('shares', 'N/A')} shares"
+                                    story.append(Paragraph(holder_info, styles['Normal']))
+                            story.append(Spacer(1, 8))
+                    
+                else:
+                    story.append(Paragraph("Limited market intelligence data available", styles['Normal']))
+                    story.append(Spacer(1, 15))
+                    
+            else:
+                story.append(Paragraph("Market intelligence data not available", styles['Normal']))
+                story.append(Spacer(1, 15))
+                
+        except Exception as e:
+            story.append(Paragraph(f"Market intelligence error: {str(e)}", styles['Normal']))
+            story.append(Spacer(1, 15))
+
         # Add comprehensive technical analysis charts using matplotlib
         story.append(PageBreak())
         story.append(Paragraph("Technical Charts", heading_style))
