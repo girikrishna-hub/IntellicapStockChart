@@ -438,19 +438,42 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     ["Quarter", "Earnings Date", "Overnight %", "Next Day %", "Week %"]
                 ]
                 
-                # Add all available quarters (up to 8)
+                # Add all available quarters (up to 8) - map the actual column names
                 for i, (idx, row) in enumerate(earnings_analysis.head(8).iterrows()):
-                    quarter_info = f"{row['Year']}-Q{row['Quarter']}"
-                    earnings_date = row['Earnings_Date'].strftime('%Y-%m-%d') if pd.notnull(row['Earnings_Date']) else 'N/A'
-                    overnight_pct = f"{row['Overnight_%']:.2f}%" if pd.notnull(row['Overnight_%']) else 'N/A'
-                    nextday_pct = f"{row['NextDay_%']:.2f}%" if pd.notnull(row['NextDay_%']) else 'N/A'
-                    week_pct = f"{row['Week_%']:.2f}%" if pd.notnull(row['Week_%']) else 'N/A'
-                    earnings_summary.append([quarter_info, earnings_date, overnight_pct, nextday_pct, week_pct])
+                    quarter_info = row['Quarter']  # Quarter column already formatted as "Q1 2024"
+                    earnings_date = row['Earnings Date'] if pd.notnull(row['Earnings Date']) else 'N/A'
+                    
+                    # Extract percentage values from formatted strings
+                    overnight_str = row['Overnight Change (%)']
+                    nextday_str = row['Next Day Change (%)'] 
+                    week_str = row['Week Performance (%)']
+                    
+                    earnings_summary.append([quarter_info, earnings_date, overnight_str, nextday_str, week_str])
                 
-                # Calculate average performance
-                avg_overnight = earnings_analysis['Overnight_%'].mean()
-                avg_nextday = earnings_analysis['NextDay_%'].mean()
-                avg_week = earnings_analysis['Week_%'].mean()
+                # Calculate average performance - extract numbers from percentage strings
+                overnight_values = []
+                nextday_values = []
+                week_values = []
+                
+                for idx, row in earnings_analysis.iterrows():
+                    try:
+                        # Extract numeric values from formatted percentage strings like "+2.50%"
+                        overnight_val = float(row['Overnight Change (%)'].replace('%', '').replace('+', ''))
+                        nextday_val = float(row['Next Day Change (%)'].replace('%', '').replace('+', ''))
+                        week_val = float(row['Week Performance (%)'].replace('%', '').replace('+', ''))
+                        
+                        overnight_values.append(overnight_val)
+                        nextday_values.append(nextday_val)
+                        week_values.append(week_val)
+                    except (ValueError, AttributeError):
+                        continue
+                
+                if overnight_values:
+                    avg_overnight = sum(overnight_values) / len(overnight_values)
+                    avg_nextday = sum(nextday_values) / len(nextday_values)
+                    avg_week = sum(week_values) / len(week_values)
+                else:
+                    avg_overnight = avg_nextday = avg_week = 0
                 
                 earnings_summary.append([
                     "AVERAGE", 
