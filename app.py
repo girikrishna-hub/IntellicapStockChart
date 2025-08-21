@@ -7713,7 +7713,14 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
         
         # Detailed view toggle
         with st.expander("🔍 Detailed Analysis"):
+            # Show data source information
+            data_source = advanced_metrics.get('Data Source', 'Unknown')
+            st.markdown(f"**Data Source:** {data_source}")
+            st.markdown("---")
+            
+            # Display details based on data source
             if 'raw_data' in advanced_metrics:
+                # FMP data with raw_data structure
                 raw_data = advanced_metrics['raw_data']
                 
                 # Analyst details
@@ -7749,6 +7756,37 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
                         st.markdown("**Top 5 Institutional Holders:**")
                         for i, holder in enumerate(top_holders[:3], 1):
                             st.write(f"{i}. {holder.get('name', 'Unknown')} - ${holder.get('value', 0):,.0f}")
+            
+            elif data_source == "Yahoo Finance (Free)":
+                # Yahoo Finance fallback data - show available summary information
+                st.markdown("**Yahoo Finance Data Summary:**")
+                
+                col_yf1, col_yf2 = st.columns(2)
+                
+                with col_yf1:
+                    st.markdown("**Analyst Information:**")
+                    st.write(f"• Rating: {advanced_metrics.get('Analyst Rating', 'N/A')}")
+                    st.write(f"• Price Target: {advanced_metrics.get('Price Target', 'N/A')}")
+                    if advanced_metrics.get('Analyst Coverage'):
+                        st.write(f"• Coverage: {advanced_metrics.get('Analyst Coverage')}")
+                
+                with col_yf2:
+                    st.markdown("**Institutional Information:**")
+                    st.write(f"• Ownership: {advanced_metrics.get('Institutional Ownership', 'N/A')}")
+                    if advanced_metrics.get('Top Institutional Holder'):
+                        st.write(f"• Top Holder: {advanced_metrics.get('Top Institutional Holder')}")
+                
+                st.markdown("**Data Limitations:**")
+                st.caption("• Yahoo Finance provides basic institutional and analyst data")
+                st.caption("• For detailed insider trading data, premium APIs are required")
+                st.caption("• Social sentiment requires specialized data providers")
+            
+            else:
+                # Fallback for other data sources
+                st.markdown("**Available Metrics:**")
+                for key, value in advanced_metrics.items():
+                    if key not in ['Data Source', 'Last Updated', 'raw_data'] and value != 'N/A':
+                        st.write(f"• {key}: {value}")
         
     except Exception as e:
         st.error(f"Error loading advanced metrics: {str(e)}")
