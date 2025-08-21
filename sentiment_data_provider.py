@@ -16,6 +16,12 @@ import time
 import os
 from typing import Dict, List, Optional, Any
 import yfinance as yf
+try:
+    from finvizfinance.insider import Insider
+    FINVIZ_AVAILABLE = True
+except ImportError:
+    FINVIZ_AVAILABLE = False
+    print("finvizfinance not available - insider data will be limited")
 
 class AdvancedFinancialDataProvider:
     """Comprehensive financial data provider integrating multiple sources"""
@@ -231,13 +237,141 @@ class AdvancedFinancialDataProvider:
             
         except Exception as e:
             print(f"Error fetching insider activity for {symbol}: {str(e)}")
-            return {
-                'recent_activity': 'Error',
-                'insider_summary': 'Error',
-                'total_transactions': 0,
-                'net_insider_activity': 'Error',
-                'error': str(e)
-            }
+            # Try Yahoo Finance fallback for insider data
+            print(f"FMP insider data failed, trying Yahoo Finance for {symbol}...")
+            try:
+                ticker = yf.Ticker(symbol)
+                insider_transactions = ticker.insider_transactions
+                
+                if insider_transactions is not None and not insider_transactions.empty:
+                    # Process Yahoo Finance insider data
+                    recent_transactions = []
+                    total_purchases = 0
+                    total_sales = 0
+                    purchase_value = 0
+                    sale_value = 0
+                    
+                    for idx, transaction in insider_transactions.head(10).iterrows():
+                        trans_type = str(transaction.get('Transaction', '')).upper()
+                        shares = transaction.get('Shares', 0)
+                        value = transaction.get('Value', 0)
+                        
+                        recent_transactions.append({
+                            'date': transaction.get('Start Date', ''),
+                            'insider': transaction.get('Insider', ''),
+                            'title': transaction.get('Title', ''),
+                            'transaction_type': trans_type,
+                            'shares': shares,
+                            'value': value
+                        })
+                        
+                        if 'BUY' in trans_type or 'PURCHASE' in trans_type:
+                            total_purchases += 1
+                            purchase_value += value if value else 0
+                        elif 'SELL' in trans_type or 'SALE' in trans_type:
+                            total_sales += 1
+                            sale_value += value if value else 0
+                    
+                    # Calculate net activity
+                    net_value = purchase_value - sale_value
+                    if net_value > 0:
+                        net_activity = f"Net buying: ${net_value:,.0f}"
+                    elif net_value < 0:
+                        net_activity = f"Net selling: ${abs(net_value):,.0f}"
+                    else:
+                        net_activity = "Neutral"
+                    
+                    return {
+                        'recent_activity': f"{len(recent_transactions)} transactions found",
+                        'insider_summary': f"{total_purchases} buys, {total_sales} sells",
+                        'total_transactions': len(insider_transactions),
+                        'net_insider_activity': net_activity,
+                        'recent_transactions': recent_transactions[:5],
+                        'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                        'source': 'Yahoo Finance (Free)'
+                    }
+                else:
+                    return {
+                        'recent_activity': 'No Yahoo insider data',
+                        'insider_summary': 'Limited data available',
+                        'total_transactions': 0,
+                        'net_insider_activity': 'N/A',
+                        'source': 'Yahoo Finance (No Data)'
+                    }
+                    
+            except Exception as yahoo_error:
+                print(f"Yahoo Finance insider fallback failed: {str(yahoo_error)}")
+                
+                # Try finvizfinance as final fallback
+                if FINVIZ_AVAILABLE:
+                    print(f"Trying finvizfinance for {symbol} insider data...")
+                    try:
+                        # Get latest insider trading data from finviz
+                        finsider = Insider(option='latest')
+                        insider_df = finsider.get_insider()
+                        
+                        if insider_df is not None and not insider_df.empty:
+                            # Filter for the specific symbol
+                            symbol_data = insider_df[insider_df['Ticker'] == symbol.upper()]
+                            
+                            if not symbol_data.empty:
+                                total_transactions = len(symbol_data)
+                                buys = len(symbol_data[symbol_data['Transaction'].str.contains('Buy|Purchase', case=False, na=False)])
+                                sells = len(symbol_data[symbol_data['Transaction'].str.contains('Sale|Sell', case=False, na=False)])
+                                
+                                # Get recent transactions summary
+                                recent_activity = f"{total_transactions} recent transactions"
+                                insider_summary = f"{buys} buys, {sells} sells"
+                                
+                                # Calculate net activity indication
+                                if buys > sells:
+                                    net_activity = "Net buying activity"
+                                elif sells > buys:
+                                    net_activity = "Net selling activity"
+                                else:
+                                    net_activity = "Neutral activity"
+                                
+                                return {
+                                    'recent_activity': recent_activity,
+                                    'insider_summary': insider_summary,
+                                    'total_transactions': total_transactions,
+                                    'net_insider_activity': net_activity,
+                                    'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                                    'source': 'Finviz (Free)',
+                                    'note': 'Limited recent data from Finviz'
+                                }
+                            else:
+                                return {
+                                    'recent_activity': 'No recent insider data',
+                                    'insider_summary': 'No data in Finviz',
+                                    'total_transactions': 0,
+                                    'net_insider_activity': 'N/A',
+                                    'source': 'Finviz (No Data)'
+                                }
+                        else:
+                            return {
+                                'recent_activity': 'Finviz data unavailable',
+                                'insider_summary': 'Service error',
+                                'total_transactions': 0,
+                                'net_insider_activity': 'N/A',
+                                'source': 'Finviz (Error)'
+                            }
+                            
+                    except Exception as finviz_error:
+                        print(f"Finviz insider fallback also failed: {str(finviz_error)}")
+                        pass
+                
+                # All sources failed
+                return {
+                    'recent_activity': 'All sources failed',
+                    'insider_summary': 'FMP: Premium required, Free sources: Limited',
+                    'total_transactions': 0,
+                    'net_insider_activity': 'No data available',
+                    'error': str(e),
+                    'yahoo_error': str(yahoo_error),
+                    'source': 'All Failed',
+                    'note': 'Upgrade FMP subscription for detailed insider data'
+                }
     
     def get_institutional_holdings(self, symbol: str, api_key: str = None) -> Dict[str, Any]:
         """

@@ -527,6 +527,20 @@ wheels = [
 ]
 
 [[package]]
+name = "finvizfinance"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beautifulsoup4" },
+    { name = "lxml" },
+    { name = "pandas" },
+    { name = "requests" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f5/7e/87095950497dd09575892c325c670e75e9cae099c13d554e49af6c2517ba/finvizfinance-1.1.1-py3-none-any.whl", hash = "sha256:27d197b457d4a0673b39a8d21d2d7dd6e01b3e011d2aac3714865ac4ea64cb07", size = 44337 },
+]
+
+[[package]]
 name = "fonttools"
 version = "4.59.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2028,6 +2042,7 @@ dependencies = [
     { name = "alpha-vantage" },
     { name = "anthropic" },
     { name = "feedparser" },
+    { name = "finvizfinance" },
     { name = "google-genai" },
     { name = "kaleido" },
     { name = "matplotlib" },
@@ -2052,6 +2067,7 @@ requires-dist = [
     { name = "alpha-vantage", specifier = ">=3.0.0" },
     { name = "anthropic", specifier = ">=0.64.0" },
     { name = "feedparser", specifier = ">=6.0.11" },
+    { name = "finvizfinance", specifier = ">=1.1.1" },
     { name = "google-genai", specifier = ">=1.30.0" },
     { name = "kaleido", specifier = ">=1.0.0" },
     { name = "matplotlib", specifier = ">=3.10.5" },
