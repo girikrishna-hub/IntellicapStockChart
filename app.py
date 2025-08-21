@@ -7602,9 +7602,6 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
             ))
         )
         
-        st.write(f"Debug: needs_fallback = {needs_fallback}")
-        st.write(f"Debug: advanced_metrics keys = {list(advanced_metrics.keys()) if advanced_metrics else 'None'}")
-        
         if needs_fallback:
             st.info("🔄 FMP API unavailable, using Yahoo Finance fallback data...")
             
@@ -7665,10 +7662,10 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
                 fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
                 fallback_metrics['Last Updated'] = f"Retrieved at {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
                 
-                st.write(f"Debug: fallback_metrics = {fallback_metrics}")
-                
                 if fallback_metrics:
-                    advanced_metrics = fallback_metrics
+                    # Force replace the original metrics with fallback data
+                    advanced_metrics.clear()
+                    advanced_metrics.update(fallback_metrics)
                     st.success("✓ Successfully loaded market intelligence from Yahoo Finance")
                 else:
                     st.warning("No fallback metrics were created")
