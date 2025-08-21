@@ -316,6 +316,37 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(tech_summary_table)
         story.append(Spacer(1, 20))
         
+        # Stock Ratings Section
+        story.append(Paragraph("Stock Ratings (A-D Scale)", heading_style))
+        
+        # Calculate A-D ratings
+        ratings = calculate_stock_ratings(ticker_obj, ticker_info)
+        
+        # Create ratings table
+        ratings_data = [
+            ["Category", "Rating", "Description"],
+            ["Value", f"{ratings['Value']}", "P/E, P/B, P/S ratios analysis"],
+            ["Growth", f"{ratings['Growth']}", "Revenue and earnings growth"],
+            ["Momentum", f"{ratings['Momentum']}", "1-month, 3-month, 6-month performance"],
+            ["Profitability", f"{ratings['Profitability']}", "ROE, ROA, profit margins"]
+        ]
+        
+        ratings_table = Table(ratings_data, colWidths=[1.5*inch, 1*inch, 3.5*inch])
+        ratings_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+            ('ALIGN', (0,0), (-1,-1), 'LEFT'),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,0), 11),
+            ('FONTSIZE', (0,1), (-1,-1), 9),
+            ('BOTTOMPADDING', (0,0), (-1,0), 12),
+            ('BACKGROUND', (0,1), (-1,-1), colors.beige),
+            ('GRID', (0,0), (-1,-1), 1, colors.black),
+            ('VALIGN', (0,0), (-1,-1), 'TOP')
+        ]))
+        story.append(ratings_table)
+        story.append(Spacer(1, 15))
+
         # Financial Quality Scores
         story.append(Paragraph("Financial Quality Scores", heading_style))
         
@@ -390,6 +421,90 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 story.append(Paragraph(f"• {detail}", styles['Normal']))
             story.append(Spacer(1, 15))
         
+        # Earnings Performance Analysis Section
+        story.append(Paragraph("Earnings Performance Analysis", heading_style))
+        
+        try:
+            # Get earnings analysis data
+            earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
+                ticker_obj, data, market=market, max_quarters=8
+            )
+            
+            if earnings_analysis is not None and not earnings_analysis.empty:
+                # Create earnings summary table
+                earnings_summary = [
+                    ["Quarter", "Overnight %", "Next Day %", "Week %"]
+                ]
+                
+                # Add up to 6 most recent quarters to fit in PDF
+                for i, (idx, row) in enumerate(earnings_analysis.head(6).iterrows()):
+                    quarter_info = f"{row['Year']}-Q{row['Quarter']}"
+                    overnight_pct = f"{row['Overnight_%']:.2f}%"
+                    nextday_pct = f"{row['NextDay_%']:.2f}%"  
+                    week_pct = f"{row['Week_%']:.2f}%"
+                    earnings_summary.append([quarter_info, overnight_pct, nextday_pct, week_pct])
+                
+                # Calculate average performance
+                avg_overnight = earnings_analysis['Overnight_%'].mean()
+                avg_nextday = earnings_analysis['NextDay_%'].mean()
+                avg_week = earnings_analysis['Week_%'].mean()
+                
+                earnings_summary.append([
+                    "AVERAGE", 
+                    f"{avg_overnight:.2f}%", 
+                    f"{avg_nextday:.2f}%", 
+                    f"{avg_week:.2f}%"
+                ])
+                
+                # Create and style earnings table
+                earnings_table = Table(earnings_summary, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+                earnings_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                    ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+                    ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0,0), (-1,0), 10),
+                    ('FONTSIZE', (0,1), (-1,-1), 9),
+                    ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                    ('BACKGROUND', (0,1), (-1,-2), colors.beige),
+                    ('BACKGROUND', (0,-1), (-1,-1), colors.lightgrey),  # Average row
+                    ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+                    ('GRID', (0,0), (-1,-1), 1, colors.black),
+                    ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+                ]))
+                story.append(earnings_table)
+                
+                # Add earnings insights
+                story.append(Spacer(1, 10))
+                story.append(Paragraph(f"Analyzed {len(earnings_analysis)} quarters of earnings data", styles['Normal']))
+                
+                # Performance insights
+                if avg_overnight > 0:
+                    overnight_trend = "positive"
+                elif avg_overnight < -2:
+                    overnight_trend = "negative" 
+                else:
+                    overnight_trend = "neutral"
+                    
+                if avg_nextday > 0:
+                    nextday_trend = "positive"
+                elif avg_nextday < -2:
+                    nextday_trend = "negative"
+                else:
+                    nextday_trend = "neutral"
+                
+                story.append(Paragraph(f"• Average overnight performance: {overnight_trend} ({avg_overnight:.2f}%)", styles['Normal']))
+                story.append(Paragraph(f"• Average next-day performance: {nextday_trend} ({avg_nextday:.2f}%)", styles['Normal']))
+                story.append(Spacer(1, 15))
+                
+            else:
+                story.append(Paragraph("Earnings analysis data not available", styles['Normal']))
+                story.append(Spacer(1, 15))
+                
+        except Exception as e:
+            story.append(Paragraph(f"Earnings analysis error: {str(e)}", styles['Normal']))
+            story.append(Spacer(1, 15))
+
         # Add comprehensive technical analysis charts using matplotlib
         story.append(PageBreak())
         story.append(Paragraph("Technical Charts", heading_style))
