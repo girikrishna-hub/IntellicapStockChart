@@ -2655,6 +2655,183 @@ def calculate_stock_ratings(ticker_obj, info):
     
     return ratings
 
+def calculate_quantitative_rating(ticker_obj, info):
+    """
+    Calculate Quantitative rating (1-5 scale where 5 is most desired)
+    Based on data-driven financial metrics and ratios
+    """
+    try:
+        score = 0
+        max_score = 0
+        
+        # P/E Ratio (lower is better)
+        pe_ratio = info.get('trailingPE', None)
+        if pe_ratio and pe_ratio > 0:
+            if pe_ratio <= 15: score += 5
+            elif pe_ratio <= 20: score += 4
+            elif pe_ratio <= 25: score += 3
+            elif pe_ratio <= 35: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # P/B Ratio (lower is better)
+        pb_ratio = info.get('priceToBook', None)
+        if pb_ratio and pb_ratio > 0:
+            if pb_ratio <= 1.5: score += 5
+            elif pb_ratio <= 2.5: score += 4
+            elif pb_ratio <= 4: score += 3
+            elif pb_ratio <= 6: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # ROE (higher is better)
+        roe = info.get('returnOnEquity', None)
+        if roe is not None:
+            if roe >= 0.20: score += 5
+            elif roe >= 0.15: score += 4
+            elif roe >= 0.10: score += 3
+            elif roe >= 0.05: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # Debt-to-Equity (lower is better)
+        debt_to_equity = info.get('debtToEquity', None)
+        if debt_to_equity is not None:
+            if debt_to_equity <= 0.3: score += 5
+            elif debt_to_equity <= 0.6: score += 4
+            elif debt_to_equity <= 1.0: score += 3
+            elif debt_to_equity <= 1.5: score += 2
+            else: score += 1
+            max_score += 5
+            
+        if max_score > 0:
+            final_rating = round((score / max_score) * 5)
+            return max(1, min(5, final_rating)), "Data-driven financial metrics and ratios"
+        else:
+            return 3, "Insufficient data for quantitative analysis"
+            
+    except Exception as e:
+        return 3, f"Error calculating quantitative rating: {str(e)}"
+
+def calculate_author_rating(ticker_obj, info):
+    """
+    Calculate Author rating (1-5 scale where 5 is most desired)
+    Based on comprehensive business analysis and fundamentals
+    """
+    try:
+        score = 0
+        max_score = 0
+        
+        # Revenue Growth
+        revenue_growth = info.get('revenueGrowth', None)
+        if revenue_growth is not None:
+            if revenue_growth >= 0.20: score += 5
+            elif revenue_growth >= 0.10: score += 4
+            elif revenue_growth >= 0.05: score += 3
+            elif revenue_growth >= 0: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # Profit Margins
+        profit_margin = info.get('profitMargins', None)
+        if profit_margin is not None:
+            if profit_margin >= 0.20: score += 5
+            elif profit_margin >= 0.15: score += 4
+            elif profit_margin >= 0.10: score += 3
+            elif profit_margin >= 0.05: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # Market Cap (stability indicator)
+        market_cap = info.get('marketCap', None)
+        if market_cap is not None:
+            if market_cap >= 50e9: score += 5  # Large cap
+            elif market_cap >= 10e9: score += 4  # Mid cap
+            elif market_cap >= 2e9: score += 3   # Small cap
+            elif market_cap >= 300e6: score += 2 # Micro cap
+            else: score += 1
+            max_score += 5
+            
+        # Beta (volatility - lower is more stable)
+        beta = info.get('beta', None)
+        if beta is not None:
+            if beta <= 0.7: score += 5
+            elif beta <= 1.0: score += 4
+            elif beta <= 1.3: score += 3
+            elif beta <= 1.7: score += 2
+            else: score += 1
+            max_score += 5
+            
+        if max_score > 0:
+            final_rating = round((score / max_score) * 5)
+            return max(1, min(5, final_rating)), "Comprehensive business analysis and fundamentals"
+        else:
+            return 3, "Insufficient data for author analysis"
+            
+    except Exception as e:
+        return 3, f"Error calculating author rating: {str(e)}"
+
+def calculate_sellside_rating(ticker_obj, info):
+    """
+    Calculate Sellside rating (1-5 scale where 5 is most desired)
+    Based on analyst sentiment and market perception
+    """
+    try:
+        score = 0
+        max_score = 0
+        
+        # Analyst Target Price vs Current Price
+        target_price = info.get('targetMeanPrice', None)
+        current_price = info.get('currentPrice', None)
+        if target_price and current_price and current_price > 0:
+            upside = (target_price - current_price) / current_price
+            if upside >= 0.20: score += 5
+            elif upside >= 0.10: score += 4
+            elif upside >= 0.05: score += 3
+            elif upside >= -0.05: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # Recommendation Score
+        recommendation = info.get('recommendationMean', None)
+        if recommendation is not None:
+            if recommendation <= 2.0: score += 5  # Strong Buy/Buy
+            elif recommendation <= 2.5: score += 4
+            elif recommendation <= 3.0: score += 3  # Hold
+            elif recommendation <= 3.5: score += 2
+            else: score += 1  # Sell
+            max_score += 5
+            
+        # Forward P/E (market expectations)
+        forward_pe = info.get('forwardPE', None)
+        if forward_pe and forward_pe > 0:
+            if forward_pe <= 15: score += 5
+            elif forward_pe <= 20: score += 4
+            elif forward_pe <= 25: score += 3
+            elif forward_pe <= 35: score += 2
+            else: score += 1
+            max_score += 5
+            
+        # 52-week performance relative to highs
+        fifty_two_week_high = info.get('fiftyTwoWeekHigh', None)
+        if fifty_two_week_high and current_price:
+            performance_from_high = (current_price - fifty_two_week_high) / fifty_two_week_high
+            if performance_from_high >= -0.05: score += 5  # Near highs
+            elif performance_from_high >= -0.15: score += 4
+            elif performance_from_high >= -0.30: score += 3
+            elif performance_from_high >= -0.50: score += 2
+            else: score += 1
+            max_score += 5
+            
+        if max_score > 0:
+            final_rating = round((score / max_score) * 5)
+            return max(1, min(5, final_rating)), "Analyst sentiment and market perception"
+        else:
+            return 3, "Insufficient data for sellside analysis"
+            
+    except Exception as e:
+        return 3, f"Error calculating sellside rating: {str(e)}"
+
 def calculate_piotroski_score(ticker_obj, info):
     """Calculate Piotroski Score (1-9 scale where 9 is best)"""
     try:
