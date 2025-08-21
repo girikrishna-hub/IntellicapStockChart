@@ -180,11 +180,76 @@ class AdvancedFinancialDataProvider:
             data = self._make_request(url, params, "fmp_insider")
             
             if not data or len(data) == 0:
+                # FMP likely returned 403 or no data - try fallback sources
+                print(f"FMP insider data empty/failed for {symbol}, trying fallback sources...")
+                
+                # Try finvizfinance first
+                if FINVIZ_AVAILABLE:
+                    try:
+                        print(f"Trying finvizfinance for {symbol} insider data...")
+                        finsider = Insider(option='latest')
+                        insider_df = finsider.get_insider()
+                        
+                        if insider_df is not None and not insider_df.empty:
+                            # Filter for the specific symbol
+                            symbol_data = insider_df[insider_df['Ticker'] == symbol.upper()]
+                            
+                            if not symbol_data.empty:
+                                total_transactions = len(symbol_data)
+                                buys = len(symbol_data[symbol_data['Transaction'].str.contains('Buy|Purchase', case=False, na=False)])
+                                sells = len(symbol_data[symbol_data['Transaction'].str.contains('Sale|Sell', case=False, na=False)])
+                                
+                                # Get recent transactions summary
+                                recent_activity = f"{total_transactions} recent transactions"
+                                insider_summary = f"{buys} buys, {sells} sells"
+                                
+                                # Calculate net activity indication
+                                if buys > sells:
+                                    net_activity = f"Net buying: {buys-sells} more buys"
+                                elif sells > buys:
+                                    net_activity = f"Net selling: {sells-buys} more sells"
+                                else:
+                                    net_activity = "Neutral activity"
+                                
+                                return {
+                                    'recent_activity': recent_activity,
+                                    'insider_summary': insider_summary,
+                                    'total_transactions': total_transactions,
+                                    'net_insider_activity': net_activity,
+                                    'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                                    'source': 'Finviz (Free)',
+                                    'note': 'Recent insider data from Finviz'
+                                }
+                    except Exception as finviz_error:
+                        print(f"Finviz insider fallback failed: {str(finviz_error)}")
+                
+                # Try Yahoo Finance basic insider data
+                try:
+                    ticker = yf.Ticker(symbol)
+                    info = ticker.info
+                    insider_percent = info.get('heldPercentInsiders', 0)
+                    
+                    if insider_percent and insider_percent > 0:
+                        return {
+                            'recent_activity': f"Insider ownership: {insider_percent:.1f}%",
+                            'insider_summary': f"Basic ownership data available",
+                            'total_transactions': 1,
+                            'net_insider_activity': f"{insider_percent:.1f}% insider held",
+                            'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                            'source': 'Yahoo Finance (Basic)',
+                            'note': 'Limited to ownership percentage'
+                        }
+                except Exception as yahoo_error:
+                    print(f"Yahoo Finance basic insider data failed: {str(yahoo_error)}")
+                
+                # All fallbacks failed - return default
                 return {
                     'recent_activity': 'No recent activity',
-                    'insider_summary': 'No data available',
+                    'insider_summary': 'No data available from free sources',
                     'total_transactions': 0,
-                    'net_insider_activity': 'No activity'
+                    'net_insider_activity': 'FMP premium required',
+                    'source': 'Limited Access',
+                    'note': 'Upgrade FMP subscription for detailed insider data'
                 }
             
             # Analyze insider transactions
