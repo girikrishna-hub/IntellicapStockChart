@@ -151,6 +151,8 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         from reportlab.graphics.shapes import Drawing
         from reportlab.graphics.charts.linecharts import HorizontalLineChart
         import io
+        import pandas as pd
+        from datetime import datetime, timedelta
         
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
@@ -426,9 +428,6 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         
         try:
             # Get earnings analysis data directly using the same logic as Advanced Analysis tab
-            import pandas as pd
-            from datetime import datetime, timedelta
-            
             # Get earnings dates
             try:
                 earnings_dates = ticker_obj.earnings_dates
