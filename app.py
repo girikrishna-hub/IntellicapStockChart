@@ -4816,22 +4816,30 @@ def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_
     
     # Add A-D Stock Ratings and 1-5 Investment Ratings
     try:
+        print("PDF: Calculating A-D ratings...")
         # A-D Rating System
         stock_ratings = calculate_stock_ratings(ticker_obj, ticker_info)
+        print(f"PDF: A-D ratings calculated: {stock_ratings}")
         data_rows.append(['═══ RATINGS ═══', ''])
         data_rows.append(['Value Rating', f"{stock_ratings['value']} - {stock_ratings['value_explanation'][:30]}..."])
         data_rows.append(['Growth Rating', f"{stock_ratings['growth']} - {stock_ratings['growth_explanation'][:30]}..."])
         data_rows.append(['Momentum Rating', f"{stock_ratings['momentum']} - {stock_ratings['momentum_explanation'][:30]}..."])
         data_rows.append(['Profitability Rating', f"{stock_ratings['profitability']} - {stock_ratings['profitability_explanation'][:30]}..."])
         
+        print("PDF: Calculating 1-5 scale ratings...")
         # 1-5 Scale Investment Ratings
         investment_ratings = calculate_investment_ratings(ticker_info, ticker_obj)
+        print(f"PDF: Investment ratings calculated: {investment_ratings}")
+        data_rows.append(['─── 1-5 SCALE ───', ''])
         data_rows.append(['Quantitative (1-5)', f"{investment_ratings['quantitative']}/5 - {investment_ratings['quantitative_explanation'][:40]}..."])
         data_rows.append(['Author (1-5)', f"{investment_ratings['author']}/5 - {investment_ratings['author_explanation'][:40]}..."])
         data_rows.append(['Sellside (1-5)', f"{investment_ratings['sellside']}/5 - {investment_ratings['sellside_explanation'][:40]}..."])
+        print("PDF: All ratings added to data_rows successfully")
         
     except Exception as e:
         print(f"Rating calculation error: {e}")
+        import traceback
+        traceback.print_exc()
         data_rows.append(['Ratings', 'Error calculating ratings'])
     
     # Add earnings dates and analysis
