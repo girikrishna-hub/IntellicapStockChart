@@ -1509,11 +1509,13 @@ def calculate_fibonacci_levels(data, period_months=3, symbol=None):
                     'type': 'retracement'
                 })
             
-            # If price is close to the low end of range (within 10% of range), also add downward extensions
+            # If price is close to either end of range, also add extension levels for better targets
             distance_from_low = current_price - reference_low
-            range_threshold = price_range * 0.1  # 10% of the range
+            distance_from_high = reference_high - current_price
+            range_threshold_low = price_range * 0.25  # 25% of the range from low
+            range_threshold_high = price_range * 0.35  # 35% of the range from high (more generous for upward extensions)
             
-            if distance_from_low <= range_threshold:
+            if distance_from_low <= range_threshold_low:
                 # Add downward extension levels for support below current price
                 for ratio, label in zip(extension_ratios, extension_labels):
                     level_price = reference_low - (price_range * (ratio - 1.0))
@@ -1524,6 +1526,17 @@ def calculate_fibonacci_levels(data, period_months=3, symbol=None):
                             'label': f"Fib {label} Ext",
                             'type': 'extension_down'
                         })
+            
+            # If price is close to the high end of range (within 15% of range), also add upward extensions
+            if distance_from_high <= range_threshold_high:
+                # Add upward extension levels for resistance above current price
+                for ratio, label in zip(extension_ratios, extension_labels):
+                    level_price = reference_high + (price_range * (ratio - 1.0))
+                    all_levels.append({
+                        'price': level_price,
+                        'label': f"Fib {label} Ext",
+                        'type': 'extension_up'
+                    })
         
         elif current_price > reference_high:
             # Price is above range - use upward extensions
