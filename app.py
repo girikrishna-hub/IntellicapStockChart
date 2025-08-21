@@ -6317,6 +6317,18 @@ def gurufocus_tab():
                         st.markdown("### ⭐ Investment Ratings (1-5 Scale)")
                         st.caption("Rating scale: 5 = Excellent/Most Desired, 4 = Good, 3 = Average, 2 = Below Average, 1 = Poor/Least Desired")
                         
+                        # Define local rating color function
+                        def get_rating_color_local(rating):
+                            """Get color for rating display (1-5 scale)"""
+                            color_map = {
+                                5: "#22c55e",  # Green - Excellent
+                                4: "#84cc16",  # Light Green - Good  
+                                3: "#eab308",  # Yellow - Average
+                                2: "#f97316",  # Orange - Below Average
+                                1: "#ef4444"   # Red - Poor
+                            }
+                            return color_map.get(rating, "#6b7280")  # Default gray
+                        
                         # Calculate investment ratings
                         ratings = calculate_investment_ratings(info, ticker_obj)
                         
@@ -6324,21 +6336,21 @@ def gurufocus_tab():
                         
                         with rating_col1:
                             quant_rating = ratings['quantitative']
-                            color = get_rating_color(quant_rating)
+                            color = get_rating_color_local(quant_rating)
                             st.markdown(f"**Quantitative Rating**")
                             st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{quant_rating}/5</div>", unsafe_allow_html=True)
                             st.caption(ratings['quantitative_explanation'])
                         
                         with rating_col2:
                             author_rating = ratings['author']
-                            color = get_rating_color(author_rating)
+                            color = get_rating_color_local(author_rating)
                             st.markdown(f"**Author Rating**")
                             st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{author_rating}/5</div>", unsafe_allow_html=True)
                             st.caption(ratings['author_explanation'])
                         
                         with rating_col3:
                             sellside_rating = ratings['sellside']
-                            color = get_rating_color(sellside_rating)
+                            color = get_rating_color_local(sellside_rating)
                             st.markdown(f"**Sellside Rating**")
                             st.markdown(f"<div style='background-color: {color}; color: white; padding: 10px; border-radius: 5px; text-align: center; font-size: 20px; font-weight: bold;'>{sellside_rating}/5</div>", unsafe_allow_html=True)
                             st.caption(ratings['sellside_explanation'])
