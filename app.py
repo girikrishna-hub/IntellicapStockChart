@@ -428,8 +428,13 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         
         try:
             # Use the existing comprehensive earnings analysis function from GuruFocus tab
+            # Get extended historical data for comprehensive 8-quarter analysis
+            extended_data = ticker_obj.history(period="3y", interval="1d")  # 3 years for full 8-quarter coverage
+            if extended_data.empty:
+                extended_data = data  # Fallback to provided data
+            
             earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
-                ticker_obj, data, market=market, max_quarters=8
+                ticker_obj, extended_data, market=market, max_quarters=8
             )
             
             if earnings_analysis is not None and not earnings_analysis.empty:
