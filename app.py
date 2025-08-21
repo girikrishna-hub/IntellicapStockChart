@@ -557,71 +557,15 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         story.append(Paragraph("Market Intelligence", heading_style))
         
         try:
-            # Get market intelligence data using the same logic as the Market Intelligence tab
+            # Get market intelligence data using unified function (same as UI tab)
             import os
             fmp_api_key = os.environ.get("FMP_API_KEY")
             
-            # Fetch comprehensive market analysis
-            advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
+            # Use unified function to ensure consistency with UI tab
+            advanced_metrics, used_fallback = get_unified_market_intelligence(symbol, fmp_api_key, ticker_obj)
             
-            # If FMP data is not available, use fallback data sources
-            if not advanced_metrics or advanced_metrics == {} or all(v in ['N/A', 'API key required', None] for v in advanced_metrics.values() if v):
-                print("FMP data not available, using Yahoo Finance fallback for market intelligence...")
-                
-                try:
-                    # Use Yahoo Finance for basic institutional data
-                    institutional_holders = ticker_obj.institutional_holders
-                    major_holders = ticker_obj.major_holders
-                    info = ticker_obj.info
-                    
-                    # Create fallback metrics from available Yahoo Finance data
-                    fallback_metrics = {}
-                    
-                    # Institutional ownership from major holders
-                    if major_holders is not None and not major_holders.empty and len(major_holders) > 1:
-                        inst_ownership = major_holders.iloc[1, 0] if pd.notnull(major_holders.iloc[1, 0]) else None
-                        if inst_ownership:
-                            fallback_metrics['Institutional Ownership'] = f"Institutions own {inst_ownership}"
-                    
-                    # Basic analyst info from Yahoo Finance
-                    if info:
-                        # Analyst recommendation
-                        recommendation = info.get('recommendationKey')
-                        if recommendation and recommendation != 'none':
-                            fallback_metrics['Analyst Rating'] = recommendation.upper().replace('_', ' ')
-                        
-                        # Target price if available
-                        target_mean = info.get('targetMeanPrice')
-                        if target_mean:
-                            fallback_metrics['Price Target'] = f"${target_mean:.2f}"
-                            target_low = info.get('targetLowPrice')
-                            target_high = info.get('targetHighPrice')
-                            if target_low and target_high:
-                                fallback_metrics['Price Target'] += f" (Range: ${target_low:.2f} - ${target_high:.2f})"
-                        
-                        # Number of analyst recommendations
-                        num_analysts = info.get('numberOfAnalystOpinions')
-                        if num_analysts:
-                            fallback_metrics['Analyst Coverage'] = f"{num_analysts} analysts covering"
-                    
-                    # Top institutional holders if available
-                    if institutional_holders is not None and not institutional_holders.empty:
-                        top_holder = institutional_holders.iloc[0]
-                        holder_name = top_holder.get('Holder') if 'Holder' in top_holder else 'N/A'
-                        shares = top_holder.get('Shares') if 'Shares' in top_holder else 'N/A'
-                        if holder_name != 'N/A':
-                            fallback_metrics['Top Institutional Holder'] = f"{holder_name}"
-                            if shares != 'N/A':
-                                fallback_metrics['Top Institutional Holder'] += f" ({shares:,} shares)"
-                    
-                    # Add data source note
-                    if fallback_metrics:
-                        fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
-                        advanced_metrics = fallback_metrics
-                    
-                except Exception as e:
-                    print(f"Error fetching Yahoo Finance fallback data: {e}")
-                    advanced_metrics = {'Market Intelligence': 'Data temporarily unavailable due to API limits'}
+            if used_fallback:
+                print("PDF Export: Using Yahoo Finance fallback for market intelligence...")
             
             if advanced_metrics and advanced_metrics != {}:
                 # Create market intelligence summary table
@@ -7541,6 +7485,98 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     except Exception as e:
         st.error(f"Error analyzing earnings performance: {str(e)}")
 
+def get_unified_market_intelligence(symbol, fmp_api_key, ticker_obj=None):
+    """
+    Unified function to get market intelligence data with Yahoo Finance fallback
+    Used by both UI tab and PDF export to ensure consistency
+    """
+    import yfinance as yf
+    import pandas as pd
+    
+    # Get FMP data first
+    advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
+    
+    # Check if we need fallback
+    needs_fallback = (
+        not advanced_metrics or 
+        advanced_metrics == {} or 
+        (isinstance(advanced_metrics, dict) and (
+            advanced_metrics.get('Analyst Rating') == 'N/A' and 
+            advanced_metrics.get('Price Target') == 'N/A'
+        ))
+    )
+    
+    if needs_fallback:
+        try:
+            # Use provided ticker_obj or create new one
+            if ticker_obj is None:
+                ticker_obj = yf.Ticker(symbol)
+            
+            # Use Yahoo Finance for basic institutional data
+            institutional_holders = ticker_obj.institutional_holders
+            major_holders = ticker_obj.major_holders
+            info = ticker_obj.info
+            
+            # Create fallback metrics from available Yahoo Finance data
+            fallback_metrics = {}
+            
+            # Institutional ownership from major holders
+            if major_holders is not None and not major_holders.empty and len(major_holders) > 1:
+                inst_ownership = major_holders.iloc[1, 0] if pd.notnull(major_holders.iloc[1, 0]) else None
+                if inst_ownership:
+                    fallback_metrics['Institutional Ownership'] = f"Institutions own {inst_ownership}"
+            
+            # Basic analyst info from Yahoo Finance
+            if info:
+                # Analyst recommendation
+                recommendation = info.get('recommendationKey')
+                if recommendation and recommendation != 'none':
+                    fallback_metrics['Analyst Rating'] = recommendation.upper().replace('_', ' ')
+                
+                # Target price if available
+                target_mean = info.get('targetMeanPrice')
+                if target_mean:
+                    fallback_metrics['Price Target'] = f"${target_mean:.2f}"
+                    target_low = info.get('targetLowPrice')
+                    target_high = info.get('targetHighPrice')
+                    if target_low and target_high:
+                        fallback_metrics['Price Target'] += f" (Range: ${target_low:.2f} - ${target_high:.2f})"
+                
+                # Number of analyst recommendations
+                num_analysts = info.get('numberOfAnalystOpinions')
+                if num_analysts:
+                    fallback_metrics['Analyst Coverage'] = f"{num_analysts} analysts covering"
+            
+            # Top institutional holders if available
+            if institutional_holders is not None and not institutional_holders.empty:
+                top_holder = institutional_holders.iloc[0]
+                holder_name = top_holder.get('Holder') if 'Holder' in top_holder else 'N/A'
+                shares = top_holder.get('Shares') if 'Shares' in top_holder else 'N/A'
+                if holder_name != 'N/A':
+                    fallback_metrics['Top Institutional Holder'] = f"{holder_name}"
+                    if shares != 'N/A':
+                        fallback_metrics['Top Institutional Holder'] += f" ({shares:,} shares)"
+            
+            # Insider activity placeholder (Yahoo Finance doesn't provide this easily)
+            fallback_metrics['Insider Activity'] = "Limited data available"
+            fallback_metrics['Social Sentiment'] = "Requires premium API"
+            
+            # Add data source note
+            fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
+            fallback_metrics['Last Updated'] = f"Retrieved at {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
+            
+            if fallback_metrics:
+                # Force replace the original metrics with fallback data
+                advanced_metrics.clear()
+                advanced_metrics.update(fallback_metrics)
+                return advanced_metrics, True  # True indicates fallback was used
+                
+        except Exception as e:
+            print(f"Error fetching Yahoo Finance fallback data: {e}")
+            return {'Market Intelligence': 'Data temporarily unavailable due to API limits'}, False
+    
+    return advanced_metrics, False  # False indicates FMP data was used
+
 def display_advanced_sentiment_metrics(symbol, market="US"):
     """Display comprehensive advanced sentiment and institutional metrics"""
     
@@ -7587,94 +7623,13 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
             """)
             st.caption("If you see 403 errors, consider upgrading your FMP plan")
     
-    # Get advanced metrics with fallback system
+    # Get advanced metrics using unified function for consistency with PDF export
     try:
-        advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
+        advanced_metrics, used_fallback = get_unified_market_intelligence(symbol, fmp_api_key)
         
-        # If FMP data is not available or key metrics are N/A, use Yahoo Finance fallback
-        # Check for empty dict, None, or key analyst metrics being N/A
-        needs_fallback = (
-            not advanced_metrics or 
-            advanced_metrics == {} or 
-            (isinstance(advanced_metrics, dict) and (
-                advanced_metrics.get('Analyst Rating') == 'N/A' and 
-                advanced_metrics.get('Price Target') == 'N/A'
-            ))
-        )
-        
-        if needs_fallback:
+        if used_fallback:
             st.info("🔄 FMP API unavailable, using Yahoo Finance fallback data...")
-            
-            try:
-                import yfinance as yf
-                ticker_obj = yf.Ticker(symbol)
-                
-                # Use Yahoo Finance for basic institutional data
-                institutional_holders = ticker_obj.institutional_holders
-                major_holders = ticker_obj.major_holders
-                info = ticker_obj.info
-                
-                # Create fallback metrics from available Yahoo Finance data
-                fallback_metrics = {}
-                
-                # Institutional ownership from major holders
-                if major_holders is not None and not major_holders.empty and len(major_holders) > 1:
-                    inst_ownership = major_holders.iloc[1, 0] if pd.notnull(major_holders.iloc[1, 0]) else None
-                    if inst_ownership:
-                        fallback_metrics['Institutional Ownership'] = f"Institutions own {inst_ownership}"
-                
-                # Basic analyst info from Yahoo Finance
-                if info:
-                    # Analyst recommendation
-                    recommendation = info.get('recommendationKey')
-                    if recommendation and recommendation != 'none':
-                        fallback_metrics['Analyst Rating'] = recommendation.upper().replace('_', ' ')
-                    
-                    # Target price if available
-                    target_mean = info.get('targetMeanPrice')
-                    if target_mean:
-                        fallback_metrics['Price Target'] = f"${target_mean:.2f}"
-                        target_low = info.get('targetLowPrice')
-                        target_high = info.get('targetHighPrice')
-                        if target_low and target_high:
-                            fallback_metrics['Price Target'] += f" (Range: ${target_low:.2f} - ${target_high:.2f})"
-                    
-                    # Number of analyst recommendations
-                    num_analysts = info.get('numberOfAnalystOpinions')
-                    if num_analysts:
-                        fallback_metrics['Analyst Coverage'] = f"{num_analysts} analysts covering"
-                
-                # Top institutional holders if available
-                if institutional_holders is not None and not institutional_holders.empty:
-                    top_holder = institutional_holders.iloc[0]
-                    holder_name = top_holder.get('Holder') if 'Holder' in top_holder else 'N/A'
-                    shares = top_holder.get('Shares') if 'Shares' in top_holder else 'N/A'
-                    if holder_name != 'N/A':
-                        fallback_metrics['Top Institutional Holder'] = f"{holder_name}"
-                        if shares != 'N/A':
-                            fallback_metrics['Top Institutional Holder'] += f" ({shares:,} shares)"
-                
-                # Insider activity placeholder (Yahoo Finance doesn't provide this easily)
-                fallback_metrics['Insider Activity'] = "Limited data available"
-                fallback_metrics['Social Sentiment'] = "Requires premium API"
-                
-                # Add data source note
-                fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
-                fallback_metrics['Last Updated'] = f"Retrieved at {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}"
-                
-                if fallback_metrics:
-                    # Force replace the original metrics with fallback data
-                    advanced_metrics.clear()
-                    advanced_metrics.update(fallback_metrics)
-                    st.success("✓ Successfully loaded market intelligence from Yahoo Finance")
-                else:
-                    st.warning("No fallback metrics were created")
-                
-            except Exception as e:
-                st.error(f"Error fetching Yahoo Finance fallback data: {e}")
-                import traceback
-                st.error(f"Traceback: {traceback.format_exc()}")
-                advanced_metrics = {'Market Intelligence': 'Data temporarily unavailable due to API limits'}
+            st.success("✓ Successfully loaded market intelligence from Yahoo Finance")
         
         # Display metrics in a structured format
         st.markdown("### 📈 Market Intelligence Dashboard")
