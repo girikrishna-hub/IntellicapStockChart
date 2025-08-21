@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 import time
 import os
 from typing import Dict, List, Optional, Any
-from free_data_sources import get_fallback_data, get_yahoo_institutional_data, get_yahoo_analyst_data
+import yfinance as yf
 
 class AdvancedFinancialDataProvider:
     """Comprehensive financial data provider integrating multiple sources"""
@@ -296,15 +296,84 @@ class AdvancedFinancialDataProvider:
                     'source': 'FMP Premium'
                 }
             else:
-                # Fallback to alternative sources or basic info
-                return {
-                    'institutional_ownership': 'Premium data unavailable',
-                    'top_holders': 'Upgrade FMP plan required',
-                    'ownership_change': '403 Forbidden - Check subscription',
-                    'total_institutions': 0,
-                    'source': 'Limited Access',
-                    'note': 'Institutional data requires FMP paid subscription'
-                }
+                # Fallback to Yahoo Finance for institutional data
+                print(f"FMP failed, trying Yahoo Finance for {symbol} institutional data...")
+                try:
+                    ticker = yf.Ticker(symbol)
+                    institutional_holders = ticker.institutional_holders
+                    major_holders = ticker.major_holders
+                    
+                    if institutional_holders is not None and not institutional_holders.empty:
+                        total_institutions = len(institutional_holders)
+                        
+                        # Get top holders
+                        top_holders = []
+                        for idx, row in institutional_holders.head(5).iterrows():
+                            shares = row.get('Shares', 0)
+                            name = row.get('Holder', 'Unknown')
+                            percent = row.get('% Out', 0)
+                            
+                            # Calculate approximate value (shares * current price)
+                            try:
+                                current_price = ticker.info.get('currentPrice', 0)
+                                value = shares * current_price if current_price else 0
+                            except:
+                                value = 0
+                            
+                            top_holders.append({
+                                'name': name,
+                                'shares': shares,
+                                'value': value,
+                                'percent': percent,
+                                'date': row.get('Date Reported', '')
+                            })
+                        
+                        # Calculate totals
+                        total_shares = institutional_holders['Shares'].sum() if 'Shares' in institutional_holders.columns else 0
+                        
+                        # Get institutional percentage
+                        institutional_percent = 0
+                        if major_holders is not None and not major_holders.empty and len(major_holders) > 0:
+                            try:
+                                institutional_percent = float(str(major_holders.iloc[0, 0]).replace('%', ''))
+                            except:
+                                institutional_percent = 0
+                        
+                        # Calculate total market value
+                        total_value = sum(holder['value'] for holder in top_holders)
+                        
+                        return {
+                            'institutional_ownership': f"{total_institutions} institutions ({institutional_percent:.1f}%)",
+                            'top_holders': f"Top: {top_holders[0]['name'] if top_holders else 'N/A'}",
+                            'ownership_change': f"${total_value:,.0f} estimated value",
+                            'total_institutions': total_institutions,
+                            'total_shares_held': total_shares,
+                            'total_market_value': total_value,
+                            'institutional_percentage': institutional_percent,
+                            'top_5_holders': top_holders,
+                            'last_updated': datetime.now().strftime('%Y-%m-%d'),
+                            'source': 'Yahoo Finance (Free)'
+                        }
+                    else:
+                        return {
+                            'institutional_ownership': 'No Yahoo data available',
+                            'top_holders': 'N/A',
+                            'ownership_change': 'N/A',
+                            'total_institutions': 0,
+                            'source': 'Yahoo Finance (No Data)'
+                        }
+                
+                except Exception as yahoo_error:
+                    print(f"Yahoo Finance fallback also failed: {str(yahoo_error)}")
+                    return {
+                        'institutional_ownership': 'All sources failed',
+                        'top_holders': 'FMP: 403 Forbidden, Yahoo: Error',
+                        'ownership_change': 'No data available',
+                        'total_institutions': 0,
+                        'source': 'Error',
+                        'fmp_error': 'Premium subscription required',
+                        'yahoo_error': str(yahoo_error)
+                    }
             
         except Exception as e:
             print(f"Error fetching institutional holdings for {symbol}: {str(e)}")
@@ -395,22 +464,36 @@ class AdvancedFinancialDataProvider:
         # If analyst data failed, try Yahoo Finance fallback
         if analyst_data.get('error') or 'API key required' in str(analyst_data.get('rating', '')):
             try:
-                yahoo_analyst = get_yahoo_analyst_data(symbol)
-                if not yahoo_analyst.get('error'):
-                    analyst_data = yahoo_analyst
-                    fallback_used = True
-            except:
-                pass
+                print(f"FMP analyst data failed, trying Yahoo Finance for {symbol}...")
+                ticker = yf.Ticker(symbol)
+                recommendations = ticker.recommendations
+                analyst_price_targets = ticker.analyst_price_targets
+                
+                if recommendations is not None and not recommendations.empty:
+                    latest_rec = recommendations.tail(1)
+                    if not latest_rec.empty:
+                        latest_row = latest_rec.iloc[0]
+                        grade = latest_row.get('To Grade', 'N/A')
+                        analyst_data = {
+                            'rating': grade,
+                            'recommendation': grade,
+                            'price_target': 'N/A',
+                            'analyst_count': len(recommendations),
+                            'source': 'Yahoo Finance (Free)',
+                            'last_updated': datetime.now().strftime('%Y-%m-%d')
+                        }
+                        
+                        # Try to get price targets
+                        if analyst_price_targets is not None and not analyst_price_targets.empty:
+                            current_target = analyst_price_targets.get('current', 0)
+                            if current_target and current_target > 0:
+                                analyst_data['price_target'] = f"${current_target:.2f}"
+                        
+                        fallback_used = True
+            except Exception as e:
+                print(f"Yahoo analyst fallback failed: {str(e)}")
         
-        # If institutional data failed, try Yahoo Finance fallback
-        if institutional_data.get('error') or 'Premium data unavailable' in str(institutional_data.get('institutional_ownership', '')):
-            try:
-                yahoo_institutional = get_yahoo_institutional_data(symbol)
-                if not yahoo_institutional.get('error'):
-                    institutional_data = yahoo_institutional
-                    fallback_used = True
-            except:
-                pass
+        # Note: institutional_data fallback is already handled in get_institutional_holdings method
         
         data_quality = 'Premium' if api_key and not fallback_used else 'Mixed (Premium + Free)' if fallback_used else 'Limited'
         
