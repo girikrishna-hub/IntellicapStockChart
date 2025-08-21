@@ -7591,17 +7591,14 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
     try:
         advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
         
-        # Debug: Show what we got from FMP
-        st.write(f"Debug - FMP metrics: {advanced_metrics}")
-        
-        # If FMP data is not available, use Yahoo Finance fallback
-        # Check for empty dict, None, or all values being N/A or error messages
+        # If FMP data is not available or key metrics are N/A, use Yahoo Finance fallback
+        # Check for empty dict, None, or key analyst metrics being N/A
         needs_fallback = (
             not advanced_metrics or 
             advanced_metrics == {} or 
-            (isinstance(advanced_metrics, dict) and all(
-                v in ['N/A', 'API key required', None, '', 'Error fetching data'] 
-                for v in advanced_metrics.values() if v is not None
+            (isinstance(advanced_metrics, dict) and (
+                advanced_metrics.get('Analyst Rating') == 'N/A' and 
+                advanced_metrics.get('Price Target') == 'N/A'
             ))
         )
         
