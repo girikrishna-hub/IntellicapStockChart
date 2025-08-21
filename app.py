@@ -433,24 +433,36 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             )
             
             if earnings_analysis is not None and not earnings_analysis.empty:
-                # Create comprehensive earnings summary table with all quarters
+                # Create comprehensive earnings table with ALL columns from Advanced Analysis tab
                 earnings_summary = [
-                    ["Quarter", "Earnings Date", "Overnight %", "Next Day %", "Week %"]
+                    ["Quarter", "Date", "Pre-Close", "Next Open", "Next Close", "Overnight%", "NextDay%", "Week Close", "Week%", "Direction", "EPS Est", "EPS Act", "Surprise"]
                 ]
                 
-                # Add all available quarters (up to 8) - map the actual column names
+                # Add all available quarters (up to 8) with complete column data
                 for i, (idx, row) in enumerate(earnings_analysis.head(8).iterrows()):
                     quarter_info = row['Quarter']  # Quarter column already formatted as "Q1 2024"
                     earnings_date = row['Earnings Date'] if pd.notnull(row['Earnings Date']) else 'N/A'
                     
-                    # Extract percentage values from formatted strings
+                    # Get all column values with proper formatting
+                    pre_close = row.get('Pre-Earnings Close', 'N/A')
+                    next_open = row.get('Next Day Open', 'N/A') 
+                    next_close = row.get('Next Day Close', 'N/A')
                     overnight_str = row['Overnight Change (%)']
                     nextday_str = row['Next Day Change (%)'] 
+                    week_close = row.get('End of Week Close', 'N/A')
                     week_str = row['Week Performance (%)']
+                    direction = row.get('Direction', 'N/A')
+                    eps_est = row.get('EPS Est', 'N/A')
+                    eps_act = row.get('EPS Act', 'N/A')
+                    surprise = row.get('Surprise', 'N/A')
                     
-                    earnings_summary.append([quarter_info, earnings_date, overnight_str, nextday_str, week_str])
+                    earnings_summary.append([
+                        quarter_info, earnings_date, pre_close, next_open, next_close, 
+                        overnight_str, nextday_str, week_close, week_str, direction, 
+                        eps_est, eps_act, surprise
+                    ])
                 
-                # Calculate average performance - extract numbers from percentage strings
+                # Calculate average performance for key metrics
                 overnight_values = []
                 nextday_values = []
                 week_values = []
@@ -472,27 +484,27 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     avg_overnight = sum(overnight_values) / len(overnight_values)
                     avg_nextday = sum(nextday_values) / len(nextday_values)
                     avg_week = sum(week_values) / len(week_values)
-                else:
-                    avg_overnight = avg_nextday = avg_week = 0
+                    
+                    # Add average row with key statistics
+                    earnings_summary.append([
+                        "AVERAGE", f"({len(earnings_analysis)} qtrs)", "—", "—", "—",
+                        f"{avg_overnight:.2f}%", f"{avg_nextday:.2f}%", "—", f"{avg_week:.2f}%", 
+                        "—", "—", "—", "—"
+                    ])
                 
-                earnings_summary.append([
-                    "AVERAGE", 
-                    f"({len(earnings_analysis)} quarters)",
-                    f"{avg_overnight:.2f}%", 
-                    f"{avg_nextday:.2f}%", 
-                    f"{avg_week:.2f}%"
-                ])
-                
-                # Create and style earnings table
-                earnings_table = Table(earnings_summary, colWidths=[1.2*inch, 1.2*inch, 1.0*inch, 1.0*inch, 1.0*inch])
+                # Create landscape-oriented table with smaller columns to fit all data
+                col_widths = [0.6*inch, 0.7*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.5*inch, 0.5*inch, 0.5*inch, 0.5*inch]
+                earnings_table = Table(earnings_summary, colWidths=col_widths)
                 earnings_table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.grey),
                     ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
                     ('ALIGN', (0,0), (-1,-1), 'CENTER'),
                     ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0,0), (-1,0), 10),
-                    ('FONTSIZE', (0,1), (-1,-1), 9),
-                    ('BOTTOMPADDING', (0,0), (-1,0), 12),
+                    ('FONTSIZE', (0,0), (-1,0), 8),  # Smaller font for headers
+                    ('FONTSIZE', (0,1), (-1,-1), 7),  # Smaller font for data
+                    ('BOTTOMPADDING', (0,0), (-1,0), 8),
+                    ('TOPPADDING', (0,0), (-1,-1), 4),
+                    ('BOTTOMPADDING', (0,1), (-1,-1), 4),
                     ('BACKGROUND', (0,1), (-1,-2), colors.beige),
                     ('BACKGROUND', (0,-1), (-1,-1), colors.lightgrey),  # Average row
                     ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
@@ -501,27 +513,31 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 ]))
                 story.append(earnings_table)
                 
-                # Add earnings insights
+                # Add comprehensive earnings insights
                 story.append(Spacer(1, 10))
-                story.append(Paragraph(f"Analyzed {len(earnings_analysis)} quarters of earnings data", styles['Normal']))
+                story.append(Paragraph(f"Comprehensive analysis of {len(earnings_analysis)} quarters with complete market data", styles['Normal']))
                 
-                # Performance insights
-                if avg_overnight > 0:
-                    overnight_trend = "positive"
-                elif avg_overnight < -2:
-                    overnight_trend = "negative" 
-                else:
-                    overnight_trend = "neutral"
+                if overnight_values:
+                    # Performance insights with detailed metrics
+                    if avg_overnight > 0:
+                        overnight_trend = "positive"
+                    elif avg_overnight < -2:
+                        overnight_trend = "negative" 
+                    else:
+                        overnight_trend = "neutral"
+                        
+                    if avg_nextday > 0:
+                        nextday_trend = "positive"
+                    elif avg_nextday < -2:
+                        nextday_trend = "negative"
+                    else:
+                        nextday_trend = "neutral"
                     
-                if avg_nextday > 0:
-                    nextday_trend = "positive"
-                elif avg_nextday < -2:
-                    nextday_trend = "negative"
-                else:
-                    nextday_trend = "neutral"
+                    story.append(Paragraph(f"• Average overnight performance: {overnight_trend} ({avg_overnight:.2f}%)", styles['Normal']))
+                    story.append(Paragraph(f"• Average next-day performance: {nextday_trend} ({avg_nextday:.2f}%)", styles['Normal']))
+                    story.append(Paragraph(f"• Average weekly performance: {avg_week:.2f}%", styles['Normal']))
+                    story.append(Paragraph("• Table includes pre-earnings prices, next-day opens/closes, EPS estimates/actuals, and surprise factors", styles['Normal']))
                 
-                story.append(Paragraph(f"• Average overnight performance: {overnight_trend} ({avg_overnight:.2f}%)", styles['Normal']))
-                story.append(Paragraph(f"• Average next-day performance: {nextday_trend} ({avg_nextday:.2f}%)", styles['Normal']))
                 story.append(Spacer(1, 15))
                 
             else:
