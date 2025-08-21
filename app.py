@@ -19,6 +19,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 from reportlab.lib.utils import ImageReader
 from news_sentiment_analyzer import run_sentiment_analysis, get_sentiment_summary_for_sharing
+from sentiment_data_provider import get_advanced_metrics, advanced_data_provider
 from reportlab.platypus import PageBreak, Table, TableStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
@@ -5352,10 +5353,11 @@ def yahoo_finance_tab():
                             st.error(f"Error generating PDF: {str(e)}")
                 
                 # Create sub-tabs for better organization
-                tab_price, tab_charts, tab_earnings, tab_sentiment = st.tabs([
+                tab_price, tab_charts, tab_earnings, tab_intelligence, tab_sentiment = st.tabs([
                     "📊 Price Action", 
                     "📈 Charts", 
                     "📅 Earnings & Dividends",
+                    "🎯 Market Intelligence",
                     "📰 News Sentiment"
                 ])
                 
@@ -5367,6 +5369,9 @@ def yahoo_finance_tab():
                 
                 with tab_earnings:
                     display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market)
+                
+                with tab_intelligence:
+                    display_advanced_sentiment_metrics(symbol, market)
                 
                 with tab_sentiment:
                     display_news_sentiment_analysis(symbol)
@@ -6912,6 +6917,129 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
             
     except Exception as e:
         st.error(f"Error analyzing earnings performance: {str(e)}")
+
+def display_advanced_sentiment_metrics(symbol, market="US"):
+    """Display comprehensive advanced sentiment and institutional metrics"""
+    
+    st.subheader(f"🎯 Advanced Market Intelligence for {symbol}")
+    
+    # Check for FMP API key
+    import os
+    fmp_api_key = os.environ.get("FMP_API_KEY")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        **📊 Data Sources:**
+        - Analyst Ratings & Price Targets
+        - Insider Trading Activity
+        - Institutional Holdings (13F Filings)
+        - Social Sentiment Analysis
+        - News Sentiment (AI-powered)
+        """)
+    
+    with col2:
+        if not fmp_api_key:
+            st.warning("""
+            🔑 **Enhanced Data Requires API Key**
+            
+            Add FMP_API_KEY to environment variables for:
+            - Professional analyst ratings
+            - Insider trading data
+            - Institutional holdings
+            - Advanced sentiment metrics
+            """)
+        else:
+            st.success("✅ Premium data sources enabled")
+    
+    # Get advanced metrics
+    try:
+        advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
+        
+        # Display metrics in a structured format
+        st.markdown("### 📈 Market Intelligence Dashboard")
+        
+        # Create metrics grid
+        col_analyst, col_insider, col_institutional = st.columns(3)
+        
+        with col_analyst:
+            st.metric(
+                label="Analyst Rating",
+                value=advanced_metrics.get('Analyst Rating', 'N/A'),
+                help="Professional analyst consensus rating"
+            )
+            st.metric(
+                label="Price Target",
+                value=advanced_metrics.get('Price Target', 'N/A'),
+                help="Average analyst price target"
+            )
+        
+        with col_insider:
+            st.metric(
+                label="Insider Activity",
+                value=advanced_metrics.get('Insider Activity', 'N/A'),
+                help="Recent insider buying/selling activity"
+            )
+        
+        with col_institutional:
+            st.metric(
+                label="Institutional Ownership",
+                value=advanced_metrics.get('Institutional Ownership', 'N/A'),
+                help="Number of institutional holders"
+            )
+            st.metric(
+                label="Social Sentiment",
+                value=advanced_metrics.get('Social Sentiment', 'N/A'),
+                help="Market sentiment from social sources"
+            )
+        
+        # Show last updated
+        if advanced_metrics.get('Last Updated'):
+            st.caption(f"Last updated: {advanced_metrics['Last Updated']}")
+        
+        # Detailed view toggle
+        with st.expander("🔍 Detailed Analysis"):
+            if 'raw_data' in advanced_metrics:
+                raw_data = advanced_metrics['raw_data']
+                
+                # Analyst details
+                analyst_data = raw_data.get('analyst_ratings', {})
+                if analyst_data and 'error' not in analyst_data:
+                    st.markdown("**Analyst Information:**")
+                    col_a1, col_a2 = st.columns(2)
+                    with col_a1:
+                        st.write(f"Rating: {analyst_data.get('rating', 'N/A')}")
+                        st.write(f"Recommendation: {analyst_data.get('recommendation', 'N/A')}")
+                    with col_a2:
+                        st.write(f"Analyst Count: {analyst_data.get('analyst_count', 0)}")
+                        st.write(f"Price Target: {analyst_data.get('price_target', 'N/A')}")
+                
+                # Insider details
+                insider_data = raw_data.get('insider_activity', {})
+                if insider_data and 'error' not in insider_data:
+                    st.markdown("**Insider Activity:**")
+                    st.write(f"Recent Activity: {insider_data.get('recent_activity', 'N/A')}")
+                    st.write(f"Summary: {insider_data.get('insider_summary', 'N/A')}")
+                    st.write(f"Net Activity: {insider_data.get('net_insider_activity', 'N/A')}")
+                
+                # Institutional details
+                institutional_data = raw_data.get('institutional_holdings', {})
+                if institutional_data and 'error' not in institutional_data:
+                    st.markdown("**Institutional Holdings:**")
+                    st.write(f"Total Institutions: {institutional_data.get('total_institutions', 0)}")
+                    st.write(f"Total Market Value: ${institutional_data.get('total_market_value', 0):,.0f}")
+                    
+                    # Show top holders if available
+                    top_holders = institutional_data.get('top_5_holders', [])
+                    if top_holders:
+                        st.markdown("**Top 5 Institutional Holders:**")
+                        for i, holder in enumerate(top_holders[:3], 1):
+                            st.write(f"{i}. {holder.get('name', 'Unknown')} - ${holder.get('value', 0):,.0f}")
+        
+    except Exception as e:
+        st.error(f"Error loading advanced metrics: {str(e)}")
+        st.info("Please ensure the sentiment_data_provider module is properly configured.")
 
 def display_news_sentiment_analysis(symbol):
     """Display AI-powered news sentiment analysis"""
