@@ -458,9 +458,12 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                             'Quarter_Key': quarter_key
                         })
                 
-                # Sort by date descending (most recent first) and limit to 8 quarters
-                quarters_data = sorted(quarters_data, key=lambda x: x['Date'], reverse=True)[:8]
+                # Sort by date descending (most recent first) and ensure we get all available quarters up to 8
+                quarters_data = sorted(quarters_data, key=lambda x: x['Date'], reverse=True)
                 print(f"Filtered to {len(quarters_data)} unique quarters from {len(earnings_dates)} total earnings dates")
+                
+                # Take up to 8 quarters for comprehensive analysis
+                quarters_data = quarters_data[:8]
                 
                 # Analyze each quarter
                 analysis_results = []
@@ -529,18 +532,19 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 earnings_analysis = pd.DataFrame()
             
             if earnings_analysis is not None and not earnings_analysis.empty:
-                # Create earnings summary table
+                # Create comprehensive earnings summary table with all quarters
                 earnings_summary = [
-                    ["Quarter", "Overnight %", "Next Day %", "Week %"]
+                    ["Quarter", "Earnings Date", "Overnight %", "Next Day %", "Week %"]
                 ]
                 
-                # Add up to 6 most recent quarters to fit in PDF
-                for i, (idx, row) in enumerate(earnings_analysis.head(6).iterrows()):
+                # Add all available quarters (up to 8)
+                for i, (idx, row) in enumerate(earnings_analysis.head(8).iterrows()):
                     quarter_info = f"{row['Year']}-Q{row['Quarter']}"
-                    overnight_pct = f"{row['Overnight_%']:.2f}%"
-                    nextday_pct = f"{row['NextDay_%']:.2f}%"  
-                    week_pct = f"{row['Week_%']:.2f}%"
-                    earnings_summary.append([quarter_info, overnight_pct, nextday_pct, week_pct])
+                    earnings_date = row['Earnings_Date'].strftime('%Y-%m-%d') if pd.notnull(row['Earnings_Date']) else 'N/A'
+                    overnight_pct = f"{row['Overnight_%']:.2f}%" if pd.notnull(row['Overnight_%']) else 'N/A'
+                    nextday_pct = f"{row['NextDay_%']:.2f}%" if pd.notnull(row['NextDay_%']) else 'N/A'
+                    week_pct = f"{row['Week_%']:.2f}%" if pd.notnull(row['Week_%']) else 'N/A'
+                    earnings_summary.append([quarter_info, earnings_date, overnight_pct, nextday_pct, week_pct])
                 
                 # Calculate average performance
                 avg_overnight = earnings_analysis['Overnight_%'].mean()
@@ -549,13 +553,14 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                 
                 earnings_summary.append([
                     "AVERAGE", 
+                    f"({len(earnings_analysis)} quarters)",
                     f"{avg_overnight:.2f}%", 
                     f"{avg_nextday:.2f}%", 
                     f"{avg_week:.2f}%"
                 ])
                 
                 # Create and style earnings table
-                earnings_table = Table(earnings_summary, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+                earnings_table = Table(earnings_summary, colWidths=[1.2*inch, 1.2*inch, 1.0*inch, 1.0*inch, 1.0*inch])
                 earnings_table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.grey),
                     ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
