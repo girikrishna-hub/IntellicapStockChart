@@ -7602,6 +7602,9 @@ def display_advanced_sentiment_metrics(symbol, market="US"):
             ))
         )
         
+        st.write(f"Debug: needs_fallback = {needs_fallback}")
+        st.write(f"Debug: advanced_metrics keys = {list(advanced_metrics.keys()) if advanced_metrics else 'None'}")
+        
         if needs_fallback:
             st.info("🔄 FMP API unavailable, using Yahoo Finance fallback data...")
             
