@@ -564,6 +564,65 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             # Fetch comprehensive market analysis
             advanced_metrics = get_advanced_metrics(symbol, fmp_api_key)
             
+            # If FMP data is not available, use fallback data sources
+            if not advanced_metrics or advanced_metrics == {} or all(v in ['N/A', 'API key required', None] for v in advanced_metrics.values() if v):
+                print("FMP data not available, using Yahoo Finance fallback for market intelligence...")
+                
+                try:
+                    # Use Yahoo Finance for basic institutional data
+                    institutional_holders = ticker_obj.institutional_holders
+                    major_holders = ticker_obj.major_holders
+                    info = ticker_obj.info
+                    
+                    # Create fallback metrics from available Yahoo Finance data
+                    fallback_metrics = {}
+                    
+                    # Institutional ownership from major holders
+                    if major_holders is not None and not major_holders.empty and len(major_holders) > 1:
+                        inst_ownership = major_holders.iloc[1, 0] if pd.notnull(major_holders.iloc[1, 0]) else None
+                        if inst_ownership:
+                            fallback_metrics['Institutional Ownership'] = f"Institutions own {inst_ownership}"
+                    
+                    # Basic analyst info from Yahoo Finance
+                    if info:
+                        # Analyst recommendation
+                        recommendation = info.get('recommendationKey')
+                        if recommendation and recommendation != 'none':
+                            fallback_metrics['Analyst Rating'] = recommendation.upper().replace('_', ' ')
+                        
+                        # Target price if available
+                        target_mean = info.get('targetMeanPrice')
+                        if target_mean:
+                            fallback_metrics['Price Target'] = f"${target_mean:.2f}"
+                            target_low = info.get('targetLowPrice')
+                            target_high = info.get('targetHighPrice')
+                            if target_low and target_high:
+                                fallback_metrics['Price Target'] += f" (Range: ${target_low:.2f} - ${target_high:.2f})"
+                        
+                        # Number of analyst recommendations
+                        num_analysts = info.get('numberOfAnalystOpinions')
+                        if num_analysts:
+                            fallback_metrics['Analyst Coverage'] = f"{num_analysts} analysts covering"
+                    
+                    # Top institutional holders if available
+                    if institutional_holders is not None and not institutional_holders.empty:
+                        top_holder = institutional_holders.iloc[0]
+                        holder_name = top_holder.get('Holder') if 'Holder' in top_holder else 'N/A'
+                        shares = top_holder.get('Shares') if 'Shares' in top_holder else 'N/A'
+                        if holder_name != 'N/A':
+                            fallback_metrics['Top Institutional Holder'] = f"{holder_name}"
+                            if shares != 'N/A':
+                                fallback_metrics['Top Institutional Holder'] += f" ({shares:,} shares)"
+                    
+                    # Add data source note
+                    if fallback_metrics:
+                        fallback_metrics['Data Source'] = "Yahoo Finance (Free)"
+                        advanced_metrics = fallback_metrics
+                    
+                except Exception as e:
+                    print(f"Error fetching Yahoo Finance fallback data: {e}")
+                    advanced_metrics = {'Market Intelligence': 'Data temporarily unavailable due to API limits'}
+            
             if advanced_metrics and advanced_metrics != {}:
                 # Create market intelligence summary table
                 intel_summary = [
