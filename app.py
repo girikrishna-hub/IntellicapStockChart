@@ -7730,56 +7730,104 @@ def display_earnings_dividends_tab(symbol, data, ticker_info, ticker_obj, market
     else:
         st.info("📝 **Data Source Note**: Yahoo Finance may have delayed earnings data. For the most current information, check the company's investor relations page.")
     
-    # Earnings Performance Analysis
-    st.markdown('<p class="small-subheader">📊 <strong>Earnings Performance Analysis</strong></p>', unsafe_allow_html=True)
+    # Comprehensive Earnings Performance Analysis - Using Advanced Analysis Table
+    st.markdown('<p class="small-subheader">📊 <strong>Comprehensive Earnings Performance Analysis</strong></p>', unsafe_allow_html=True)
     
     try:
-        earnings_analysis, quarters_found = get_earnings_performance_analysis(ticker_obj, data, market)
+        # Use the comprehensive earnings analysis from Advanced Analysis tab with full 13 columns
+        extended_data = ticker_obj.history(period="3y", interval="1d")  # Extended data for comprehensive analysis
+        if extended_data.empty:
+            extended_data = data
+        
+        earnings_analysis, quarters_found = get_detailed_earnings_performance_analysis(
+            ticker_obj, extended_data, market=market, max_quarters=8
+        )
         
         if earnings_analysis is not None and not earnings_analysis.empty:
             st.markdown(f"""
-            **Track how the stock performed after each earnings announcement ({quarters_found} quarters available):**
-            - **Overnight Change**: Price movement from close before earnings to open after earnings
-            - **Week Performance**: Total change from pre-earnings close to end of week (5 trading days)
+            **Comprehensive track record of stock performance after each earnings announcement ({quarters_found} quarters available):**
+            - **Pre-Close**: Stock price before earnings announcement
+            - **Next Open/Close**: Stock prices on trading day after earnings
+            - **Overnight %**: Price movement from pre-earnings close to next day open
+            - **NextDay %**: Price movement from pre-earnings close to next day close
+            - **Week %**: Total change from pre-earnings close to end of week (5 trading days)
+            - **Direction**: Overall weekly direction (Up/Down/Flat)
+            - **EPS**: Estimated vs Actual earnings per share and surprise
             """)
             
-            # Display earnings analysis
+            # Display comprehensive earnings analysis with all 13 columns
             st.dataframe(earnings_analysis, use_container_width=True)
             
-            # Summary statistics
+            # Enhanced Summary statistics with more metrics
             col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
             
             try:
-                # Calculate summary stats
-                overnight_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Overnight Change (%)'] if x != 'N/A']
-                week_changes = [float(x.replace('%', '').replace('+', '')) for x in earnings_analysis['Week Performance (%)'] if x != 'N/A']
+                # Calculate comprehensive summary stats from all available columns
+                overnight_changes = []
+                nextday_changes = []
+                week_changes = []
                 
+                # Extract numerical values from percentage columns
+                for _, row in earnings_analysis.iterrows():
+                    try:
+                        overnight_val = row['Overnight Change (%)']
+                        if overnight_val and overnight_val != 'N/A':
+                            overnight_changes.append(float(str(overnight_val).replace('%', '').replace('+', '')))
+                    except:
+                        pass
+                    
+                    try:
+                        nextday_val = row['Next Day Change (%)']
+                        if nextday_val and nextday_val != 'N/A':
+                            nextday_changes.append(float(str(nextday_val).replace('%', '').replace('+', '')))
+                    except:
+                        pass
+                    
+                    try:
+                        week_val = row['Week Performance (%)']
+                        if week_val and week_val != 'N/A':
+                            week_changes.append(float(str(week_val).replace('%', '').replace('+', '')))
+                    except:
+                        pass
+                
+                # Display enhanced statistics
                 if overnight_changes:
                     with col_stats1:
                         avg_overnight = sum(overnight_changes) / len(overnight_changes)
                         st.metric("Avg Overnight Change", f"{avg_overnight:+.2f}%")
-                    
-                    with col_stats2:
                         positive_overnight = sum(1 for x in overnight_changes if x > 0)
-                        st.metric("Positive Overnight", f"{positive_overnight}/{len(overnight_changes)}")
+                        st.caption(f"Positive: {positive_overnight}/{len(overnight_changes)}")
+                
+                if nextday_changes:
+                    with col_stats2:
+                        avg_nextday = sum(nextday_changes) / len(nextday_changes)
+                        st.metric("Avg Next Day Change", f"{avg_nextday:+.2f}%")
+                        positive_nextday = sum(1 for x in nextday_changes if x > 0)
+                        st.caption(f"Positive: {positive_nextday}/{len(nextday_changes)}")
                 
                 if week_changes:
                     with col_stats3:
                         avg_week = sum(week_changes) / len(week_changes)
                         st.metric("Avg Week Performance", f"{avg_week:+.2f}%")
-                    
-                    with col_stats4:
                         positive_week = sum(1 for x in week_changes if x > 0)
-                        st.metric("Positive Week", f"{positive_week}/{len(week_changes)}")
+                        st.caption(f"Positive: {positive_week}/{len(week_changes)}")
+                
+                # Direction analysis
+                with col_stats4:
+                    directions = earnings_analysis['Direction'].value_counts()
+                    if not directions.empty:
+                        most_common = directions.index[0]
+                        st.metric("Most Common Direction", most_common)
+                        st.caption(f"{directions[most_common]}/{len(earnings_analysis)} quarters")
                         
             except Exception as e:
-                st.warning("Could not calculate summary statistics")
+                st.warning("Could not calculate comprehensive summary statistics")
                 
         else:
-            st.info("No earnings performance data available for the selected period")
+            st.info("No comprehensive earnings performance data available for the selected period")
             
     except Exception as e:
-        st.error(f"Error analyzing earnings performance: {str(e)}")
+        st.error(f"Error analyzing comprehensive earnings performance: {str(e)}")
 
 def get_unified_market_intelligence(symbol, fmp_api_key, ticker_obj=None):
     """
