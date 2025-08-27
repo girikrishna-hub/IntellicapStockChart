@@ -1668,6 +1668,15 @@ def get_earnings_info(ticker_obj, ticker_info, symbol):
             if earnings_dates is not None and not earnings_dates.empty:
                 print(f"Found {len(earnings_dates)} earnings dates from earnings_dates")
                 
+                # IMPORTANT: Filter out Meeting events and only keep Earnings events
+                if 'Event Type' in earnings_dates.columns:
+                    earnings_only = earnings_dates[earnings_dates['Event Type'] == 'Earnings'].copy()
+                    print(f"Filtered to {len(earnings_only)} actual earnings events (excluded meetings)")
+                    if earnings_only.empty:
+                        print("No actual earnings events found after filtering out meetings")
+                        raise ValueError("No earnings events, only meetings found")
+                    earnings_dates = earnings_only
+                
                 # Convert current_date to match earnings_dates timezone
                 if hasattr(earnings_dates.index[0], 'tz') and earnings_dates.index[0].tz:
                     current_date_tz = current_date.tz_localize(earnings_dates.index[0].tz)
@@ -2136,7 +2145,14 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
             return None, 0
         
         # Get available earnings dates and filter for unique quarters
-        earnings_dates = earnings.index.tolist()
+        # IMPORTANT: Filter out Meeting events and only include actual Earnings events
+        earnings_only = earnings[earnings.get('Event Type', 'Earnings') == 'Earnings'].copy()
+        
+        if earnings_only.empty:
+            print("No actual earnings events found (filtered out meetings)")
+            return None, 0
+            
+        earnings_dates = earnings_only.index.tolist()
         earnings_dates.sort(reverse=True)  # Most recent first
         
         # Filter for unique quarters to avoid duplicate earnings in same quarter
@@ -2255,10 +2271,19 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 quarter_num = (earnings_date.month - 1) // 3 + 1
                 quarter = f"Q{quarter_num} {earnings_date.year}"
                 
+                # Determine BMO vs AMC timing based on hour
+                # BMO (Before Market Open): typically 6:00-9:30 AM ET (6-9 hour in 24h format)
+                # AMC (After Market Close): typically 4:00-8:00 PM ET (16-20 hour in 24h format)
+                earnings_hour = earnings_date.hour
+                if earnings_hour < 12:  # Before noon = BMO
+                    timing = "BMO"
+                else:  # After noon = AMC
+                    timing = "AMC"
+                
                 # Create detailed analysis row
                 analysis_row = {
                     'Quarter': quarter,
-                    'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
+                    'Earnings Date': f"{earnings_date.strftime('%Y-%m-%d')} ({timing})",
                     'Pre-Earnings Close': format_currency(pre_earnings_price, market),
                     'Next Day Open': format_currency(post_earnings_open, market),
                     'Next Day Close': format_currency(post_earnings_close, market),
