@@ -2086,11 +2086,33 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 # Determine quarter
                 quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
                 
-                print(f"Analysis successful for {earnings_date}: {overnight_change:+.2f}% overnight, {next_day_change:+.2f}% next day, {week_performance:+.2f}% week")
+                # Determine BMO vs AMC timing and adjust calculations accordingly
+                earnings_hour = earnings_date.hour
+                if earnings_hour < 12:  # Before noon = BMO
+                    timing = "BMO"
+                    # For BMO earnings, find same-day market data (earnings day, not next day)
+                    earnings_day_mask = data.index.normalize() == earnings_date_for_comparison.normalize()
+                    if earnings_day_mask.any():
+                        same_day_open = data[earnings_day_mask]['Open'].iloc[0]
+                        same_day_close = data[earnings_day_mask]['Close'].iloc[0]
+                        # BMO calculations: pre-close to same-day open/close
+                        overnight_change = ((same_day_open - pre_earnings_price) / pre_earnings_price) * 100
+                        next_day_change = ((same_day_close - pre_earnings_price) / pre_earnings_price) * 100
+                        # Update display values for BMO
+                        post_earnings_open = same_day_open
+                        post_earnings_close = same_day_close
+                        post_earnings_date = data[earnings_day_mask].index[0]
+                    else:
+                        timing = "BMO (fallback)"
+                else:  # After noon = AMC
+                    timing = "AMC"
+                    # AMC earnings use original calculation (next trading day)
+                
+                print(f"Analysis successful for {earnings_date} ({timing}): {overnight_change:+.2f}% overnight, {next_day_change:+.2f}% next day, {week_performance:+.2f}% week")
                 
                 analysis_data.append({
                     'Quarter': quarter,
-                    'Earnings Date': earnings_date.strftime('%Y-%m-%d'),
+                    'Earnings Date': f"{earnings_date.strftime('%Y-%m-%d')} ({timing})",
                     'Pre-Earnings Close': format_currency(pre_earnings_price, market),
                     'Next Day Open': format_currency(post_earnings_open, market),
                     'Next Day Close': format_currency(post_earnings_close, market),
@@ -2277,16 +2299,30 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 earnings_hour = earnings_date.hour
                 if earnings_hour < 12:  # Before noon = BMO
                     timing = "BMO"
+                    # For BMO earnings, find same-day market data (earnings day, not next day)
+                    earnings_day_mask = data.index.normalize() == earnings_date_for_comparison.normalize()
+                    if earnings_day_mask.any():
+                        same_day_open = data[earnings_day_mask]['Open'].iloc[0]
+                        same_day_close = data[earnings_day_mask]['Close'].iloc[0]
+                        # BMO calculations: pre-close to same-day open/close
+                        overnight_change = ((same_day_open - pre_earnings_price) / pre_earnings_price) * 100
+                        next_day_change = ((same_day_close - pre_earnings_price) / pre_earnings_price) * 100
+                        # Update post_earnings references for week calculation
+                        post_earnings_date = data[earnings_day_mask].index[0]
+                    else:
+                        # Fallback to original calculation if same-day data not found
+                        timing = "BMO (fallback)"
                 else:  # After noon = AMC
                     timing = "AMC"
+                    # For AMC earnings, use next trading day data (original calculation is correct)
                 
                 # Create detailed analysis row
                 analysis_row = {
                     'Quarter': quarter,
                     'Earnings Date': f"{earnings_date.strftime('%Y-%m-%d')} ({timing})",
                     'Pre-Earnings Close': format_currency(pre_earnings_price, market),
-                    'Next Day Open': format_currency(post_earnings_open, market),
-                    'Next Day Close': format_currency(post_earnings_close, market),
+                    'Next Day Open': format_currency(post_earnings_open if timing == "AMC" else same_day_open if timing.startswith("BMO") and earnings_day_mask.any() else post_earnings_open, market),
+                    'Next Day Close': format_currency(post_earnings_close if timing == "AMC" else same_day_close if timing.startswith("BMO") and earnings_day_mask.any() else post_earnings_close, market),
                     'Overnight Change (%)': f"{overnight_change:+.2f}%",
                     'Next Day Change (%)': f"{next_day_change:+.2f}%",
                     'End of Week Close': format_currency(week_end_price, market),
