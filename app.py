@@ -2027,8 +2027,16 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 earnings_hour = earnings_date.hour
                 is_bmo = earnings_hour < 12  # Before noon = BMO
                 
-                # Find pre-earnings data (always previous trading day for both BMO and AMC)
-                pre_earnings_mask = data.index < earnings_date_for_comparison
+                # Find pre-earnings data based on timing
+                if is_bmo:
+                    # For BMO: pre-earnings is the day BEFORE the earnings announcement day
+                    # Exclude the earnings announcement day itself
+                    earnings_day_start = earnings_date_for_comparison.normalize()
+                    pre_earnings_mask = data.index < earnings_day_start
+                else:
+                    # For AMC: pre-earnings is up to the earnings announcement time
+                    pre_earnings_mask = data.index < earnings_date_for_comparison
+                
                 if not pre_earnings_mask.any():
                     print(f"No pre-earnings data found for {earnings_date}")
                     continue
@@ -2225,12 +2233,14 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 earnings_hour = earnings_date.hour
                 is_bmo = earnings_hour < 12  # Before noon = BMO
                 
-                # Find pre-earnings data (always previous trading day for both BMO and AMC)
+                # Find pre-earnings data based on timing
                 if is_bmo:
                     # For BMO: pre-earnings is the day BEFORE the earnings announcement day
-                    pre_earnings_mask = data.index < earnings_date_for_comparison
+                    # Exclude the earnings announcement day itself
+                    earnings_day_start = earnings_date_for_comparison.normalize()
+                    pre_earnings_mask = data.index < earnings_day_start
                 else:
-                    # For AMC: pre-earnings is the same day as earnings announcement (market close)
+                    # For AMC: pre-earnings is up to the earnings announcement time
                     pre_earnings_mask = data.index < earnings_date_for_comparison
                 
                 if not pre_earnings_mask.any():
