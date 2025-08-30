@@ -2534,6 +2534,14 @@ def display_valuation_metrics(info, symbol=None):
     # Get hybrid metrics (GuruFocus preferred, yfinance fallback)
     hybrid_metrics = get_hybrid_financial_metrics(symbol or "UNKNOWN", info) if symbol else None
     
+    # Debug for AMD specifically
+    if symbol and symbol.upper() == 'AMD':
+        st.error(f"DEBUG: symbol='{symbol}', hybrid_metrics exists={hybrid_metrics is not None}")
+        if hybrid_metrics:
+            st.error(f"DEBUG: PEG from hybrid={hybrid_metrics.get('peg_ratio')}, source={hybrid_metrics.get('source')}")
+        else:
+            st.error("DEBUG: hybrid_metrics is None - this should not happen!")
+    
     # Add data source comparison debug info 
     if st.sidebar.checkbox("Show Data Sources Debug", help="Compare values with institutional sources"):
         data_source = hybrid_metrics.get('source', 'Yahoo Finance') if hybrid_metrics else 'Yahoo Finance'
