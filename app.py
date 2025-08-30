@@ -2544,6 +2544,7 @@ def display_valuation_metrics(info, symbol=None):
         
         if hybrid_metrics:
             st.info(f"📊 **Metrics**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
+                    f"Forward P/E: {hybrid_metrics.get('forward_pe', 'N/A'):.2f if hybrid_metrics.get('forward_pe') else 'N/A'} | "
                     f"P/S: {hybrid_metrics.get('ps_ratio', 'N/A'):.2f if hybrid_metrics.get('ps_ratio') else 'N/A'} | "
                     f"PEG: {hybrid_metrics.get('peg_ratio', 'N/A'):.2f if hybrid_metrics.get('peg_ratio') and not pd.isna(hybrid_metrics.get('peg_ratio')) else 'N/A'}")
         
@@ -6690,11 +6691,13 @@ def gurufocus_tab():
                         val_col1, val_col2, val_col3, val_col4 = st.columns(4)
                         
                         with val_col1:
-                            # P/E Ratio
+                            # P/E Ratio - use consistent approach
                             pe_ratio = info.get('trailingPE')
                             forward_pe = info.get('forwardPE')
-                            st.metric("P/E Ratio (TTM)", f"{pe_ratio:.2f}" if pe_ratio else "N/A")
-                            st.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A")
+                            st.metric("P/E Ratio (TTM)", f"{pe_ratio:.2f}" if pe_ratio else "N/A", 
+                                     help="Trailing twelve months P/E (yfinance source)")
+                            st.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A",
+                                     help="Forward P/E based on analyst estimates (yfinance source - may differ from website due to data timing)")
                         
                         with val_col2:
                             # Price-to-Book and Price-to-Sales
