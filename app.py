@@ -6683,21 +6683,35 @@ def gurufocus_tab():
                     st.info(f"🔍 **Current Data Source**: {data_source}")
                     
                     if hybrid_metrics:
-                        st.info(f"📊 **Valuation**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
-                                f"Forward P/E: {hybrid_metrics.get('forward_pe', 'N/A'):.2f if hybrid_metrics.get('forward_pe') else 'N/A'} | "
-                                f"P/S: {hybrid_metrics.get('ps_ratio', 'N/A'):.2f if hybrid_metrics.get('ps_ratio') else 'N/A'} | "
-                                f"PEG: {hybrid_metrics.get('peg_ratio', 'N/A'):.2f if hybrid_metrics.get('peg_ratio') and not pd.isna(hybrid_metrics.get('peg_ratio')) else 'N/A'}")
+                        # Format valuation metrics with proper conditional formatting
+                        pe_ratio = hybrid_metrics.get('pe_ratio')
+                        forward_pe = hybrid_metrics.get('forward_pe') 
+                        ps_ratio = hybrid_metrics.get('ps_ratio')
+                        peg_ratio = hybrid_metrics.get('peg_ratio')
+                        
+                        pe_str = f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else 'N/A'
+                        forward_pe_str = f"{forward_pe:.2f}" if forward_pe and not pd.isna(forward_pe) else 'N/A'
+                        ps_str = f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else 'N/A'
+                        peg_str = f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else 'N/A'
+                        
+                        st.info(f"📊 **Valuation**: P/E: {pe_str} | Forward P/E: {forward_pe_str} | P/S: {ps_str} | PEG: {peg_str}")
                         
                         ev_revenue = hybrid_metrics.get('ev_revenue') or info.get('enterpriseToRevenue')
                         ev_ebitda = hybrid_metrics.get('ev_ebitda') or info.get('enterpriseToEbitda')
-                        st.info(f"📊 **Enterprise**: EV/Revenue: {ev_revenue:.2f if ev_revenue else 'N/A'} | "
-                                f"EV/EBITDA: {ev_ebitda:.2f if ev_ebitda else 'N/A'}")
+                        
+                        ev_revenue_str = f"{ev_revenue:.2f}" if ev_revenue and not pd.isna(ev_revenue) else 'N/A'
+                        ev_ebitda_str = f"{ev_ebitda:.2f}" if ev_ebitda and not pd.isna(ev_ebitda) else 'N/A'
+                        
+                        st.info(f"📊 **Enterprise**: EV/Revenue: {ev_revenue_str} | EV/EBITDA: {ev_ebitda_str}")
                         
                         # Show margin data which can have significant differences
                         operating_margin = info.get('operatingMargins')
                         gross_margin = info.get('grossMargins')
-                        st.info(f"📊 **Margins**: Gross: {gross_margin*100:.2f}% | Operating: {operating_margin*100:.2f}%" 
-                                if operating_margin and gross_margin else "📊 **Margins**: Limited data available")
+                        
+                        if operating_margin and gross_margin:
+                            st.info(f"📊 **Margins**: Gross: {gross_margin*100:.2f}% | Operating: {operating_margin*100:.2f}%")
+                        else:
+                            st.info("📊 **Margins**: Limited data available")
                     
                     st.warning("ℹ️ **Data Variance**: API values may differ from institutional sources (±0.1-10%) due to data timing, calculation periods, and methodologies. "
                               "Operating margins can show significant differences between sources. GuruFocus data preferred when available.")
