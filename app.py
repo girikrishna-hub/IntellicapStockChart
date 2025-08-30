@@ -2543,10 +2543,18 @@ def display_valuation_metrics(info, symbol=None):
         st.info(f"🔍 **Current Data Source**: {data_source}")
         
         if hybrid_metrics:
-            st.info(f"📊 **Metrics**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
+            st.info(f"📊 **Valuation**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
                     f"Forward P/E: {hybrid_metrics.get('forward_pe', 'N/A'):.2f if hybrid_metrics.get('forward_pe') else 'N/A'} | "
                     f"P/S: {hybrid_metrics.get('ps_ratio', 'N/A'):.2f if hybrid_metrics.get('ps_ratio') else 'N/A'} | "
                     f"PEG: {hybrid_metrics.get('peg_ratio', 'N/A'):.2f if hybrid_metrics.get('peg_ratio') and not pd.isna(hybrid_metrics.get('peg_ratio')) else 'N/A'}")
+            
+            ev_revenue = hybrid_metrics.get('ev_revenue') or info.get('enterpriseToRevenue')
+            ev_ebitda = hybrid_metrics.get('ev_ebitda') or info.get('enterpriseToEbitda')
+            st.info(f"📊 **Enterprise**: EV/Revenue: {ev_revenue:.2f if ev_revenue else 'N/A'} | "
+                    f"EV/EBITDA: {ev_ebitda:.2f if ev_ebitda else 'N/A'}")
+            
+            st.warning("ℹ️ **Data Variance**: yfinance API values may differ slightly from Yahoo Finance website (±0.1-2%) due to data timing, calculation periods, and source methodologies. "
+                      "This is normal for financial data APIs vs websites.")
         
         if not hybrid_metrics or hybrid_metrics.get('source') == 'Yahoo Finance':
             st.warning("⚠️ **Using Yahoo Finance**: Add GURUFOCUS_API_KEY to get exact GuruFocus institutional metrics")
@@ -2590,7 +2598,7 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="P/S Ratio (TTM)",
             value=f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A",
-            help=f"Price-to-Sales ratio trailing twelve months{data_source_label}"
+            help=f"Price-to-Sales ratio trailing twelve months{data_source_label}. API values may vary slightly from website due to data timing."
         )
     
     with col3:
@@ -2607,7 +2615,7 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="EV/EBITDA",
             value=f"{ev_ebitda:.2f}" if ev_ebitda and not pd.isna(ev_ebitda) else "N/A",
-            help="Enterprise Value to EBITDA ratio"
+            help="Enterprise Value to EBITDA ratio. API values may vary slightly from website due to data timing and calculation methods."
         )
     
     with col4:
