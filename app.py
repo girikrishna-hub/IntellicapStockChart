@@ -71,15 +71,93 @@ def fetch_stock_data(symbol, period="1y", market="US"):
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None, None, None
 
-def get_peg_ratio(ticker_info):
+def get_gurufocus_financial_metrics(symbol):
     """
-    Get the best available PEG ratio from yfinance data
-    Tries pegRatio first, then trailingPegRatio as fallback
+    Fetch financial metrics from GuruFocus API if key is available
+    Returns dict with P/E, PEG, P/S ratios or None if unavailable
     """
+    import os
+    
+    api_key = os.getenv('GURUFOCUS_API_KEY')
+    if not api_key:
+        return None
+    
+    try:
+        import requests
+        
+        # GuruFocus API endpoints for valuation metrics
+        base_url = "https://api.gurufocus.com/public/user"
+        headers = {
+            "Authorization": f"Token {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Fetch key valuation metrics
+        url = f"{base_url}/{symbol}/ratios"
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                'pe_ratio': data.get('pe_ratio'),
+                'peg_ratio': data.get('peg_ratio'), 
+                'ps_ratio': data.get('ps_ratio'),
+                'pb_ratio': data.get('pb_ratio'),
+                'source': 'GuruFocus'
+            }
+        else:
+            print(f"GuruFocus API error: {response.status_code}")
+            return None
+            
+    except Exception as e:
+        print(f"GuruFocus API error: {e}")
+        return None
+
+def get_peg_ratio(ticker_info, gurufocus_data=None):
+    """
+    Get the best available PEG ratio from GuruFocus first, then yfinance fallback
+    """
+    if gurufocus_data and gurufocus_data.get('peg_ratio'):
+        return gurufocus_data['peg_ratio']
+    
+    # Fallback to yfinance data
     peg_ratio = ticker_info.get('pegRatio', None)
     if peg_ratio is None or pd.isna(peg_ratio):
         peg_ratio = ticker_info.get('trailingPegRatio', None)
     return peg_ratio
+
+def get_hybrid_financial_metrics(symbol, ticker_info):
+    """
+    Get financial metrics with GuruFocus priority and yfinance fallback
+    Returns dict with metrics and data source information
+    """
+    # Try GuruFocus first
+    gurufocus_data = get_gurufocus_financial_metrics(symbol)
+    
+    if gurufocus_data:
+        # Use GuruFocus data
+        return {
+            'pe_ratio': gurufocus_data.get('pe_ratio') or ticker_info.get('trailingPE'),
+            'peg_ratio': gurufocus_data.get('peg_ratio') or get_peg_ratio(ticker_info),
+            'ps_ratio': gurufocus_data.get('ps_ratio') or ticker_info.get('priceToSalesTrailing12Months'),
+            'pb_ratio': gurufocus_data.get('pb_ratio') or ticker_info.get('priceToBook'),
+            'forward_pe': ticker_info.get('forwardPE'),  # Usually only in yfinance
+            'ev_revenue': ticker_info.get('enterpriseToRevenue'),
+            'ev_ebitda': ticker_info.get('enterpriseToEbitda'),
+            'source': 'GuruFocus + yfinance fallback'
+        }
+    else:
+        # Use yfinance data only
+        return {
+            'pe_ratio': ticker_info.get('trailingPE'),
+            'peg_ratio': get_peg_ratio(ticker_info),
+            'ps_ratio': ticker_info.get('priceToSalesTrailing12Months'),
+            'pb_ratio': ticker_info.get('priceToBook'),
+            'forward_pe': ticker_info.get('forwardPE'),
+            'ev_revenue': ticker_info.get('enterpriseToRevenue'),
+            'ev_ebitda': ticker_info.get('enterpriseToEbitda'),
+            'source': 'Yahoo Finance'
+        }
 
 def get_beta_value(ticker_info):
     """
@@ -197,11 +275,14 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         currency = "₹" if market == "India" else "$"
         company_name = ticker_info.get('longName', ticker_info.get('shortName', symbol))
         
-        # Calculate metrics for PDF including Fibonacci analysis
+        # Calculate metrics for PDF including Fibonacci analysis and hybrid financial metrics
         # Convert period parameter format for get_stock_metrics
         period_map = {"1y": "1y", "6mo": "6mo", "3mo": "3mo", "1mo": "1mo", "5d": "5d"}
         period_for_metrics = "1y"  # Default to 1 year for comprehensive analysis
         metrics = get_stock_metrics(symbol, period_for_metrics, market)
+        
+        # Get hybrid financial metrics (GuruFocus + Yahoo Finance fallback)
+        hybrid_financial_metrics = get_hybrid_financial_metrics(symbol, ticker_info)
         
         # Title
         title_text = f"Comprehensive Stock Analysis Report: {company_name} ({symbol})"
@@ -211,6 +292,13 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
         # Executive Summary
         story.append(Paragraph("Executive Summary", heading_style))
         
+        # Use hybrid metrics for PDF export
+        pe_ratio = hybrid_financial_metrics.get('pe_ratio') or ticker_info.get('trailingPE')
+        pb_ratio = hybrid_financial_metrics.get('pb_ratio') or ticker_info.get('priceToBook')
+        peg_ratio = hybrid_financial_metrics.get('peg_ratio')
+        ps_ratio = hybrid_financial_metrics.get('ps_ratio') or ticker_info.get('priceToSalesTrailing12Months')
+        data_source = hybrid_financial_metrics.get('source', 'Yahoo Finance')
+        
         summary_data = [
             ["Metric", "Value"],
             ["Company", company_name],
@@ -218,12 +306,15 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             ["Current Price", f"{currency}{current_price:.2f}"],
             ["Price Change", f"{currency}{price_change:+.2f} ({price_change_pct:+.2f}%)"],
             ["Market Cap", f"{currency}{ticker_info.get('marketCap', 0)/1e9:.2f}B" if ticker_info.get('marketCap') else "N/A"],
-            ["P/E Ratio", f"{ticker_info.get('trailingPE', 0):.2f}" if ticker_info.get('trailingPE') else "N/A"],
-            ["P/B Ratio", f"{ticker_info.get('priceToBook', 0):.2f}" if ticker_info.get('priceToBook') else "N/A"],
+            ["P/E Ratio", f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else "N/A"],
+            ["P/B Ratio", f"{pb_ratio:.2f}" if pb_ratio and not pd.isna(pb_ratio) else "N/A"],
+            ["PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A"],
+            ["P/S Ratio", f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A"],
             ["Beta", f"{ticker_info.get('beta', 0):.2f}" if ticker_info.get('beta') else "N/A"],
             ["Debt-to-Equity", f"{ticker_info.get('debtToEquity', 0):.2f}" if ticker_info.get('debtToEquity') else "N/A"],
             ["ROE", f"{ticker_info.get('returnOnEquity', 0)*100:.1f}%" if ticker_info.get('returnOnEquity') else "N/A"],
             ["ROA", f"{ticker_info.get('returnOnAssets', 0)*100:.1f}%" if ticker_info.get('returnOnAssets') else "N/A"],
+            ["Data Source", data_source],
             ["Market", market],
             ["Report Date", datetime.now().strftime('%Y-%m-%d %H:%M:%S')]
         ]
@@ -2422,7 +2513,7 @@ def display_institutional_financial_metrics(info, ticker_obj, symbol):
         ])
         
         with metrics_tab1:
-            display_valuation_metrics(info)
+            display_valuation_metrics(info, symbol)
         
         with metrics_tab2:
             display_profitability_metrics(info)
@@ -2436,44 +2527,41 @@ def display_institutional_financial_metrics(info, ticker_obj, symbol):
     except Exception as e:
         st.error(f"Error displaying financial metrics: {e}")
 
-def display_valuation_metrics(info):
-    """Display comprehensive valuation metrics"""
+def display_valuation_metrics(info, symbol=None):
+    """Display comprehensive valuation metrics with hybrid GuruFocus/Yahoo Finance data"""
     st.markdown("### Valuation Analysis")
     
-    # Add data source comparison debug info (can be removed later)
+    # Get hybrid metrics (GuruFocus preferred, yfinance fallback)
+    hybrid_metrics = get_hybrid_financial_metrics(symbol or "UNKNOWN", info) if symbol else None
+    
+    # Add data source comparison debug info 
     if st.sidebar.checkbox("Show Data Sources Debug", help="Compare values with institutional sources"):
-        peg_primary = info.get('pegRatio', 'N/A')
-        peg_trailing = info.get('trailingPegRatio', 'N/A')
-        peg_used = get_peg_ratio(info)
+        data_source = hybrid_metrics.get('source', 'Yahoo Finance') if hybrid_metrics else 'Yahoo Finance'
         
-        st.info(f"🔍 **yfinance Data**: P/E: {info.get('trailingPE', 'N/A'):.2f if info.get('trailingPE') else 'N/A'} | "
-                f"P/S: {info.get('priceToSalesTrailing12Months', 'N/A'):.2f if info.get('priceToSalesTrailing12Months') else 'N/A'} | "
-                f"PEG (primary): {peg_primary} | PEG (trailing): {peg_trailing} | PEG (used): {peg_used:.2f if peg_used and not pd.isna(peg_used) else 'N/A'}")
+        st.info(f"🔍 **Current Data Source**: {data_source}")
         
-        st.warning("⚠️ **Data Source Notice**: Financial metrics may vary between providers (GuruFocus, Bloomberg, etc.) due to different calculation methodologies, data timing, and rounding. "
-                  "yfinance provides free data that may have slight variations from premium institutional sources.")
+        if hybrid_metrics:
+            st.info(f"📊 **Metrics**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
+                    f"P/S: {hybrid_metrics.get('ps_ratio', 'N/A'):.2f if hybrid_metrics.get('ps_ratio') else 'N/A'} | "
+                    f"PEG: {hybrid_metrics.get('peg_ratio', 'N/A'):.2f if hybrid_metrics.get('peg_ratio') and not pd.isna(hybrid_metrics.get('peg_ratio')) else 'N/A'}")
         
-        # Show alternative enterprise values that might be closer to institutional sources
-        ev_rev = info.get('enterpriseToRevenue', 'N/A')
-        if ev_rev and not pd.isna(ev_rev):
-            st.info(f"📊 **Alternative P/S**: Enterprise/Revenue = {ev_rev:.2f} (may be closer to some institutional sources)")
-        
-        # Specific comparison notes
-        st.info("**Known Variations**: P/E ratios may differ by ~3% due to earnings calculation periods. "
-                "PEG ratios can vary significantly (0.77 vs 1.45) based on growth rate calculation methods. "
-                "P/S ratios are typically within 1% variance.")
+        if not hybrid_metrics or hybrid_metrics.get('source') == 'Yahoo Finance':
+            st.warning("⚠️ **Using Yahoo Finance**: Add GURUFOCUS_API_KEY to get exact GuruFocus institutional metrics")
+        else:
+            st.success("✅ **Using GuruFocus**: Showing institutional-grade metrics")
     
     col1, col2, col3, col4 = st.columns(4)
     
     # Price-to-Earnings metrics
     with col1:
-        pe_ratio = info.get('trailingPE', None)
-        forward_pe = info.get('forwardPE', None)
+        pe_ratio = hybrid_metrics.get('pe_ratio') if hybrid_metrics else info.get('trailingPE', None)
+        forward_pe = hybrid_metrics.get('forward_pe') if hybrid_metrics else info.get('forwardPE', None)
+        data_source_label = f" ({hybrid_metrics.get('source', 'Yahoo Finance')})" if hybrid_metrics else " (Yahoo Finance)"
         
         st.metric(
             label="P/E Ratio (TTM)",
             value=f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else "N/A",
-            help="Price-to-Earnings ratio based on trailing twelve months (yfinance source - may vary from institutional providers by ~3%)"
+            help=f"Price-to-Earnings ratio based on trailing twelve months{data_source_label}"
         )
         
         if forward_pe and not pd.isna(forward_pe):
@@ -2485,25 +2573,25 @@ def display_valuation_metrics(info):
     
     with col2:
         # Price-to-Book and Price-to-Sales
-        pb_ratio = info.get('priceToBook', None)
-        ps_ratio = info.get('priceToSalesTrailing12Months', None)
+        pb_ratio = hybrid_metrics.get('pb_ratio') if hybrid_metrics else info.get('priceToBook', None)
+        ps_ratio = hybrid_metrics.get('ps_ratio') if hybrid_metrics else info.get('priceToSalesTrailing12Months', None)
         
         st.metric(
             label="P/B Ratio",
             value=f"{pb_ratio:.2f}" if pb_ratio and not pd.isna(pb_ratio) else "N/A",
-            help="Price-to-Book ratio"
+            help=f"Price-to-Book ratio{data_source_label}"
         )
         
         st.metric(
             label="P/S Ratio (TTM)",
             value=f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A",
-            help="Price-to-Sales ratio trailing twelve months (yfinance source - typically within 1% of institutional providers)"
+            help=f"Price-to-Sales ratio trailing twelve months{data_source_label}"
         )
     
     with col3:
         # Enterprise Value metrics
-        ev_revenue = info.get('enterpriseToRevenue', None)
-        ev_ebitda = info.get('enterpriseToEbitda', None)
+        ev_revenue = hybrid_metrics.get('ev_revenue') if hybrid_metrics else info.get('enterpriseToRevenue', None)
+        ev_ebitda = hybrid_metrics.get('ev_ebitda') if hybrid_metrics else info.get('enterpriseToEbitda', None)
         
         st.metric(
             label="EV/Revenue",
@@ -2518,14 +2606,14 @@ def display_valuation_metrics(info):
         )
     
     with col4:
-        # PEG and Market Cap - use helper function for best PEG source
-        peg_ratio = get_peg_ratio(info)
+        # PEG and Market Cap - use hybrid data for best PEG source
+        peg_ratio = hybrid_metrics.get('peg_ratio') if hybrid_metrics else get_peg_ratio(info)
         market_cap = info.get('marketCap', None)
         
         st.metric(
             label="PEG Ratio",
             value=f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A",
-            help="Price/Earnings to Growth ratio - uses trailingPegRatio when primary PEG unavailable. Note: PEG calculations vary significantly between providers due to different growth rate methodologies"
+            help=f"Price/Earnings to Growth ratio{data_source_label}. Note: PEG calculations vary between providers due to different growth rate methodologies"
         )
         
         if market_cap and not pd.isna(market_cap):
