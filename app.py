@@ -2552,11 +2552,13 @@ def display_valuation_metrics(info, symbol=None):
     
     col1, col2, col3, col4 = st.columns(4)
     
+    # Define data source label for all metrics
+    data_source_label = f" ({hybrid_metrics.get('source', 'Yahoo Finance')})" if hybrid_metrics else " (Yahoo Finance)"
+    
     # Price-to-Earnings metrics
     with col1:
         pe_ratio = hybrid_metrics.get('pe_ratio') if hybrid_metrics else info.get('trailingPE', None)
         forward_pe = hybrid_metrics.get('forward_pe') if hybrid_metrics else info.get('forwardPE', None)
-        data_source_label = f" ({hybrid_metrics.get('source', 'Yahoo Finance')})" if hybrid_metrics else " (Yahoo Finance)"
         
         st.metric(
             label="P/E Ratio (TTM)",
@@ -2609,6 +2611,10 @@ def display_valuation_metrics(info, symbol=None):
         # PEG and Market Cap - use hybrid data for best PEG source
         peg_ratio = hybrid_metrics.get('peg_ratio') if hybrid_metrics else get_peg_ratio(info)
         market_cap = info.get('marketCap', None)
+        
+        # Debug PEG ratio issue temporarily
+        if symbol and symbol.upper() == 'AMD':
+            st.info(f"DEBUG AMD PEG: hybrid_metrics={hybrid_metrics is not None}, peg_ratio={peg_ratio}, type={type(peg_ratio)}")
         
         st.metric(
             label="PEG Ratio",
