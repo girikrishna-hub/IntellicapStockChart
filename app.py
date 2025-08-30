@@ -2536,10 +2536,10 @@ def display_valuation_metrics(info, symbol=None):
     
 
     
-    # Add data source comparison debug info 
-    if st.sidebar.checkbox("Show Data Sources Debug", help="Compare values with institutional sources"):
-        data_source = hybrid_metrics.get('source', 'Yahoo Finance') if hybrid_metrics else 'Yahoo Finance'
-        
+    # Add data source information prominently
+    data_source = hybrid_metrics.get('source', 'Yahoo Finance') if hybrid_metrics else 'Yahoo Finance'
+    
+    with st.expander("📊 Data Source Information & Known Discrepancies", expanded=False):
         st.info(f"🔍 **Current Data Source**: {data_source}")
         
         if hybrid_metrics:
@@ -2558,9 +2558,9 @@ def display_valuation_metrics(info, symbol=None):
             gross_margin = info.get('grossMargins')
             st.info(f"📊 **Margins**: Gross: {gross_margin*100:.2f}% | Operating: {operating_margin*100:.2f}%" 
                     if operating_margin and gross_margin else "📊 **Margins**: Limited data available")
-            
-            st.warning("ℹ️ **Data Variance**: API values may differ from institutional sources (±0.1-10%) due to data timing, calculation periods, and methodologies. "
-                      "Operating margins can show significant differences between sources. GuruFocus data preferred when available.")
+        
+        st.warning("ℹ️ **Data Variance**: API values may differ from institutional sources (±0.1-10%) due to data timing, calculation periods, and methodologies. "
+                  "Operating margins can show significant differences between sources. GuruFocus data preferred when available.")
         
         if not hybrid_metrics or hybrid_metrics.get('source') == 'Yahoo Finance':
             st.warning("⚠️ **Using Yahoo Finance**: Add GURUFOCUS_API_KEY to get exact GuruFocus institutional metrics")
