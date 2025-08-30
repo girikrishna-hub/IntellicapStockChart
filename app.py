@@ -6671,6 +6671,38 @@ def gurufocus_tab():
             
             st.info(f"🌍 Detected market: {detected_market}")
             
+            # Add data source information prominently in Advanced Analysis
+            hybrid_metrics = get_hybrid_financial_metrics(symbol_for_analysis, info) if symbol_for_analysis else None
+            data_source = hybrid_metrics.get('source', 'Yahoo Finance') if hybrid_metrics else 'Yahoo Finance'
+            
+            with st.expander("📊 Data Source Information & Known Discrepancies", expanded=False):
+                st.info(f"🔍 **Current Data Source**: {data_source}")
+                
+                if hybrid_metrics:
+                    st.info(f"📊 **Valuation**: P/E: {hybrid_metrics.get('pe_ratio', 'N/A'):.2f if hybrid_metrics.get('pe_ratio') else 'N/A'} | "
+                            f"Forward P/E: {hybrid_metrics.get('forward_pe', 'N/A'):.2f if hybrid_metrics.get('forward_pe') else 'N/A'} | "
+                            f"P/S: {hybrid_metrics.get('ps_ratio', 'N/A'):.2f if hybrid_metrics.get('ps_ratio') else 'N/A'} | "
+                            f"PEG: {hybrid_metrics.get('peg_ratio', 'N/A'):.2f if hybrid_metrics.get('peg_ratio') and not pd.isna(hybrid_metrics.get('peg_ratio')) else 'N/A'}")
+                    
+                    ev_revenue = hybrid_metrics.get('ev_revenue') or info.get('enterpriseToRevenue')
+                    ev_ebitda = hybrid_metrics.get('ev_ebitda') or info.get('enterpriseToEbitda')
+                    st.info(f"📊 **Enterprise**: EV/Revenue: {ev_revenue:.2f if ev_revenue else 'N/A'} | "
+                            f"EV/EBITDA: {ev_ebitda:.2f if ev_ebitda else 'N/A'}")
+                    
+                    # Show margin data which can have significant differences
+                    operating_margin = info.get('operatingMargins')
+                    gross_margin = info.get('grossMargins')
+                    st.info(f"📊 **Margins**: Gross: {gross_margin*100:.2f}% | Operating: {operating_margin*100:.2f}%" 
+                            if operating_margin and gross_margin else "📊 **Margins**: Limited data available")
+                
+                st.warning("ℹ️ **Data Variance**: API values may differ from institutional sources (±0.1-10%) due to data timing, calculation periods, and methodologies. "
+                          "Operating margins can show significant differences between sources. GuruFocus data preferred when available.")
+                
+                if not hybrid_metrics or hybrid_metrics.get('source') == 'Yahoo Finance':
+                    st.warning("⚠️ **Using Yahoo Finance**: Add GURUFOCUS_API_KEY to get exact GuruFocus institutional metrics")
+                else:
+                    st.success("✅ **Using GuruFocus**: Showing institutional-grade metrics")
+            
             # Fetch extended earnings data
             data, info, ticker_obj = fetch_stock_data(symbol_for_analysis, period="3y", market=detected_market)
             
