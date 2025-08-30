@@ -2553,8 +2553,14 @@ def display_valuation_metrics(info, symbol=None):
             st.info(f"📊 **Enterprise**: EV/Revenue: {ev_revenue:.2f if ev_revenue else 'N/A'} | "
                     f"EV/EBITDA: {ev_ebitda:.2f if ev_ebitda else 'N/A'}")
             
-            st.warning("ℹ️ **Data Variance**: yfinance API values may differ slightly from Yahoo Finance website (±0.1-2%) due to data timing, calculation periods, and source methodologies. "
-                      "This is normal for financial data APIs vs websites.")
+            # Show margin data which can have significant differences
+            operating_margin = info.get('operatingMargins')
+            gross_margin = info.get('grossMargins')
+            st.info(f"📊 **Margins**: Gross: {gross_margin*100:.2f}% | Operating: {operating_margin*100:.2f}%" 
+                    if operating_margin and gross_margin else "📊 **Margins**: Limited data available")
+            
+            st.warning("ℹ️ **Data Variance**: API values may differ from institutional sources (±0.1-10%) due to data timing, calculation periods, and methodologies. "
+                      "Operating margins can show significant differences between sources. GuruFocus data preferred when available.")
         
         if not hybrid_metrics or hybrid_metrics.get('source') == 'Yahoo Finance':
             st.warning("⚠️ **Using Yahoo Finance**: Add GURUFOCUS_API_KEY to get exact GuruFocus institutional metrics")
@@ -2665,7 +2671,7 @@ def display_profitability_metrics(info):
         st.metric(
             label="Operating Margin",
             value=f"{operating_margin*100:.2f}%" if operating_margin and not pd.isna(operating_margin) else "N/A",
-            help="Operating profit margin percentage"
+            help="Operating profit margin percentage (yfinance source - may differ significantly from institutional sources like GuruFocus)"
         )
     
     with col2:
