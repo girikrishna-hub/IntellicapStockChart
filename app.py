@@ -85,28 +85,35 @@ def get_gurufocus_financial_metrics(symbol):
     try:
         import requests
         
-        # GuruFocus API endpoints for valuation metrics
-        base_url = "https://api.gurufocus.com/public/user"
+        # GuruFocus API endpoints for stock profile data
+        base_url = "https://api.gurufocus.com/data"
         headers = {
-            "Authorization": f"Token {api_key}",
+            "Authorization": api_key,
             "Content-Type": "application/json"
         }
         
-        # Fetch key valuation metrics
-        url = f"{base_url}/{symbol}/ratios"
+        # Fetch stock profile which contains valuation metrics
+        url = f"{base_url}/stocks/{symbol}/profile"
         response = requests.get(url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
+            
+            # Extract valuation metrics from profile data
+            profile = data.get('profile', {})
+            ratios = profile.get('ratios', {})
+            
             return {
-                'pe_ratio': data.get('pe_ratio'),
-                'peg_ratio': data.get('peg_ratio'), 
-                'ps_ratio': data.get('ps_ratio'),
-                'pb_ratio': data.get('pb_ratio'),
+                'pe_ratio': ratios.get('pe_ratio') or ratios.get('trailing_pe'),
+                'peg_ratio': ratios.get('peg_ratio'),
+                'ps_ratio': ratios.get('ps_ratio') or ratios.get('price_to_sales'),
+                'pb_ratio': ratios.get('pb_ratio') or ratios.get('price_to_book'),
                 'source': 'GuruFocus'
             }
         else:
             print(f"GuruFocus API error: {response.status_code}")
+            if response.status_code == 404:
+                print(f"Stock {symbol} not found in GuruFocus")
             return None
             
     except Exception as e:
