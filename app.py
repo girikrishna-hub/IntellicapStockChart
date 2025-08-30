@@ -474,7 +474,7 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
             if earnings_analysis is not None and not earnings_analysis.empty:
                 # Create comprehensive earnings table with ALL columns from Advanced Analysis tab
                 earnings_summary = [
-                    ["Quarter", "Date", "Pre-Close", "Next Open", "Next Close", "Overnight%", "NextDay%", "Week Close", "Week%", "Direction", "EPS Est", "EPS Act", "Surprise"]
+                    ["Quarter", "Date", "Pre-Close", "Next Open", "Next Close", "Overnight%", "NextDay%", "Week Close", "Week Date", "Week%", "Direction", "EPS Est", "EPS Act", "Surprise"]
                 ]
                 
                 # Add all available quarters (up to 8) with complete column data
@@ -489,6 +489,7 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     overnight_str = row['Overnight Change (%)']
                     nextday_str = row['Next Day Change (%)'] 
                     week_close = row.get('End of Week Close', 'N/A')
+                    week_date = row.get('Week End Date', 'N/A')
                     week_str = row['Week Performance (%)']
                     direction = row.get('Direction', 'N/A')
                     eps_est = row.get('EPS Est', 'N/A')
@@ -497,7 +498,7 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     
                     earnings_summary.append([
                         quarter_info, earnings_date, pre_close, next_open, next_close, 
-                        overnight_str, nextday_str, week_close, week_str, direction, 
+                        overnight_str, nextday_str, week_close, week_date, week_str, direction, 
                         eps_est, eps_act, surprise
                     ])
                 
@@ -527,12 +528,12 @@ def export_comprehensive_analysis_pdf(symbol, data, ticker_info, ticker_obj, ma_
                     # Add average row with key statistics
                     earnings_summary.append([
                         "AVERAGE", f"({len(earnings_analysis)} qtrs)", "—", "—", "—",
-                        f"{avg_overnight:.2f}%", f"{avg_nextday:.2f}%", "—", f"{avg_week:.2f}%", 
+                        f"{avg_overnight:.2f}%", f"{avg_nextday:.2f}%", "—", "—", f"{avg_week:.2f}%", 
                         "—", "—", "—", "—"
                     ])
                 
-                # Create landscape-oriented table with smaller columns to fit all data
-                col_widths = [0.6*inch, 0.7*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.6*inch, 0.5*inch, 0.5*inch, 0.5*inch, 0.5*inch]
+                # Create landscape-oriented table with smaller columns to fit all data including new Week Date column
+                col_widths = [0.5*inch, 0.65*inch, 0.55*inch, 0.55*inch, 0.55*inch, 0.5*inch, 0.5*inch, 0.55*inch, 0.65*inch, 0.5*inch, 0.45*inch, 0.45*inch, 0.45*inch, 0.5*inch]
                 earnings_table = Table(earnings_summary, colWidths=col_widths)
                 earnings_table.setStyle(TableStyle([
                     ('BACKGROUND', (0,0), (-1,0), colors.grey),
@@ -2105,6 +2106,9 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                 # Calculate week performance (from pre-earnings close to end of week)
                 week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
                 
+                # Calculate days between pre-earnings close and week-end close
+                days_difference = (week_end_date.date() - pre_earnings_date.date()).days
+                
                 # Determine quarter
                 quarter = f"Q{((earnings_date.month - 1) // 3) + 1} {earnings_date.year}"
                 
@@ -2130,6 +2134,7 @@ def get_earnings_performance_analysis(ticker_obj, data, market="US"):
                     'Overnight Change (%)': f"{overnight_change:+.2f}%",
                     'Next Day Change (%)': f"{next_day_change:+.2f}%",
                     'End of Week Close': format_currency(week_end_price, market),
+                    'Week End Date': f"{week_end_date.strftime('%Y-%m-%d')} ({days_difference}d)",
                     'Week Performance (%)': f"{week_performance:+.2f}%",
                     'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
                 })
@@ -2311,6 +2316,9 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                 # Calculate week performance (from pre-earnings close to end of week)
                 week_performance = ((week_end_price - pre_earnings_price) / pre_earnings_price) * 100
                 
+                # Calculate days between pre-earnings close and week-end close
+                days_difference = (week_end_date.date() - pre_earnings_date.date()).days
+                
                 # Get EPS data if available
                 eps_estimate = None
                 eps_actual = None
@@ -2349,6 +2357,7 @@ def get_detailed_earnings_performance_analysis(ticker_obj, data, market="US", ma
                     'Overnight Change (%)': f"{overnight_change:+.2f}%",
                     'Next Day Change (%)': f"{next_day_change:+.2f}%",
                     'End of Week Close': format_currency(week_end_price, market),
+                    'Week End Date': f"{week_end_date.strftime('%Y-%m-%d')} ({days_difference}d)",
                     'Week Performance (%)': f"{week_performance:+.2f}%",
                     'Direction': '📈 Up' if week_performance > 0 else '📉 Down' if week_performance < 0 else '➡️ Flat'
                 }
