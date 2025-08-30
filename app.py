@@ -2534,13 +2534,7 @@ def display_valuation_metrics(info, symbol=None):
     # Get hybrid metrics (GuruFocus preferred, yfinance fallback)
     hybrid_metrics = get_hybrid_financial_metrics(symbol or "UNKNOWN", info) if symbol else None
     
-    # Debug for AMD specifically
-    if symbol and symbol.upper() == 'AMD':
-        st.error(f"DEBUG: symbol='{symbol}', hybrid_metrics exists={hybrid_metrics is not None}")
-        if hybrid_metrics:
-            st.error(f"DEBUG: PEG from hybrid={hybrid_metrics.get('peg_ratio')}, source={hybrid_metrics.get('source')}")
-        else:
-            st.error("DEBUG: hybrid_metrics is None - this should not happen!")
+
     
     # Add data source comparison debug info 
     if st.sidebar.checkbox("Show Data Sources Debug", help="Compare values with institutional sources"):
@@ -2620,9 +2614,7 @@ def display_valuation_metrics(info, symbol=None):
         peg_ratio = hybrid_metrics.get('peg_ratio') if hybrid_metrics else get_peg_ratio(info)
         market_cap = info.get('marketCap', None)
         
-        # Debug PEG ratio issue temporarily
-        if symbol and symbol.upper() == 'AMD':
-            st.info(f"DEBUG AMD PEG: hybrid_metrics={hybrid_metrics is not None}, peg_ratio={peg_ratio}, type={type(peg_ratio)}")
+
         
         st.metric(
             label="PEG Ratio",
@@ -6712,10 +6704,10 @@ def gurufocus_tab():
                             st.metric("Price-to-Sales", f"{ps_ratio:.2f}" if ps_ratio else "N/A")
                         
                         with val_col3:
-                            # PEG and Enterprise Value ratios
-                            peg_ratio = info.get('pegRatio')
+                            # PEG and Enterprise Value ratios - use hybrid system for PEG
+                            peg_ratio = get_peg_ratio(info)  # Use enhanced PEG detection
                             ev_revenue = info.get('enterpriseToRevenue')
-                            st.metric("PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio else "N/A")
+                            st.metric("PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A")
                             st.metric("EV/Revenue", f"{ev_revenue:.2f}" if ev_revenue else "N/A")
                         
                         with val_col4:
