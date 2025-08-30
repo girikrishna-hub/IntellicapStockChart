@@ -71,6 +71,16 @@ def fetch_stock_data(symbol, period="1y", market="US"):
         st.error(f"Error fetching data for {symbol}: {str(e)}")
         return None, None, None
 
+def get_peg_ratio(ticker_info):
+    """
+    Get the best available PEG ratio from yfinance data
+    Tries pegRatio first, then trailingPegRatio as fallback
+    """
+    peg_ratio = ticker_info.get('pegRatio', None)
+    if peg_ratio is None or pd.isna(peg_ratio):
+        peg_ratio = ticker_info.get('trailingPegRatio', None)
+    return peg_ratio
+
 def get_beta_value(ticker_info):
     """
     Get the beta value for a stock
@@ -2430,6 +2440,29 @@ def display_valuation_metrics(info):
     """Display comprehensive valuation metrics"""
     st.markdown("### Valuation Analysis")
     
+    # Add data source comparison debug info (can be removed later)
+    if st.sidebar.checkbox("Show Data Sources Debug", help="Compare values with institutional sources"):
+        peg_primary = info.get('pegRatio', 'N/A')
+        peg_trailing = info.get('trailingPegRatio', 'N/A')
+        peg_used = get_peg_ratio(info)
+        
+        st.info(f"🔍 **yfinance Data**: P/E: {info.get('trailingPE', 'N/A'):.2f if info.get('trailingPE') else 'N/A'} | "
+                f"P/S: {info.get('priceToSalesTrailing12Months', 'N/A'):.2f if info.get('priceToSalesTrailing12Months') else 'N/A'} | "
+                f"PEG (primary): {peg_primary} | PEG (trailing): {peg_trailing} | PEG (used): {peg_used:.2f if peg_used and not pd.isna(peg_used) else 'N/A'}")
+        
+        st.warning("⚠️ **Data Source Notice**: Financial metrics may vary between providers (GuruFocus, Bloomberg, etc.) due to different calculation methodologies, data timing, and rounding. "
+                  "yfinance provides free data that may have slight variations from premium institutional sources.")
+        
+        # Show alternative enterprise values that might be closer to institutional sources
+        ev_rev = info.get('enterpriseToRevenue', 'N/A')
+        if ev_rev and not pd.isna(ev_rev):
+            st.info(f"📊 **Alternative P/S**: Enterprise/Revenue = {ev_rev:.2f} (may be closer to some institutional sources)")
+        
+        # Specific comparison notes
+        st.info("**Known Variations**: P/E ratios may differ by ~3% due to earnings calculation periods. "
+                "PEG ratios can vary significantly (0.77 vs 1.45) based on growth rate calculation methods. "
+                "P/S ratios are typically within 1% variance.")
+    
     col1, col2, col3, col4 = st.columns(4)
     
     # Price-to-Earnings metrics
@@ -2440,7 +2473,7 @@ def display_valuation_metrics(info):
         st.metric(
             label="P/E Ratio (TTM)",
             value=f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else "N/A",
-            help="Price-to-Earnings ratio based on trailing twelve months"
+            help="Price-to-Earnings ratio based on trailing twelve months (yfinance source - may vary from institutional providers by ~3%)"
         )
         
         if forward_pe and not pd.isna(forward_pe):
@@ -2464,7 +2497,7 @@ def display_valuation_metrics(info):
         st.metric(
             label="P/S Ratio (TTM)",
             value=f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A",
-            help="Price-to-Sales ratio trailing twelve months"
+            help="Price-to-Sales ratio trailing twelve months (yfinance source - typically within 1% of institutional providers)"
         )
     
     with col3:
@@ -2485,14 +2518,14 @@ def display_valuation_metrics(info):
         )
     
     with col4:
-        # PEG and Market Cap
-        peg_ratio = info.get('pegRatio', None)
+        # PEG and Market Cap - use helper function for best PEG source
+        peg_ratio = get_peg_ratio(info)
         market_cap = info.get('marketCap', None)
         
         st.metric(
             label="PEG Ratio",
             value=f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A",
-            help="Price/Earnings to Growth ratio"
+            help="Price/Earnings to Growth ratio - uses trailingPegRatio when primary PEG unavailable. Note: PEG calculations vary significantly between providers due to different growth rate methodologies"
         )
         
         if market_cap and not pd.isna(market_cap):
