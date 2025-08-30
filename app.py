@@ -98,6 +98,7 @@ def get_gurufocus_financial_metrics(symbol):
         
         if response.status_code == 200:
             data = response.json()
+            print(f"GuruFocus API success for {symbol}")
             
             # Extract valuation metrics from profile data
             profile = data.get('profile', {})
@@ -112,7 +113,11 @@ def get_gurufocus_financial_metrics(symbol):
             }
         else:
             print(f"GuruFocus API error: {response.status_code}")
-            if response.status_code == 404:
+            print(f"Response content: {response.text[:200]}...")
+            if response.status_code == 403:
+                print(f"403 Forbidden - API key valid but subscription doesn't include this endpoint")
+                print(f"Current subscription may not include real-time stock profile data")
+            elif response.status_code == 404:
                 print(f"Stock {symbol} not found in GuruFocus")
             return None
             
