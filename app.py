@@ -4753,14 +4753,14 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             st.metric(
                 label=support_type,
                 value=support_display,
-                help="Next Fibonacci support level" if support_type == "Fib Support" else "Technical support level"
+                help="Support Level - Price Floor\nA price level where buying interest is expected to emerge, preventing further decline.\n• **Strong Support**: Price bounces multiple times\n• **Weak Support**: Price breaks through with volume\n• **Fibonacci Support**: Based on mathematical retracement levels (23.6%, 38.2%, 50%, 61.8%)\n• **Technical Support**: Based on previous lows, moving averages, or chart patterns\n• **Trading Strategy**: Buy near support, stop-loss below support\n• **Break Below**: Often signals further decline to next support level"
             )
 
         with col5:
             st.metric(
                 label=resistance_type,
                 value=resistance_display,
-                help="Next Fibonacci resistance level" if resistance_type == "Fib Resistance" else "Technical resistance level"
+                help="Resistance Level - Price Ceiling\nA price level where selling interest is expected to emerge, preventing further rise.\n• **Strong Resistance**: Price rejects multiple times\n• **Weak Resistance**: Price breaks through with volume\n• **Fibonacci Resistance**: Based on mathematical extension levels (127.2%, 161.8%, 200%)\n• **Technical Resistance**: Based on previous highs, moving averages, or chart patterns\n• **Trading Strategy**: Sell near resistance, stop-loss above resistance\n• **Break Above**: Often signals further rise to next resistance level"
             )
 
         with col6:
@@ -4820,14 +4820,14 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             st.metric(
                 label="Safe Low",
                 value=format_currency(ctp_levels['lower_ctp'], market) if ctp_levels['lower_ctp'] else "N/A",
-                help="CTP - 12.5% for safer entry"
+                help="Safe Entry Level (CTP -12.5%)\nConservative entry point below current price for risk management.\n• **Purpose**: Provides buffer against normal price volatility\n• **Risk Management**: Reduces chance of immediate loss after entry\n• **Dollar-Cost Averaging**: Good level for gradual position building\n• **Patience Required**: May need to wait for price to reach this level\n• **Stop-Loss**: Consider setting stops 5-10% below this level\n• **Market Conditions**: More relevant in volatile or declining markets"
             )
 
         with col12:
             st.metric(
                 label="Safe High", 
                 value=format_currency(ctp_levels['upper_ctp'], market) if ctp_levels['upper_ctp'] else "N/A",
-                help="CTP + 12.5% for safer exit"
+                help="Safe Exit Level (CTP +12.5%)\nConservative profit-taking point above current price for risk management.\n• **Purpose**: Ensures reasonable profit while avoiding market top\n• **Risk Management**: Reduces chance of giving back gains\n• **Partial Selling**: Good level for taking some profits off the table\n• **Greed Control**: Helps avoid holding too long for maximum gains\n• **Re-entry**: Can rebuy lower if price pulls back after hitting this level\n• **Market Conditions**: Especially useful in volatile or uncertain markets"
             )
 
         # Earnings and Dividends Section
@@ -7597,20 +7597,24 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
         col_sr1, col_sr2, col_sr3, col_sr4 = st.columns(4)
         
         with col_sr1:
-            st.metric("Support Level", f"{currency}{support_level:.2f}")
+            st.metric("Support Level", f"{currency}{support_level:.2f}",
+                     help="Support Level - Price Floor\nA price level where buying interest is expected to emerge, preventing further decline.\n• Strong Support: Price bounces multiple times\n• Weak Support: Price breaks through with volume\n• Trading Strategy: Buy near support, stop-loss below support\n• Break Below: Often signals further decline to next support level")
         
         with col_sr2:
-            st.metric("Resistance Level", f"{currency}{resistance_level:.2f}")
+            st.metric("Resistance Level", f"{currency}{resistance_level:.2f}",
+                     help="Resistance Level - Price Ceiling\nA price level where selling interest is expected to emerge, preventing further rise.\n• Strong Resistance: Price rejects multiple times\n• Weak Resistance: Price breaks through with volume\n• Trading Strategy: Sell near resistance, stop-loss above resistance\n• Break Above: Often signals further rise to next resistance level")
         
         with col_sr3:
             # Safe level low (CTP -12.5%)
             safe_low = current_price * 0.875
-            st.metric("Safe Level Low", f"{currency}{safe_low:.2f}")
+            st.metric("Safe Level Low", f"{currency}{safe_low:.2f}",
+                     help="Safe Entry Level (CTP -12.5%)\nConservative entry point providing buffer against normal volatility.\n• Reduces immediate loss risk after entry\n• Good for dollar-cost averaging\n• Requires patience to reach this level\n• More relevant in volatile markets")
         
         with col_sr4:
             # Safe level high (CTP +12.5%)
             safe_high = current_price * 1.125
-            st.metric("Safe Level High", f"{currency}{safe_high:.2f}")
+            st.metric("Safe Level High", f"{currency}{safe_high:.2f}",
+                     help="Safe Exit Level (CTP +12.5%)\nConservative profit-taking point to avoid market tops.\n• Ensures reasonable profit capture\n• Helps control greed and overholding\n• Good for partial position exits\n• Allows re-entry on pullbacks")
         
         # Earnings and dividend information moved to dedicated "Earnings & Dividends" tab
     
