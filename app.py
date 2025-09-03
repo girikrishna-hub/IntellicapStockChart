@@ -4773,7 +4773,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             
             st.metric(
                 label="RSI (14)",
-                value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A"
+                value=f"{latest_rsi:.1f}" if latest_rsi and not pd.isna(latest_rsi) else "N/A",
+                help="RSI (Relative Strength Index)\nMomentum oscillator measuring speed and change of price movements. Range 0-100.\n• RSI > 70: Overbought territory - potential sell signal or pullback\n• RSI < 30: Oversold territory - potential buy signal or bounce\n• RSI 30-70: Neutral zone - trend continuation likely\n• Look for RSI divergences: price makes new highs/lows but RSI doesn't confirm"
             )
 
         # Row 2 - Technical Analysis
@@ -4787,7 +4788,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             st.metric(
                 label="MA 50",
                 value=format_currency(latest_ma_50, market) if not pd.isna(latest_ma_50) else "N/A",
-                delta=ma_50_trend if ma_50_trend else None
+                delta=ma_50_trend if ma_50_trend else None,
+                help="50-Day Moving Average\nShort-term trend indicator showing average price over 50 days.\n• Price above MA 50: Short-term uptrend, bullish momentum\n• Price below MA 50: Short-term downtrend, bearish momentum\n• MA 50 slope: Rising = strengthening trend, Falling = weakening trend\n• Use as dynamic support (uptrend) or resistance (downtrend) level"
             )
 
         with col8:
@@ -4798,7 +4800,8 @@ def display_key_metrics(data, symbol, ma_50, ma_200, rsi, ticker_info, ticker_ob
             st.metric(
                 label="MA 200",
                 value=format_currency(latest_ma_200, market) if not pd.isna(latest_ma_200) else "N/A",
-                delta=ma_200_trend if ma_200_trend else None
+                delta=ma_200_trend if ma_200_trend else None,
+                help="200-Day Moving Average\nLong-term trend indicator and major support/resistance level.\n• Price above MA 200: Long-term bull market, major uptrend\n• Price below MA 200: Long-term bear market, major downtrend\n• Golden Cross: MA 50 crosses above MA 200 = strong bullish signal\n• Death Cross: MA 50 crosses below MA 200 = strong bearish signal\n• MA 200 acts as major psychological support/resistance level"
             )
 
         with col9:
