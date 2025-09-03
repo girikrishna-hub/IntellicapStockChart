@@ -7823,6 +7823,20 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     with col1:
         # MACD Chart
         st.markdown("#### 📊 MACD Analysis")
+        with st.expander("📖 MACD Chart Pattern Guide"):
+            st.markdown("""
+            **MACD (Moving Average Convergence Divergence)** - Momentum indicator showing relationship between two moving averages:
+            
+            **Key Signals to Watch:**
+            • **MACD Line Crosses Above Signal Line**: Bullish crossover - potential buy signal
+            • **MACD Line Crosses Below Signal Line**: Bearish crossover - potential sell signal
+            • **Histogram Above Zero**: MACD line above signal line - bullish momentum
+            • **Histogram Below Zero**: MACD line below signal line - bearish momentum
+            • **Increasing Histogram**: Strengthening momentum in current direction
+            • **Decreasing Histogram**: Weakening momentum, potential reversal ahead
+            • **MACD Above/Below Zero Line**: Above = long-term bullish, Below = long-term bearish
+            • **Divergences**: Price makes new highs/lows but MACD doesn't confirm - reversal warning
+            """)
         
         macd_fig = go.Figure()
         
@@ -7864,6 +7878,21 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     with col2:
         # RSI Chart
         st.markdown("#### 📊 RSI Analysis")
+        with st.expander("📖 RSI Chart Pattern Guide"):
+            st.markdown("""
+            **RSI (Relative Strength Index)** - Momentum oscillator measuring speed and change of price movements (0-100):
+            
+            **Key Levels & Signals:**
+            • **RSI > 70**: Overbought territory - potential sell signal or pullback expected
+            • **RSI < 30**: Oversold territory - potential buy signal or bounce expected  
+            • **RSI 30-70**: Neutral zone - trend continuation likely
+            • **RSI Breaking Above 50**: Bullish momentum building
+            • **RSI Breaking Below 50**: Bearish momentum building
+            • **RSI Divergences**: Price makes new highs but RSI doesn't = bearish divergence
+            • **RSI Divergences**: Price makes new lows but RSI doesn't = bullish divergence
+            • **RSI Trendlines**: Draw trendlines on RSI itself - breakouts signal trend changes
+            • **Multiple Touches**: RSI hitting 70/30 multiple times = strong overbought/oversold condition
+            """)
         
         rsi_fig = go.Figure()
         
@@ -7893,6 +7922,22 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     
     # Add Chaikin Money Flow Chart in full width
     st.markdown("#### 📊 Chaikin Money Flow Analysis")
+    with st.expander("📖 Chaikin Money Flow (CMF) Chart Pattern Guide"):
+        st.markdown("""
+        **Chaikin Money Flow** - Volume-weighted indicator combining price and volume to measure buying/selling pressure:
+        
+        **Key Signals & Patterns:**
+        • **CMF > 0**: Net buying pressure - accumulation phase, bullish sentiment
+        • **CMF < 0**: Net selling pressure - distribution phase, bearish sentiment
+        • **CMF Above +0.25**: Strong buying pressure - very bullish
+        • **CMF Below -0.25**: Strong selling pressure - very bearish
+        • **CMF Rising**: Increasing buying pressure, potential upward price movement
+        • **CMF Falling**: Increasing selling pressure, potential downward price movement
+        • **CMF vs Price Divergence**: Price rises but CMF falls = distribution, bearish
+        • **CMF vs Price Divergence**: Price falls but CMF rises = accumulation, bullish
+        • **CMF Zero Line**: Acts as support/resistance - watch for bounces or breaks
+        • **Sustained CMF Direction**: Longer periods above/below zero confirm trend strength
+        """)
     
     if not cmf.empty:
         period_label = selected_period.replace('_', ' ').title()
