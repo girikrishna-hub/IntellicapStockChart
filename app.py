@@ -7476,19 +7476,23 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             
             if avg_volume > 0:
                 volume_ratio = current_volume / avg_volume
-                st.metric("Volume Ratio", f"{volume_ratio:.2f}x")
+                st.metric("Volume Ratio", f"{volume_ratio:.2f}x",
+                         help="Volume Ratio\nCompares current trading volume to average volume over recent period.\n• Ratio > 1.5x: High activity, increased interest/news\n• Ratio > 2x: Very high activity, potential breakout or news\n• Ratio < 0.5x: Low activity, lack of interest\n• High volume confirms price moves, low volume questions sustainability")
                 st.caption(f"Avg: {avg_volume:,.0f}")
             else:
-                st.metric("Volume Ratio", "N/A")
+                st.metric("Volume Ratio", "N/A",
+                         help="Volume Ratio\nCompares current trading volume to average volume over recent period.\n• Ratio > 1.5x: High activity, increased interest/news\n• Ratio > 2x: Very high activity, potential breakout or news\n• Ratio < 0.5x: Low activity, lack of interest\n• High volume confirms price moves, low volume questions sustainability")
         
         with col4:
             # 52W Position
             if week_52_high and week_52_low:
                 position_52w = ((current_price - week_52_low) / (week_52_high - week_52_low)) * 100
-                st.metric("52W Position", f"{position_52w:.1f}%")
+                st.metric("52W Position", f"{position_52w:.1f}%",
+                         help="52-Week Range Position\nShows where current price sits within the 52-week trading range.\n• 0-25%: Near 52-week low, potential value or distressed\n• 25-50%: Lower half of range, below average\n• 50-75%: Upper half of range, above average\n• 75-100%: Near 52-week high, strong momentum or expensive\n• >90%: At/near highs, momentum stock or potential resistance")
                 st.caption(f"Within 52W range")
             else:
-                st.metric("52W Position", "N/A")
+                st.metric("52W Position", "N/A",
+                         help="52-Week Range Position\nShows where current price sits within the 52-week trading range.\n• 0-25%: Near 52-week low, potential value or distressed\n• 25-50%: Lower half of range, below average\n• 50-75%: Upper half of range, above average\n• 75-100%: Near 52-week high, strong momentum or expensive\n• >90%: At/near highs, momentum stock or potential resistance")
         
         # Additional metrics row
         st.markdown("#### 📊 Additional Metrics")
@@ -7514,17 +7518,21 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                     cap_display = f"{currency}{market_cap/1e6:.2f}M"
                 else:
                     cap_display = f"{currency}{market_cap:.0f}"
-                st.metric("Market Cap", cap_display)
+                st.metric("Market Cap", cap_display,
+                         help="Market Capitalization\nTotal value of all outstanding shares (shares × current price).\n• <$2B: Small-cap - higher risk/reward, more volatile\n• $2B-$10B: Mid-cap - moderate risk/reward balance\n• >$10B: Large-cap - lower risk, stable, institutional favorite\n• >$200B: Mega-cap - market leaders, defensive plays\nCompare with Enterprise Value for debt consideration.")
             else:
-                st.metric("Market Cap", "N/A")
+                st.metric("Market Cap", "N/A",
+                         help="Market Capitalization\nTotal value of all outstanding shares (shares × current price).\n• <$2B: Small-cap - higher risk/reward, more volatile\n• $2B-$10B: Mid-cap - moderate risk/reward balance\n• >$10B: Large-cap - lower risk, stable, institutional favorite\n• >$200B: Mega-cap - market leaders, defensive plays\nCompare with Enterprise Value for debt consideration.")
         
         with col_add3:
             # Beta
             beta = ticker_info.get('beta', 0)
             if beta:
-                st.metric("Beta", f"{beta:.2f}")
+                st.metric("Beta", f"{beta:.2f}",
+                         help="Beta - Stock Volatility vs Market\nMeasures how much the stock moves relative to the overall market (S&P 500 = 1.0).\n• Beta = 1.0: Moves with the market\n• Beta > 1.0: More volatile than market (e.g., 1.5 = 50% more volatile)\n• Beta < 1.0: Less volatile than market (e.g., 0.5 = 50% less volatile)\n• Beta < 0: Moves opposite to market (rare)\n• High Beta: Higher risk/reward potential, tech stocks\n• Low Beta: Defensive, utilities, consumer staples")
             else:
-                st.metric("Beta", "N/A")
+                st.metric("Beta", "N/A",
+                         help="Beta - Stock Volatility vs Market\nMeasures how much the stock moves relative to the overall market (S&P 500 = 1.0).\n• Beta = 1.0: Moves with the market\n• Beta > 1.0: More volatile than market (e.g., 1.5 = 50% more volatile)\n• Beta < 1.0: Less volatile than market (e.g., 0.5 = 50% less volatile)\n• Beta < 0: Moves opposite to market (rare)\n• High Beta: Higher risk/reward potential, tech stocks\n• Low Beta: Defensive, utilities, consumer staples")
         
         with col_add4:
             # Empty space for layout
