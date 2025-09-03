@@ -2595,14 +2595,14 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="P/E Ratio (TTM)",
             value=f"{pe_ratio:.2f}" if pe_ratio and not pd.isna(pe_ratio) else "N/A",
-            help=f"Price-to-Earnings ratio based on trailing twelve months{data_source_label}"
+            help=f"P/E Ratio (TTM) – Price to Earnings Ratio\nShows how much investors are paying for $1 of the company's earnings over the past 12 months. A very high number may mean strong growth expectations or an overvalued stock. Compare it to peers and the market average.{data_source_label}"
         )
         
         if forward_pe and not pd.isna(forward_pe):
             st.metric(
                 label="Forward P/E",
                 value=f"{forward_pe:.2f}",
-                help="Forward Price-to-Earnings ratio"
+                help="Forward P/E – Forward Price to Earnings Ratio\nThis looks ahead, using analysts' projected earnings. It's useful for judging whether growth is expected to make the stock cheaper in the future. If the forward P/E is lower than the current P/E, it means analysts expect earnings to rise, so the stock will look less expensive relative to profits."
             )
     
     with col2:
@@ -2613,13 +2613,13 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="P/B Ratio",
             value=f"{pb_ratio:.2f}" if pb_ratio and not pd.isna(pb_ratio) else "N/A",
-            help=f"Price-to-Book ratio{data_source_label}"
+            help=f"Price-to-Book (P/B Ratio)\nCompares the stock price to the company's book value (assets minus liabilities). A ratio above 1 means investors value the company more than its net assets. High values may indicate strong growth potential—or overvaluation.{data_source_label}"
         )
         
         st.metric(
             label="P/S Ratio (TTM)",
             value=f"{ps_ratio:.2f}" if ps_ratio and not pd.isna(ps_ratio) else "N/A",
-            help=f"Price-to-Sales ratio trailing twelve months{data_source_label}. API values may vary slightly from website due to data timing."
+            help=f"Price-to-Sales (P/S Ratio)\nShows how much investors pay for $1 of revenue. Useful for companies with little or no profit. A very high number can mean growth optimism but also possible overpricing.{data_source_label}"
         )
     
     with col3:
@@ -2630,13 +2630,13 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="EV/Revenue",
             value=f"{ev_revenue:.2f}" if ev_revenue and not pd.isna(ev_revenue) else "N/A",
-            help="Enterprise Value to Revenue ratio"
+            help="EV/Revenue (Enterprise Value to Revenue)\nEnterprise Value (company's total value including debt and cash) divided by revenue. Often better than P/S since it accounts for debt. Lower is usually more attractive."
         )
         
         st.metric(
             label="EV/EBITDA",
             value=f"{ev_ebitda:.2f}" if ev_ebitda and not pd.isna(ev_ebitda) else "N/A",
-            help="Enterprise Value to EBITDA ratio. API values may vary slightly from website due to data timing and calculation methods."
+            help="EV/EBITDA (Enterprise Value to EBITDA)\nEnterprise Value compared to EBITDA (earnings before interest, tax, depreciation, and amortization). A widely used measure for comparing companies, especially across industries. Lower values often signal a cheaper valuation."
         )
     
     with col4:
@@ -2649,7 +2649,7 @@ def display_valuation_metrics(info, symbol=None):
         st.metric(
             label="PEG Ratio",
             value=f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A",
-            help=f"Price/Earnings to Growth ratio{data_source_label}. Note: PEG calculations vary between providers due to different growth rate methodologies"
+            help=f"PEG Ratio – Price to Earnings Growth Ratio\nTakes the P/E Ratio and adjusts it for the company's earnings growth rate. Around 1 is considered fairly valued, above 1 may be expensive, below 1 could be undervalued. Helps balance growth with price.{data_source_label}"
         )
         
         if market_cap and not pd.isna(market_cap):
@@ -2663,7 +2663,7 @@ def display_valuation_metrics(info, symbol=None):
             st.metric(
                 label="Market Cap",
                 value=cap_display,
-                help="Total market capitalization"
+                help="Market Capitalization\nTotal value of all outstanding shares. For comparison with Enterprise Value: EV represents the true cost to acquire a company (market cap + debt – cash). Useful when comparing firms with different debt levels."
             )
 
 def display_profitability_metrics(info):
