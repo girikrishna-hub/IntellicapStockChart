@@ -6771,33 +6771,40 @@ def gurufocus_tab():
                             pe_ratio = info.get('trailingPE')
                             forward_pe = info.get('forwardPE')
                             st.metric("P/E Ratio (TTM)", f"{pe_ratio:.2f}" if pe_ratio else "N/A", 
-                                     help="Trailing twelve months P/E (yfinance source)")
+                                     help="P/E Ratio (TTM) – Price to Earnings Ratio\nShows how much investors are paying for $1 of the company's earnings over the past 12 months. A very high number may mean strong growth expectations or an overvalued stock. Compare it to peers and the market average.")
                             st.metric("Forward P/E", f"{forward_pe:.2f}" if forward_pe else "N/A",
-                                     help="Forward P/E based on analyst estimates (yfinance source - may differ from website due to data timing)")
+                                     help="Forward P/E – Forward Price to Earnings Ratio\nThis looks ahead, using analysts' projected earnings. It's useful for judging whether growth is expected to make the stock cheaper in the future. If the forward P/E is lower than the current P/E, it means analysts expect earnings to rise, so the stock will look less expensive relative to profits.")
                         
                         with val_col2:
                             # Price-to-Book and Price-to-Sales
                             pb_ratio = info.get('priceToBook')
                             ps_ratio = info.get('priceToSalesTrailing12Months')
-                            st.metric("Price-to-Book", f"{pb_ratio:.2f}" if pb_ratio else "N/A")
-                            st.metric("Price-to-Sales", f"{ps_ratio:.2f}" if ps_ratio else "N/A")
+                            st.metric("Price-to-Book", f"{pb_ratio:.2f}" if pb_ratio else "N/A",
+                                     help="Price-to-Book (P/B Ratio)\nCompares the stock price to the company's book value (assets minus liabilities). A ratio above 1 means investors value the company more than its net assets. High values may indicate strong growth potential—or overvaluation.")
+                            st.metric("Price-to-Sales", f"{ps_ratio:.2f}" if ps_ratio else "N/A",
+                                     help="Price-to-Sales (P/S Ratio)\nShows how much investors pay for $1 of revenue. Useful for companies with little or no profit. A very high number can mean growth optimism but also possible overpricing.")
                         
                         with val_col3:
                             # PEG and Enterprise Value ratios - use hybrid system for PEG
                             peg_ratio = get_peg_ratio(info)  # Use enhanced PEG detection
                             ev_revenue = info.get('enterpriseToRevenue')
-                            st.metric("PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A")
-                            st.metric("EV/Revenue", f"{ev_revenue:.2f}" if ev_revenue else "N/A")
+                            st.metric("PEG Ratio", f"{peg_ratio:.2f}" if peg_ratio and not pd.isna(peg_ratio) else "N/A",
+                                     help="PEG Ratio – Price to Earnings Growth Ratio\nTakes the P/E Ratio and adjusts it for the company's earnings growth rate. Around 1 is considered fairly valued, above 1 may be expensive, below 1 could be undervalued. Helps balance growth with price.")
+                            st.metric("EV/Revenue", f"{ev_revenue:.2f}" if ev_revenue else "N/A",
+                                     help="EV/Revenue (Enterprise Value to Revenue)\nEnterprise Value (company's total value including debt and cash) divided by revenue. Often better than P/S since it accounts for debt. Lower is usually more attractive.")
                         
                         with val_col4:
                             # Enterprise Value and EBITDA
                             enterprise_value = info.get('enterpriseValue')
                             ev_ebitda = info.get('enterpriseToEbitda')
                             if enterprise_value:
-                                st.metric("Enterprise Value", f"{currency}{enterprise_value/divisor:.2f}{currency_suffix}")
+                                st.metric("Enterprise Value", f"{currency}{enterprise_value/divisor:.2f}{currency_suffix}",
+                                         help="Enterprise Value (EV)\nRepresents the true cost to acquire a company (market cap + debt – cash). Useful when comparing firms with different debt levels. Investors look at EV with ratios like EV/EBITDA for deeper insights.")
                             else:
-                                st.metric("Enterprise Value", "N/A")
-                            st.metric("EV/EBITDA", f"{ev_ebitda:.2f}" if ev_ebitda else "N/A")
+                                st.metric("Enterprise Value", "N/A",
+                                         help="Enterprise Value (EV)\nRepresents the true cost to acquire a company (market cap + debt – cash). Useful when comparing firms with different debt levels. Investors look at EV with ratios like EV/EBITDA for deeper insights.")
+                            st.metric("EV/EBITDA", f"{ev_ebitda:.2f}" if ev_ebitda else "N/A",
+                                     help="EV/EBITDA (Enterprise Value to EBITDA)\nEnterprise Value compared to EBITDA (earnings before interest, tax, depreciation, and amortization). A widely used measure for comparing companies, especially across industries. Lower values often signal a cheaper valuation.")
                         
                         # Profitability Analysis
                         st.markdown("### 📈 Profitability Analysis")
