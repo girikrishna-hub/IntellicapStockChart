@@ -7768,6 +7768,34 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     
     # Technical indicators
     st.markdown("#### 📊 Price Chart with Moving Averages")
+    with st.expander("📖 Moving Averages Chart Pattern Guide"):
+        st.markdown("""
+        **Moving Averages** - Trend-following indicators that smooth price data to identify direction and momentum:
+        
+        **50-Day Moving Average (Blue Line):**
+        • **Short-term trend indicator** showing recent price momentum
+        • **Price Above MA 50**: Short-term uptrend, bullish momentum
+        • **Price Below MA 50**: Short-term downtrend, bearish momentum
+        • **MA 50 Slope**: Rising = strengthening trend, Falling = weakening trend
+        • **Dynamic Support/Resistance**: Acts as support in uptrends, resistance in downtrends
+        
+        **200-Day Moving Average (Red Line):**
+        • **Long-term trend indicator** and major market sentiment gauge
+        • **Price Above MA 200**: Long-term bull market, major uptrend
+        • **Price Below MA 200**: Long-term bear market, major downtrend
+        • **Major Psychological Level**: Institutional investors watch this closely
+        
+        **Critical Crossover Signals:**
+        • **Golden Cross**: MA 50 crosses above MA 200 = Strong bullish signal (major buy signal)
+        • **Death Cross**: MA 50 crosses below MA 200 = Strong bearish signal (major sell signal)
+        • **Moving Average Stack**: MA 50 > MA 200 = Bullish alignment, MA 50 < MA 200 = Bearish alignment
+        
+        **Price Action Patterns:**
+        • **Bounces**: Price touches MA and bounces = trend continuation
+        • **Breaks**: Price breaks through MA with volume = potential trend change  
+        • **Pullbacks**: Price returns to test MA after breakout = healthy retest
+        • **Distance**: Extreme distance from MAs often leads to mean reversion
+        """)
     
     # Currency based on market
     currency = "₹" if market == "India" else "$"
