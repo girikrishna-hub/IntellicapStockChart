@@ -2680,13 +2680,13 @@ def display_profitability_metrics(info):
         st.metric(
             label="Gross Margin",
             value=f"{gross_margin*100:.2f}%" if gross_margin and not pd.isna(gross_margin) else "N/A",
-            help="Gross profit margin percentage"
+            help="Gross Profit Margin\nPercentage of revenue remaining after cost of goods sold (COGS).\n• High margin: Strong pricing power, efficient production\n• >50%: Excellent (software, luxury goods)\n• 30-50%: Good (branded consumer goods)\n• 10-30%: Average (retail, manufacturing)\n• <10%: Low margin business (groceries, commodities)\nHigher gross margins provide more flexibility for operations and growth."
         )
         
         st.metric(
             label="Operating Margin",
             value=f"{operating_margin*100:.2f}%" if operating_margin and not pd.isna(operating_margin) else "N/A",
-            help="Operating profit margin percentage (yfinance source - may differ significantly from institutional sources like GuruFocus)"
+            help="Operating Profit Margin\nPercentage of revenue remaining after all operating expenses.\n• Measures core business efficiency and management effectiveness\n• >20%: Excellent operational efficiency\n• 10-20%: Good operational performance\n• 5-10%: Average operational efficiency\n• <5%: Poor operational efficiency\n• Negative: Operating losses\nNote: yfinance source - may differ from institutional sources like GuruFocus"
         )
     
     with col2:
@@ -2697,13 +2697,13 @@ def display_profitability_metrics(info):
         st.metric(
             label="Net Profit Margin",
             value=f"{profit_margin*100:.2f}%" if profit_margin and not pd.isna(profit_margin) else "N/A",
-            help="Net profit margin percentage"
+            help="Net Profit Margin\nPercentage of revenue that becomes actual profit after all expenses.\n• Ultimate measure of business profitability\n• >20%: Exceptional profitability (tech, pharma)\n• 10-20%: Strong profitability (established businesses)\n• 5-10%: Moderate profitability (retail, services)\n• 0-5%: Low profitability (commodities, utilities)\n• Negative: Net losses\nConsider industry benchmarks when evaluating."
         )
         
         st.metric(
             label="EBITDA Margin",
             value=f"{ebitda_margin*100:.2f}%" if ebitda_margin and not pd.isna(ebitda_margin) else "N/A",
-            help="EBITDA margin percentage"
+            help="EBITDA Margin\nEarnings Before Interest, Taxes, Depreciation, and Amortization as % of revenue.\n• Measures operational cash generation before financing decisions\n• >30%: Excellent cash generation (software, services)\n• 20-30%: Strong cash generation (established businesses)\n• 10-20%: Moderate cash generation (manufacturing)\n• 5-10%: Low cash generation (capital-intensive)\n• <5%: Very low cash generation\nUseful for comparing companies across different tax and capital structures."
         )
     
     with col3:
@@ -2714,13 +2714,13 @@ def display_profitability_metrics(info):
         st.metric(
             label="ROE",
             value=f"{roe*100:.2f}%" if roe and not pd.isna(roe) else "N/A",
-            help="Return on Equity"
+            help="Return on Equity (ROE)\nNet income as percentage of shareholders' equity - measures management effectiveness.\n• >20%: Excellent management and capital efficiency\n• 15-20%: Very good returns for shareholders\n• 10-15%: Good returns, above market average\n• 5-10%: Average returns, acceptable performance\n• <5%: Poor returns, below expectations\n• High ROE with low debt is ideal - avoid artificially high ROE from excessive leverage"
         )
         
         st.metric(
             label="ROA",
             value=f"{roa*100:.2f}%" if roa and not pd.isna(roa) else "N/A",
-            help="Return on Assets"
+            help="Return on Assets (ROA)\nNet income as percentage of total assets - measures asset utilization efficiency.\n• >15%: Exceptional asset efficiency (tech, services)\n• 10-15%: Very good asset utilization\n• 5-10%: Good asset efficiency for most industries\n• 2-5%: Average asset utilization (banks, utilities)\n• <2%: Poor asset efficiency\n• ROA shows how well company converts assets into profits regardless of financing structure"
         )
     
     with col4:
@@ -2731,13 +2731,13 @@ def display_profitability_metrics(info):
         st.metric(
             label="EPS (TTM)",
             value=f"${eps:.2f}" if eps and not pd.isna(eps) else "N/A",
-            help="Earnings per Share trailing twelve months"
+            help="Earnings Per Share (TTM)\nCompany's profit divided by outstanding shares over trailing twelve months.\n• Higher EPS generally better, but compare to industry peers\n• Growing EPS over time indicates improving profitability\n• Used to calculate P/E ratio (Price ÷ EPS)\n• Positive EPS: Company is profitable\n• Negative EPS: Company has losses\n• Consider EPS growth trend more important than absolute number"
         )
         
         st.metric(
             label="Forward EPS",
             value=f"${forward_eps:.2f}" if forward_eps and not pd.isna(forward_eps) else "N/A",
-            help="Forward Earnings per Share"
+            help="Forward Earnings Per Share\nAnalyst consensus estimate of EPS for next 12 months.\n• Forward EPS > Current EPS: Growth expected\n• Forward EPS < Current EPS: Decline expected\n• Used to calculate Forward P/E ratio\n• More relevant for growth investors than trailing EPS\n• Accuracy depends on analyst forecasting quality\n• Compare forward EPS to current EPS to gauge growth expectations"
         )
 
 def calculate_stock_ratings(ticker_obj, info):
@@ -3590,13 +3590,13 @@ def display_growth_metrics(info, ticker_obj):
         st.metric(
             label="Revenue Growth (YoY)",
             value=f"{revenue_growth*100:.2f}%" if revenue_growth and not pd.isna(revenue_growth) else "N/A",
-            help="Year-over-year revenue growth"
+            help="Revenue Growth (Year-over-Year)\nPercentage increase in revenue compared to same period last year.\n• >20%: Excellent growth (high-growth companies)\n• 10-20%: Strong growth (established growth companies)\n• 5-10%: Moderate growth (mature companies)\n• 0-5%: Slow growth (mature/cyclical companies)\n• Negative: Revenue decline\nConsistent revenue growth indicates market demand and competitive advantage."
         )
         
         st.metric(
             label="Quarterly Revenue Growth",
             value=f"{quarterly_revenue_growth*100:.2f}%" if quarterly_revenue_growth and not pd.isna(quarterly_revenue_growth) else "N/A",
-            help="Quarterly revenue growth year-over-year"
+            help="Quarterly Revenue Growth (YoY)\nMost recent quarter's revenue growth compared to same quarter last year.\n• More current than annual growth, shows recent trends\n• Can be volatile due to seasonal factors\n• Compare to previous quarters for trend analysis\n• Positive acceleration is bullish signal\n• Deceleration may indicate slowing business\nWatch for consistent quarterly growth patterns over multiple quarters."
         )
     
     with col2:
@@ -3607,13 +3607,13 @@ def display_growth_metrics(info, ticker_obj):
         st.metric(
             label="Earnings Growth (YoY)",
             value=f"{earnings_growth*100:.2f}%" if earnings_growth and not pd.isna(earnings_growth) else "N/A",
-            help="Year-over-year earnings growth"
+            help="Earnings Growth (Year-over-Year)\nPercentage change in earnings compared to same period last year.\n• >25%: Exceptional earnings growth\n• 15-25%: Strong earnings growth\n• 5-15%: Moderate earnings growth\n• 0-5%: Slow earnings growth\n• Negative: Earnings decline\nEarnings growth more important than revenue growth - shows improving profitability and operational leverage."
         )
         
         st.metric(
             label="Quarterly Earnings Growth",
             value=f"{quarterly_earnings_growth*100:.2f}%" if quarterly_earnings_growth and not pd.isna(quarterly_earnings_growth) else "N/A",
-            help="Quarterly earnings growth year-over-year"
+            help="Quarterly Earnings Growth (YoY)\nMost recent quarter's earnings growth vs same quarter last year.\n• Key metric for growth investors and momentum traders\n• Watch for positive surprises vs expectations\n• Accelerating growth often drives stock price appreciation\n• Can be volatile due to one-time items or seasonal factors\n• Compare to analyst estimates and guidance\nConsistent quarterly earnings beats indicate strong execution and market position."
         )
     
     with col3:
@@ -3624,13 +3624,13 @@ def display_growth_metrics(info, ticker_obj):
         st.metric(
             label="Target High Price",
             value=f"${target_high:.2f}" if target_high and not pd.isna(target_high) else "N/A",
-            help="Analyst target high price"
+            help="Analyst Target High Price\nHighest price target among all covering analysts over next 12 months.\n• Represents most optimistic analyst view\n• Compare to current price for upside potential\n• Large spread between high/low targets indicates uncertainty\n• Consider analyst track record and recent revisions\n• Bull case scenario if everything goes right\nUse alongside mean target for balanced perspective on analyst sentiment."
         )
         
         st.metric(
             label="Target Mean Price",
             value=f"${target_mean:.2f}" if target_mean and not pd.isna(target_mean) else "N/A",
-            help="Analyst target mean price"
+            help="Analyst Target Mean Price\nAverage price target among all covering analysts over next 12 months.\n• More balanced view than high/low targets\n• Compare to current price for consensus upside/downside\n• Rising mean target indicates improving sentiment\n• Falling mean target suggests deteriorating outlook\n• Most reliable single analyst metric\nTarget above current price suggests analysts expect appreciation."
         )
     
     with col4:
@@ -3648,13 +3648,13 @@ def display_growth_metrics(info, ticker_obj):
         st.metric(
             label="Analyst Recommendation",
             value=rec_display,
-            help="Average analyst recommendation (1=Strong Buy, 5=Strong Sell)"
+            help="Analyst Recommendation Consensus\nAverage recommendation from all covering analysts.\n• Strong Buy (1.0-1.5): Very bullish consensus\n• Buy (1.5-2.5): Bullish consensus\n• Hold (2.5-3.5): Neutral consensus\n• Sell (3.5-4.5): Bearish consensus\n• Strong Sell (4.5-5.0): Very bearish consensus\nFewer analysts typically means less reliable consensus. Watch for recent upgrades/downgrades."
         )
         
         st.metric(
             label="Number of Analysts",
             value=f"{int(num_analysts)}" if num_analysts and not pd.isna(num_analysts) else "N/A",
-            help="Number of analysts covering the stock"
+            help="Number of Analysts Covering Stock\nTotal number of analysts providing ratings and price targets.\n• >20 analysts: High coverage (large-cap, popular stocks)\n• 10-20 analysts: Good coverage (mid-cap stocks)\n• 5-10 analysts: Moderate coverage (small-cap stocks)\n• <5 analysts: Low coverage (micro-cap, niche stocks)\n• More analysts generally means more reliable consensus\nHigh coverage indicates institutional interest and market attention."
         )
     
     # Additional growth insights
