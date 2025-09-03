@@ -6952,41 +6952,53 @@ def gurufocus_tab():
                             # Debt ratios
                             debt_to_equity = info.get('debtToEquity')
                             current_ratio = info.get('currentRatio')
-                            st.metric("Debt-to-Equity", f"{debt_to_equity:.2f}" if debt_to_equity else "N/A")
-                            st.metric("Current Ratio", f"{current_ratio:.2f}" if current_ratio else "N/A")
+                            st.metric("Debt-to-Equity", f"{debt_to_equity:.2f}" if debt_to_equity else "N/A",
+                                     help="Debt-to-Equity Ratio\nTotal debt divided by shareholders' equity - measures financial leverage.\n• <0.3: Very low debt, conservative financing\n• 0.3-0.6: Moderate debt, balanced capital structure\n• 0.6-1.0: Higher debt, increased financial risk\n• >1.0: High debt, significant leverage risk\n• >2.0: Very high debt, potential financial distress\nLower ratios generally safer, but optimal level varies by industry.")
+                            st.metric("Current Ratio", f"{current_ratio:.2f}" if current_ratio else "N/A",
+                                     help="Current Ratio\nCurrent assets divided by current liabilities - measures short-term liquidity.\n• >2.0: Excellent liquidity, strong short-term financial health\n• 1.5-2.0: Good liquidity, adequate working capital\n• 1.0-1.5: Acceptable liquidity, monitor cash flow\n• 0.8-1.0: Tight liquidity, potential cash flow issues\n• <0.8: Poor liquidity, financial stress likely\nHigher ratios indicate better ability to pay short-term obligations.")
                         
                         with strength_col2:
                             # Quick ratio and cash
                             quick_ratio = info.get('quickRatio')
                             total_cash = info.get('totalCash')
-                            st.metric("Quick Ratio", f"{quick_ratio:.2f}" if quick_ratio else "N/A")
+                            st.metric("Quick Ratio", f"{quick_ratio:.2f}" if quick_ratio else "N/A",
+                                     help="Quick Ratio (Acid-Test)\nQuick assets (cash + securities + receivables) divided by current liabilities.\n• >1.5: Excellent liquidity without relying on inventory\n• 1.0-1.5: Good liquidity, can meet obligations quickly\n• 0.8-1.0: Adequate liquidity, monitor cash position\n• 0.5-0.8: Tight liquidity, may struggle with payments\n• <0.5: Poor liquidity, immediate cash concerns\nMore conservative than current ratio - excludes inventory and prepaid expenses.")
                             if total_cash:
-                                st.metric("Total Cash", f"{currency}{total_cash/divisor:.2f}{currency_suffix}")
+                                st.metric("Total Cash", f"{currency}{total_cash/divisor:.2f}{currency_suffix}",
+                                         help="Total Cash and Cash Equivalents\nCash, short-term investments, and highly liquid securities.\n• High cash provides financial flexibility and crisis protection\n• Compare to market cap for cash-rich vs cash-poor assessment\n• Excess cash may indicate lack of growth opportunities\n• Low cash with high debt increases financial risk\n• Consider cash burn rate for growth companies\nCash is the ultimate liquidity buffer for uncertain times.")
                             else:
-                                st.metric("Total Cash", "N/A")
+                                st.metric("Total Cash", "N/A",
+                                         help="Total Cash and Cash Equivalents\nCash, short-term investments, and highly liquid securities.\n• High cash provides financial flexibility and crisis protection\n• Compare to market cap for cash-rich vs cash-poor assessment\n• Excess cash may indicate lack of growth opportunities\n• Low cash with high debt increases financial risk\n• Consider cash burn rate for growth companies\nCash is the ultimate liquidity buffer for uncertain times.")
                         
                         with strength_col3:
                             # Cash per share and Free cash flow
                             cash_per_share = info.get('totalCashPerShare')
                             free_cashflow = info.get('freeCashflow')
-                            st.metric("Cash/Share", f"{currency}{cash_per_share:.2f}" if cash_per_share else "N/A")
+                            st.metric("Cash/Share", f"{currency}{cash_per_share:.2f}" if cash_per_share else "N/A",
+                                     help="Cash Per Share\nTotal cash divided by outstanding shares - shows liquidity per share.\n• High cash per share provides downside protection\n• Compare to stock price for cash backing percentage\n• Growing cash per share indicates strong cash generation\n• Declining may signal cash burn or aggressive investments\n• Particularly important for growth and biotech companies\nRepresents the cash cushion backing each share owned.")
                             if free_cashflow:
-                                st.metric("Free Cash Flow", f"{currency}{free_cashflow/divisor:.2f}{currency_suffix}")
+                                st.metric("Free Cash Flow", f"{currency}{free_cashflow/divisor:.2f}{currency_suffix}",
+                                         help="Free Cash Flow\nOperating cash flow minus capital expenditures - cash available to shareholders.\n• Positive FCF: Company generates cash after maintaining/growing business\n• Negative FCF: Company consuming cash, may need financing\n• Growing FCF indicates improving cash generation ability\n• FCF > Net Income suggests high-quality earnings\n• FCF conversion rate shows efficiency of profit-to-cash conversion\nMost important metric for valuing mature companies and dividend sustainability.")
                             else:
-                                st.metric("Free Cash Flow", "N/A")
+                                st.metric("Free Cash Flow", "N/A",
+                                         help="Free Cash Flow\nOperating cash flow minus capital expenditures - cash available to shareholders.\n• Positive FCF: Company generates cash after maintaining/growing business\n• Negative FCF: Company consuming cash, may need financing\n• Growing FCF indicates improving cash generation ability\n• FCF > Net Income suggests high-quality earnings\n• FCF conversion rate shows efficiency of profit-to-cash conversion\nMost important metric for valuing mature companies and dividend sustainability.")
                         
                         with strength_col4:
                             # Operating cash flow and Total debt
                             operating_cashflow = info.get('operatingCashflow')
                             total_debt = info.get('totalDebt')
                             if operating_cashflow:
-                                st.metric("Operating Cash Flow", f"{currency}{operating_cashflow/divisor:.2f}{currency_suffix}")
+                                st.metric("Operating Cash Flow", f"{currency}{operating_cashflow/divisor:.2f}{currency_suffix}",
+                                         help="Operating Cash Flow\nCash generated from core business operations - measures cash-generating ability.\n• Positive OCF: Business generates cash from operations\n• OCF > Net Income: High-quality earnings, good cash conversion\n• OCF < Net Income: Potential earnings quality issues\n• Growing OCF indicates strengthening business fundamentals\n• OCF/Sales ratio shows operational cash efficiency\nMore reliable than earnings for assessing true business performance.")
                             else:
-                                st.metric("Operating Cash Flow", "N/A")
+                                st.metric("Operating Cash Flow", "N/A",
+                                         help="Operating Cash Flow\nCash generated from core business operations - measures cash-generating ability.\n• Positive OCF: Business generates cash from operations\n• OCF > Net Income: High-quality earnings, good cash conversion\n• OCF < Net Income: Potential earnings quality issues\n• Growing OCF indicates strengthening business fundamentals\n• OCF/Sales ratio shows operational cash efficiency\nMore reliable than earnings for assessing true business performance.")
                             if total_debt:
-                                st.metric("Total Debt", f"{currency}{total_debt/divisor:.2f}{currency_suffix}")
+                                st.metric("Total Debt", f"{currency}{total_debt/divisor:.2f}{currency_suffix}",
+                                         help="Total Debt\nShort-term debt plus long-term debt - total borrowing obligations.\n• Compare to cash to assess net debt position\n• Compare to equity for leverage assessment (debt-to-equity)\n• Compare to EBITDA for debt service capability\n• Rising debt increases financial risk and interest expense\n• Debt maturity profile affects refinancing risk\nManageable debt levels vary significantly by industry and business model.")
                             else:
-                                st.metric("Total Debt", "N/A")
+                                st.metric("Total Debt", "N/A",
+                                         help="Total Debt\nShort-term debt plus long-term debt - total borrowing obligations.\n• Compare to cash to assess net debt position\n• Compare to equity for leverage assessment (debt-to-equity)\n• Compare to EBITDA for debt service capability\n• Rising debt increases financial risk and interest expense\n• Debt maturity profile affects refinancing risk\nManageable debt levels vary significantly by industry and business model.")
                         
                         # Growth Metrics
                         st.markdown("### 🚀 Growth Analysis")
