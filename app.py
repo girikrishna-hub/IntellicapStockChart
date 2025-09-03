@@ -7498,7 +7498,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             # RSI
             current_rsi = rsi.iloc[-1] if not rsi.empty else 0
             rsi_status = "Overbought" if current_rsi > 70 else "Oversold" if current_rsi < 30 else "Neutral"
-            st.metric("RSI", f"{current_rsi:.1f}")
+            st.metric("RSI", f"{current_rsi:.1f}",
+                     help="RSI (Relative Strength Index)\nMomentum oscillator measuring speed and change of price movements. Range 0-100.\n• RSI > 70: Overbought territory - potential sell signal or pullback\n• RSI < 30: Oversold territory - potential buy signal or bounce\n• RSI 30-70: Neutral zone - trend continuation likely\n• Look for RSI divergences: price makes new highs/lows but RSI doesn't confirm")
             st.caption(rsi_status)
         
         with col_add2:
@@ -7541,7 +7542,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
             ma_50_color = "red" if pct_change_from_ma_50 < 0 else "green"
             ma_50_delta = f"CTP is {abs(pct_change_from_ma_50):.1f}% {'below' if pct_change_from_ma_50 < 0 else 'above'}"
             
-            st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}")
+            st.metric("50-Day MA", f"{currency}{ma_50_current:.2f}",
+                     help="50-Day Moving Average\nShort-term trend indicator showing average price over 50 days.\n• Price above MA 50: Short-term uptrend, bullish momentum\n• Price below MA 50: Short-term downtrend, bearish momentum\n• MA 50 slope: Rising = strengthening trend, Falling = weakening trend\n• Use as dynamic support (uptrend) or resistance (downtrend) level")
             st.markdown(f"<span style='color: {ma_50_color}; font-size: 12px;'>{ma_50_delta}</span>", unsafe_allow_html=True)
         
         with col_ma2:
@@ -7555,7 +7557,8 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                 ma_200_color = "red" if pct_change_from_ma_200 < 0 else "green"
                 ma_200_delta = f"CTP is {abs(pct_change_from_ma_200):.1f}% {'below' if pct_change_from_ma_200 < 0 else 'above'}"
                 
-                st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}")
+                st.metric("200-Day MA", f"{currency}{ma_200_current:.2f}",
+                         help="200-Day Moving Average\nLong-term trend indicator and major support/resistance level.\n• Price above MA 200: Long-term bull market, major uptrend\n• Price below MA 200: Long-term bear market, major downtrend\n• Golden Cross: MA 50 crosses above MA 200 = strong bullish signal\n• Death Cross: MA 50 crosses below MA 200 = strong bearish signal\n• MA 200 acts as major psychological support/resistance level")
                 st.markdown(f"<span style='color: {ma_200_color}; font-size: 12px;'>{ma_200_delta}</span>", unsafe_allow_html=True)
             else:
                 st.metric("200-Day MA", "Not enough data")
