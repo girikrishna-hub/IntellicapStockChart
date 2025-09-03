@@ -3822,6 +3822,57 @@ def get_dividend_info(ticker_obj, ticker_info, market="US"):
     
     return dividend_info
 
+def get_fibonacci_tooltip(fib_label, level_type):
+    """Generate comprehensive tooltip for Fibonacci levels"""
+    tooltips = {
+        # Retracement levels
+        "Fib 23.6%": {
+            "resistance": "Fibonacci 23.6% Resistance\nShallow retracement level - indicates strong trending market.\n• Often first pullback target in strong uptrends\n• Price rejection here suggests trend continuation\n• Break above confirms momentum strength\n• Light resistance, suitable for trend-following entries",
+            "support": "Fibonacci 23.6% Support\nShallow retracement level - indicates strong trending market.\n• Often first bounce target in strong downtrends\n• Price hold here suggests trend continuation down\n• Break below confirms downward momentum\n• Light support, caution for counter-trend entries"
+        },
+        "Fib 38.2%": {
+            "resistance": "Fibonacci 38.2% Resistance\nModerate retracement level - common correction in healthy trends.\n• Popular profit-taking and re-entry level\n• Strong resistance in trending markets\n• Break above often leads to higher targets\n• Good risk/reward for swing trading entries",
+            "support": "Fibonacci 38.2% Support\nModerate retracement level - common correction in healthy trends.\n• Popular bounce and accumulation level\n• Strong support in trending markets\n• Break below often leads to deeper correction\n• Good risk/reward for trend continuation trades"
+        },
+        "Fib 50.0%": {
+            "resistance": "Fibonacci 50.0% Resistance\nPsychological half-retracement level - widely watched by traders.\n• Not true Fibonacci ratio but critical market level\n• Major decision point for trend continuation\n• Heavy institutional interest at this level\n• Break above suggests trend resumption strength",
+            "support": "Fibonacci 50.0% Support\nPsychological half-retracement level - widely watched by traders.\n• Not true Fibonacci ratio but critical market level\n• Major decision point for trend reversal/continuation\n• Heavy institutional buying often emerges here\n• Break below suggests deeper correction likely"
+        },
+        "Fib 61.8%": {
+            "resistance": "Fibonacci 61.8% Resistance - Golden Ratio\nDeep retracement level - often marks trend continuation point.\n• Most important Fibonacci ratio in nature\n• Last reasonable level for trend continuation\n• Strong resistance for counter-trend moves\n• Break above suggests major trend change",
+            "support": "Fibonacci 61.8% Support - Golden Ratio\nDeep retracement level - often marks trend continuation point.\n• Most important Fibonacci ratio in nature\n• Last reasonable support for uptrend continuation\n• Strong support for major corrections\n• Break below often signals trend reversal"
+        },
+        "Fib 78.6%": {
+            "resistance": "Fibonacci 78.6% Resistance\nVery deep retracement - trend weakening zone.\n• Indicates significant momentum loss\n• Often precedes trend reversal\n• Strong resistance for bear market rallies\n• Approach with caution for long positions",
+            "support": "Fibonacci 78.6% Support\nVery deep retracement - trend weakening zone.\n• Indicates significant selling pressure\n• Often final support before trend reversal\n• Critical level for major trend changes\n• Break below suggests bear market likely"
+        },
+        # Extension levels
+        "Fib 127.2%": {
+            "resistance": "Fibonacci 127.2% Extension\nFirst extension target - common profit-taking level.\n• Initial target after breakout moves\n• Popular level for partial profit-taking\n• Often sees consolidation and pullbacks\n• Good target for swing trading exits",
+            "support": "Fibonacci 127.2% Extension\nFirst extension target - common reversal level.\n• Initial support after breakdown moves\n• Popular level for bounce attempts\n• Often sees consolidation and rallies\n• Good target for short covering"
+        },
+        "Fib 161.8%": {
+            "resistance": "Fibonacci 161.8% Extension - Golden Extension\nMajor resistance after breakout - institutional target level.\n• Primary target for trending moves\n• Heavy profit-taking and resistance\n• Key level watched by algorithmic trading\n• Break above suggests parabolic potential",
+            "support": "Fibonacci 161.8% Extension - Golden Extension\nMajor support after breakdown - institutional target level.\n• Primary target for declining moves\n• Heavy buying interest and support\n• Key level watched by algorithmic trading\n• Break below suggests capitulation territory"
+        },
+        "Fib 200.0%": {
+            "resistance": "Fibonacci 200.0% Extension\nDouble-the-move target - strong momentum required.\n• Indicates powerful trending market\n• Major psychological resistance level\n• Often marks intermediate-term tops\n• Extreme overextension risk above this level",
+            "support": "Fibonacci 200.0% Extension\nDouble-the-move target - strong momentum required.\n• Indicates powerful declining market\n• Major psychological support level\n• Often marks intermediate-term bottoms\n• Extreme oversold conditions below this level"
+        },
+        "Fib 261.8%": {
+            "resistance": "Fibonacci 261.8% Extension\nExtreme extension - parabolic territory.\n• Indicates bubble-like conditions\n• Very high reversal probability\n• Use extreme caution for new positions\n• Often marks major market tops",
+            "support": "Fibonacci 261.8% Extension\nExtreme extension - capitulation territory.\n• Indicates panic selling conditions\n• Very high bounce probability\n• Often marks major market bottoms\n• Contrarian opportunity zone"
+        }
+    }
+    
+    # Extract base percentage from label (e.g., "Fib 61.8%" from various formats)
+    for key in tooltips.keys():
+        if key in fib_label or fib_label in key:
+            return tooltips[key].get(level_type, f"Fibonacci Level: {fib_label}\nImportant technical level for {level_type} analysis.")
+    
+    # Default tooltip for unrecognized levels
+    return f"Fibonacci Level: {fib_label}\nMathematical level based on golden ratio, acts as {level_type} zone."
+
 def format_currency(value, market="US"):
     """
     Format currency based on market
@@ -7744,11 +7795,13 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                     for i, level in enumerate(next_levels_above, 1):
                         distance = level['price'] - current_price
                         distance_pct = (distance / current_price) * 100
+                        # Create comprehensive tooltip based on Fibonacci level type
+                        fib_tooltip = get_fibonacci_tooltip(level['label'], 'resistance')
                         st.metric(
                             label=f"Level {i} - {level['label']}",
                             value=format_currency(level['price'], market),
                             delta=f"+{distance_pct:.1f}%",
-                            help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
+                            help=f"{fib_tooltip}\n\nDistance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
                         )
                 else:
                     st.write("No levels found above current price")
@@ -7759,11 +7812,13 @@ def display_price_action_tab(symbol, data, ticker_info, ticker_obj, ma_50, ma_20
                     for i, level in enumerate(next_levels_below, 1):
                         distance = current_price - level['price']
                         distance_pct = (distance / current_price) * 100
+                        # Create comprehensive tooltip based on Fibonacci level type
+                        fib_tooltip = get_fibonacci_tooltip(level['label'], 'support')
                         st.metric(
                             label=f"Level {i} - {level['label']}",
                             value=format_currency(level['price'], market),
                             delta=f"-{distance_pct:.1f}%",
-                            help=f"Distance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
+                            help=f"{fib_tooltip}\n\nDistance: {format_currency(distance, market)} ({distance_pct:.1f}%)"
                         )
                 else:
                     st.write("No levels found below current price")
