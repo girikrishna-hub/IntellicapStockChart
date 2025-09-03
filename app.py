@@ -7778,6 +7778,32 @@ def display_technical_charts_tab(symbol, data, ma_50, ma_200, macd_line, signal_
     
     st.subheader(f"📈 Technical Charts for {symbol}")
     
+    # Fibonacci Levels Guide
+    with st.expander("📖 Fibonacci Levels Trading Guide"):
+        st.markdown("""
+        **Fibonacci Levels** - Mathematical ratios based on the golden ratio, used to identify support/resistance levels:
+        
+        **Fibonacci Retracement Levels (Pullback Targets):**
+        • **23.6%**: Shallow pullback - Strong trending market, minor correction
+        • **38.2%**: Moderate pullback - Common retracement in healthy trends
+        • **50.0%**: Half retracement - Not true Fibonacci but widely watched psychological level
+        • **61.8%**: Golden Ratio - Deep retracement, often marks trend continuation point
+        • **78.6%**: Very deep pullback - Trend weakening, possible reversal zone
+        
+        **Fibonacci Extension Levels (Breakout Targets):**
+        • **127.2%**: First extension target - Common profit-taking level
+        • **161.8%**: Golden extension - Major resistance/support after breakout
+        • **200.0%**: Double the move - Strong momentum target
+        • **261.8%**: Extreme extension - Parabolic move territory
+        
+        **Trading Strategies:**
+        • **Support/Resistance**: Levels act as bounce points (support) or rejection points (resistance)
+        • **Entry Points**: Buy near support levels, sell near resistance levels
+        • **Confluence**: Stronger signals when Fib levels align with other technical indicators
+        • **Volume Confirmation**: High volume at Fib levels increases reliability
+        • **Break and Retest**: Price often retests Fib levels after breaking through
+        """)
+    
     # Technical indicators
     st.markdown("#### 📊 Price Chart with Moving Averages")
     with st.expander("📖 Moving Averages Chart Pattern Guide"):
