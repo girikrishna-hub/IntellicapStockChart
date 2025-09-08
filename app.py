@@ -5076,8 +5076,32 @@ def main():
     
     st.markdown("---")
     
+    # CSS for compact tabs to fit all on one line
+    st.markdown("""
+    <style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 35px;
+        padding: 0px 8px;
+        min-width: auto;
+        max-width: 120px;
+        width: auto;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Create data source tabs
-    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fund", "🎯 Adv", "📅 Earn", "🗓️ Events", "🔍 Screen"])
+    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fundamental", "🎯 Advanced", "📅 Earnings", "🗓️ Events", "🔍 Screener"])
     
     with tab_yahoo:
         yahoo_finance_tab()
