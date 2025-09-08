@@ -9226,78 +9226,130 @@ def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx")
         return None
 
 
-def create_market_events_excel(df):
+def create_market_events_excel(events_list, earnings_list):
     """
-    Create Excel file for market events data
+    Create Excel file for market events and earnings data
     """
     try:
         import io
+        import pandas as pd
         from openpyxl import Workbook
         from openpyxl.styles import Font, PatternFill, Alignment
         from datetime import datetime
         
-        # Create a new workbook and worksheet
+        # Create a new workbook with two worksheets
         wb = Workbook()
-        ws = wb.active
-        ws.title = "Weekly Market Events"
         
-        # Define column headers and their widths
-        headers = [
-            ("Event", 25),
-            ("Date", 12),
-            ("Time", 10),
-            ("Category", 15),
-            ("Impact Level", 12),
-            ("Description", 40),
-            ("Market Impact Analysis", 50)
-        ]
+        # Create Events worksheet
+        ws_events = wb.active
+        ws_events.title = "Market Events"
         
-        # Add headers with formatting
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        
-        for col_idx, (header, width) in enumerate(headers, 1):
-            cell = ws.cell(row=1, column=col_idx, value=header)
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-            ws.column_dimensions[cell.column_letter].width = width
-        
-        # Add data rows
-        for row_idx, (_, row) in enumerate(df.iterrows(), 2):
-            ws.cell(row=row_idx, column=1, value=row.get('Title', 'N/A'))
-            ws.cell(row=row_idx, column=2, value=row.get('Date', 'TBD'))
-            ws.cell(row=row_idx, column=3, value=row.get('Time', 'TBD'))
-            ws.cell(row=row_idx, column=4, value=row.get('Category', 'N/A'))
+        if events_list:
+            # Define column headers for events
+            event_headers = [
+                ("Event", 25), ("Date", 12), ("Time", 10), ("Category", 15),
+                ("Impact Level", 12), ("Description", 40), ("Market Impact Analysis", 50)
+            ]
             
-            # Color-code importance level
-            importance_cell = ws.cell(row=row_idx, column=5, value=row.get('Importance', 'Medium'))
-            importance = row.get('Importance', 'Medium')
-            if importance == 'High':
-                importance_cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
-                importance_cell.font = Font(color="CC0000", bold=True)
-            elif importance == 'Medium':
-                importance_cell.fill = PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid")
-                importance_cell.font = Font(color="FF8C00", bold=True)
-            else:
-                importance_cell.fill = PatternFill(start_color="E8F5E8", end_color="E8F5E8", fill_type="solid")
-                importance_cell.font = Font(color="228B22", bold=True)
+            # Add headers with formatting
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            header_alignment = Alignment(horizontal="center", vertical="center")
             
-            # Add description and market impact with text wrapping
-            desc_cell = ws.cell(row=row_idx, column=6, value=row.get('Description', 'N/A'))
-            desc_cell.alignment = Alignment(wrap_text=True, vertical="top")
+            for col_idx, (header, width) in enumerate(event_headers, 1):
+                cell = ws_events.cell(row=1, column=col_idx, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                ws_events.column_dimensions[cell.column_letter].width = width
             
-            impact_cell = ws.cell(row=row_idx, column=7, value=row.get('Market Impact', 'N/A'))
-            impact_cell.alignment = Alignment(wrap_text=True, vertical="top")
-            
-            # Set row height for better readability
-            ws.row_dimensions[row_idx].height = 60
+            # Add event data rows
+            for row_idx, event in enumerate(events_list, 2):
+                ws_events.cell(row=row_idx, column=1, value=event.get('Title', 'N/A'))
+                ws_events.cell(row=row_idx, column=2, value=event.get('Date', 'TBD'))
+                ws_events.cell(row=row_idx, column=3, value=event.get('Time', 'TBD'))
+                ws_events.cell(row=row_idx, column=4, value=event.get('Category', 'N/A'))
+                
+                # Color-code importance level
+                importance_cell = ws_events.cell(row=row_idx, column=5, value=event.get('Importance', 'Medium'))
+                importance = event.get('Importance', 'Medium')
+                if importance == 'High':
+                    importance_cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+                    importance_cell.font = Font(color="CC0000", bold=True)
+                elif importance == 'Medium':
+                    importance_cell.fill = PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid")
+                    importance_cell.font = Font(color="FF8C00", bold=True)
+                else:
+                    importance_cell.fill = PatternFill(start_color="E8F5E8", end_color="E8F5E8", fill_type="solid")
+                    importance_cell.font = Font(color="228B22", bold=True)
+                
+                # Add description and market impact with text wrapping
+                desc_cell = ws_events.cell(row=row_idx, column=6, value=event.get('Description', 'N/A'))
+                desc_cell.alignment = Alignment(wrap_text=True, vertical="top")
+                
+                impact_cell = ws_events.cell(row=row_idx, column=7, value=event.get('Market Impact', 'N/A'))
+                impact_cell.alignment = Alignment(wrap_text=True, vertical="top")
+                
+                # Set row height for better readability
+                ws_events.row_dimensions[row_idx].height = 60
         
-        # Add metadata at the bottom
-        last_row = len(df) + 3
-        ws.cell(row=last_row, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        ws.cell(row=last_row + 1, column=1, value="Source: OpenAI Market Analysis")
+        # Create Earnings worksheet if earnings data exists
+        if earnings_list:
+            ws_earnings = wb.create_sheet("Top Earnings")
+            
+            # Define column headers for earnings
+            earning_headers = [
+                ("Company", 20), ("Ticker", 8), ("Date", 12), ("Time", 15), 
+                ("Market Cap", 12), ("Sector", 15), ("Impact Level", 12),
+                ("Why Important", 40), ("Key Metrics", 40), ("Market Impact", 40)
+            ]
+            
+            for col_idx, (header, width) in enumerate(earning_headers, 1):
+                cell = ws_earnings.cell(row=1, column=col_idx, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+                ws_earnings.column_dimensions[cell.column_letter].width = width
+            
+            # Add earnings data rows
+            for row_idx, earning in enumerate(earnings_list, 2):
+                ws_earnings.cell(row=row_idx, column=1, value=earning.get('Company', 'N/A'))
+                ws_earnings.cell(row=row_idx, column=2, value=earning.get('Ticker', 'N/A'))
+                ws_earnings.cell(row=row_idx, column=3, value=earning.get('Date', 'TBD'))
+                ws_earnings.cell(row=row_idx, column=4, value=earning.get('Time', 'TBD'))
+                ws_earnings.cell(row=row_idx, column=5, value=earning.get('Market Cap', 'N/A'))
+                ws_earnings.cell(row=row_idx, column=6, value=earning.get('Sector', 'N/A'))
+                
+                # Color-code importance level
+                importance_cell = ws_earnings.cell(row=row_idx, column=7, value=earning.get('Importance', 'Medium'))
+                importance = earning.get('Importance', 'Medium')
+                if importance == 'High':
+                    importance_cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+                    importance_cell.font = Font(color="CC0000", bold=True)
+                elif importance == 'Medium':
+                    importance_cell.fill = PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid")
+                    importance_cell.font = Font(color="FF8C00", bold=True)
+                else:
+                    importance_cell.fill = PatternFill(start_color="E8F5E8", end_color="E8F5E8", fill_type="solid")
+                    importance_cell.font = Font(color="228B22", bold=True)
+                
+                # Add text cells with wrapping
+                why_cell = ws_earnings.cell(row=row_idx, column=8, value=earning.get('Why Important', 'N/A'))
+                why_cell.alignment = Alignment(wrap_text=True, vertical="top")
+                
+                metrics_cell = ws_earnings.cell(row=row_idx, column=9, value=earning.get('Key Metrics', 'N/A'))
+                metrics_cell.alignment = Alignment(wrap_text=True, vertical="top")
+                
+                impact_cell = ws_earnings.cell(row=row_idx, column=10, value=earning.get('Market Impact', 'N/A'))
+                impact_cell.alignment = Alignment(wrap_text=True, vertical="top")
+                
+                # Set row height for better readability
+                ws_earnings.row_dimensions[row_idx].height = 80
+        
+        # Add metadata to first sheet
+        last_row = len(events_list) + 3 if events_list else 3
+        ws_events.cell(row=last_row, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        ws_events.cell(row=last_row + 1, column=1, value="Source: OpenAI Market Analysis")
         
         # Create BytesIO object and save workbook
         output = io.BytesIO()
@@ -9343,7 +9395,11 @@ def get_weekly_market_events_from_db(monday):
                 print(f"DATABASE ERROR: Unexpected event_data type: {type(event_data)}")
                 return None, False
                 
-            return event_data.get('events', []), True
+            # Return both events and earnings
+            return {
+                'events': event_data.get('events', []),
+                'earnings': event_data.get('earnings', [])
+            }, True
         return None, False
         
     except Exception as e:
@@ -9351,9 +9407,9 @@ def get_weekly_market_events_from_db(monday):
         return None, False
 
 
-def save_weekly_market_events_to_db(monday, sunday, events_list):
+def save_weekly_market_events_to_db(monday, sunday, market_data):
     """
-    Save market events to database
+    Save market events and earnings to database
     """
     import psycopg2
     import json
@@ -9364,7 +9420,8 @@ def save_weekly_market_events_to_db(monday, sunday, events_list):
         cur = conn.cursor()
         
         event_data = {
-            'events': events_list,
+            'events': market_data.get('events', []),
+            'earnings': market_data.get('earnings', []),
             'week_range': f"{monday.strftime('%B %d')} - {sunday.strftime('%B %d, %Y')}",
             'fetched_at': datetime.now().isoformat()
         }
@@ -9434,16 +9491,21 @@ def get_weekly_market_events(force_refresh=False):
         
         # Create prompt for OpenAI
         prompt = f"""
-        You are a financial market analyst. Provide the top 10 most important financial market events and economic releases for the week of {week_range}.
+        You are a financial market analyst. Provide comprehensive market intelligence for the week of {week_range}.
+
+        Part 1: Provide the top 10 most important financial market events and economic releases.
 
         Include events such as:
         - Federal Reserve meetings or announcements
         - Major economic data releases (GDP, CPI, employment data, etc.)
         - Central bank meetings from major economies
-        - Important earnings releases from major companies
         - Key corporate events (IPOs, major announcements)
         - Economic policy announcements
         - Important financial conferences or summits
+
+        Part 2: Provide the top 5 company earnings to watch this week with detailed analysis.
+
+        Focus on major companies with significant market impact potential.
 
         Format your response as JSON with this exact structure:
         {{
@@ -9457,17 +9519,36 @@ def get_weekly_market_events(force_refresh=False):
               "description": "Detailed explanation of why this event matters to markets",
               "market_impact": "Specific explanation of how this could affect stock prices, bond yields, currency values, and investor sentiment. Include potential market reactions and trading implications."
             }}
+          ],
+          "top_earnings": [
+            {{
+              "company": "Company Name",
+              "ticker": "TICKER",
+              "date": "YYYY-MM-DD",
+              "time": "Before Market Open|After Market Close|TBD",
+              "market_cap": "Large Cap|Mid Cap|Small Cap",
+              "sector": "Technology|Healthcare|Finance|etc.",
+              "importance": "High|Medium|Low",
+              "why_important": "Detailed explanation of why this earnings report is crucial for markets, including company's market influence, recent performance, guidance expectations, and potential sector impact",
+              "key_metrics": "Key financial metrics and expectations investors should watch (revenue, EPS, guidance, specific business segments)",
+              "market_impact": "How this earnings could affect the stock, sector, and broader market sentiment"
+            }}
           ]
         }}
 
-        For each event, provide:
+        For market events, provide:
         1. A clear description of what the event is
         2. Detailed market impact analysis explaining why investors should care
         3. Specific mention of which market sectors or asset classes could be most affected
-        4. Expected volatility or directional impact if predictable
+
+        For earnings, provide:
+        1. Companies with significant market influence and investor attention
+        2. Detailed analysis of why each earnings report matters
+        3. Key metrics and expectations to watch
+        4. Potential impact on stock, sector, and broader market
 
         Focus on events that could significantly impact stock markets, bond markets, or currency markets.
-        Only include events from {week_range}.
+        Only include events and earnings from {week_range}.
         """
         
         # Call OpenAI API
@@ -9482,10 +9563,11 @@ def get_weekly_market_events(force_refresh=False):
         
         # Parse response
         import json
-        events_data = json.loads(response.choices[0].message.content)
-        events_list = events_data.get('events', [])
+        market_data = json.loads(response.choices[0].message.content)
+        events_list = market_data.get('events', [])
+        earnings_list = market_data.get('top_earnings', [])
         
-        print(f"MARKET EVENTS: Found {len(events_list)} events from OpenAI")
+        print(f"MARKET EVENTS: Found {len(events_list)} events and {len(earnings_list)} earnings from OpenAI")
         
         # Validate and format events
         formatted_events = []
@@ -9505,13 +9587,40 @@ def get_weekly_market_events(force_refresh=False):
                 print(f"MARKET EVENTS: Error formatting event: {str(e)}")
                 continue
         
-        # Save the results to database
-        if save_weekly_market_events_to_db(monday, sunday, formatted_events):
-            print(f"MARKET EVENTS: Saved {len(formatted_events)} events to database for week {week_range}")
-        else:
-            print(f"MARKET EVENTS: Failed to save to database, events will not be cached")
+        # Validate and format earnings
+        formatted_earnings = []
+        for earning in earnings_list:
+            try:
+                formatted_earning = {
+                    'Company': earning.get('company', 'N/A'),
+                    'Ticker': earning.get('ticker', 'N/A'),
+                    'Date': earning.get('date', 'TBD'),
+                    'Time': earning.get('time', 'TBD'),
+                    'Market Cap': earning.get('market_cap', 'N/A'),
+                    'Sector': earning.get('sector', 'N/A'),
+                    'Importance': earning.get('importance', 'Medium'),
+                    'Why Important': earning.get('why_important', 'N/A'),
+                    'Key Metrics': earning.get('key_metrics', 'N/A'),
+                    'Market Impact': earning.get('market_impact', 'N/A')
+                }
+                formatted_earnings.append(formatted_earning)
+            except Exception as e:
+                print(f"MARKET EVENTS: Error formatting earning: {str(e)}")
+                continue
         
-        return formatted_events, None
+        # Combine events and earnings data for storage
+        combined_data = {
+            'events': formatted_events,
+            'earnings': formatted_earnings
+        }
+        
+        # Save the results to database
+        if save_weekly_market_events_to_db(monday, sunday, combined_data):
+            print(f"MARKET EVENTS: Saved {len(formatted_events)} events and {len(formatted_earnings)} earnings to database for week {week_range}")
+        else:
+            print(f"MARKET EVENTS: Failed to save to database, data will not be cached")
+        
+        return combined_data, None
         
     except Exception as e:
         error_msg = f"Error fetching market events: {str(e)}"
@@ -9597,12 +9706,14 @@ def market_events_tab():
         if not force_refresh:
             # First: Check database
             with st.spinner("Checking database for cached events..."):
-                cached_events, found_in_db = get_weekly_market_events_from_db(monday)
+                cached_data, found_in_db = get_weekly_market_events_from_db(monday)
                 
-            if found_in_db and cached_events:
+            if found_in_db and cached_data:
                 # Display database data
-                events_list = cached_events
-                st.success(f"✅ Found **{len(events_list)}** key market events this week (📊 Retrieved from Database)")
+                market_data = cached_data
+                events_list = market_data.get('events', [])
+                earnings_list = market_data.get('earnings', [])
+                st.success(f"✅ Found **{len(events_list)}** market events and **{len(earnings_list)}** earnings this week (📊 Retrieved from Database)")
                 show_events = True
             else:
                 # No database data found, need to fetch from OpenAI
@@ -9615,7 +9726,7 @@ def market_events_tab():
         if not show_events:
             spinner_text = "Fetching fresh data from OpenAI..." if force_refresh else "No database data found - fetching from OpenAI..."
             with st.spinner(spinner_text):
-                events_list, error_msg = get_weekly_market_events(force_refresh=True)
+                market_data, error_msg = get_weekly_market_events(force_refresh=True)
                 
                 if error_msg:
                     st.error(f"❌ {error_msg}")
@@ -9631,14 +9742,16 @@ def market_events_tab():
                         5. Restart the application
                         """)
                     show_events = False
-                elif events_list:
-                    st.success(f"✅ Found **{len(events_list)}** key market events this week (🔄 Fresh from OpenAI)")
+                elif market_data:
+                    events_list = market_data.get('events', [])
+                    earnings_list = market_data.get('earnings', [])
+                    st.success(f"✅ Found **{len(events_list)}** market events and **{len(earnings_list)}** earnings this week (🔄 Fresh from OpenAI)")
                     show_events = True
                 else:
                     show_events = False
                     
-        # Display events if we have them
-        if show_events and events_list:
+        # Display events and earnings if we have them
+        if show_events and (events_list or earnings_list):
                 
                 # Display market events in card format for better readability
                 st.markdown("### 📋 Weekly Market Events")
@@ -9696,6 +9809,67 @@ def market_events_tab():
                         
                         st.markdown("---")
                 
+                # Display Top 5 Earnings to Watch
+                if earnings_list:
+                    st.markdown("### 📈 Top 5 Earnings to Watch")
+                    
+                    for i, earning in enumerate(earnings_list, 1):
+                        importance = earning.get('Importance', 'Medium')
+                        
+                        # Color coding for importance
+                        if importance == "High":
+                            border_color = "#dc3545"
+                            bg_color = "#fff5f5"
+                            icon = "🔴"
+                        elif importance == "Medium":
+                            border_color = "#fd7e14"
+                            bg_color = "#fff8f0"
+                            icon = "🟡"
+                        else:
+                            border_color = "#198754"
+                            bg_color = "#f0fff4"
+                            icon = "🟢"
+                        
+                        # Create earnings card
+                        with st.container():
+                            st.markdown(f"""
+                            <div style="
+                                border: 2px solid {border_color};
+                                border-radius: 10px;
+                                padding: 20px;
+                                margin: 15px 0;
+                                background-color: {bg_color};
+                            ">
+                                <h4 style="margin-top: 0; color: {border_color};">
+                                    {icon} {earning.get('Company', 'N/A')} ({earning.get('Ticker', 'N/A')})
+                                </h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 15px;">
+                                    <span><strong>📆 Date:</strong> {earning.get('Date', 'TBD')}</span>
+                                    <span><strong>🕒 Time:</strong> {earning.get('Time', 'TBD')}</span>
+                                    <span><strong>🏢 Market Cap:</strong> {earning.get('Market Cap', 'N/A')}</span>
+                                    <span><strong>🏭 Sector:</strong> {earning.get('Sector', 'N/A')}</span>
+                                    <span><strong>⚡ Impact:</strong> {importance}</span>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Use Streamlit columns for better text wrapping
+                            col1, col2, col3 = st.columns([1, 1, 1])
+                            
+                            with col1:
+                                st.markdown("**🎯 Why Important:**")
+                                st.write(earning.get('Why Important', 'N/A'))
+                            
+                            with col2:
+                                st.markdown("**📊 Key Metrics:**")
+                                st.write(earning.get('Key Metrics', 'N/A'))
+                            
+                            with col3:
+                                st.markdown("**💹 Market Impact:**")
+                                st.write(earning.get('Market Impact', 'N/A'))
+                            
+                            st.markdown("---")
+                
                 # Display summary statistics and download option
                 st.markdown("### 📊 Weekly Summary")
                 col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
@@ -9709,16 +9883,15 @@ def market_events_tab():
                     st.metric("Event Categories", len(categories))
                 
                 with col_stats3:
-                    fed_events = len([e for e in events_list if 'Fed' in e.get('Category', '')])
-                    st.metric("Fed-Related Events", fed_events)
+                    high_impact_earnings = len([e for e in earnings_list if e.get('Importance') == 'High'])
+                    st.metric("High Impact Earnings", high_impact_earnings)
                 
                 with col_stats4:
                     # Excel download button
                     import pandas as pd
-                    events_df = pd.DataFrame(events_list)
                     
-                    # Generate Excel file
-                    excel_data = create_market_events_excel(events_df)
+                    # Generate Excel file with both events and earnings
+                    excel_data = create_market_events_excel(events_list, earnings_list)
                     
                     if excel_data:
                         today = datetime.now()
@@ -9726,14 +9899,14 @@ def market_events_tab():
                         monday = today - timedelta(days=days_since_monday)
                         sunday = monday + timedelta(days=6)
                         week_range = f"{monday.strftime('%b_%d')}-{sunday.strftime('%b_%d_%Y')}"
-                        filename = f"Market_Events_{week_range}.xlsx"
+                        filename = f"Market_Analysis_{week_range}.xlsx"
                         
                         st.download_button(
                             label="📥 Download Excel",
                             data=excel_data,
                             file_name=filename,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            help="Download events as Excel file"
+                            help="Download complete market analysis as Excel file"
                         )
         else:
             st.warning("⚠️ No major market events found for this week")
