@@ -8922,11 +8922,11 @@ def get_weekly_earnings_calendar():
                 # Get earnings for this specific date
                 daily_earnings = fc.get_earnings_by_date(current_date)
                 
-                if daily_earnings and len(daily_earnings) > 0:
+                if daily_earnings is not None and not daily_earnings.empty:
                     print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {current_date.strftime('%Y-%m-%d')}")
                     
                     # Process each earning announcement for this date
-                    for earning in daily_earnings:
+                    for _, earning in daily_earnings.iterrows():
                         try:
                             # Extract relevant information
                             symbol = earning.get('symbol', 'N/A')
@@ -8971,9 +8971,9 @@ def get_weekly_earnings_calendar():
             try:
                 print("NASDAQ EARNINGS: Trying today's earnings as fallback...")
                 today_earnings = fc.get_earnings_today()
-                if today_earnings and len(today_earnings) > 0:
+                if today_earnings is not None and not today_earnings.empty:
                     print(f"NASDAQ EARNINGS: Found {len(today_earnings)} earnings for today")
-                    for earning in today_earnings[:5]:  # Limit to 5 for demo
+                    for _, earning in today_earnings.head(5).iterrows():  # Limit to 5 for demo
                         symbol = earning.get('symbol', 'N/A')
                         company_name = earning.get('company', earning.get('name', symbol))
                         earnings_this_week.append({
