@@ -10012,11 +10012,11 @@ def stock_screener_tab():
         elif st.session_state.preset_applied == "Value Stocks":
             preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'roe_max': 100.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Growth Stocks":
-            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_min': 10.0, 'roe_max': 100.0, 'gross_margin_min': 20.0, 'market_cap_min': 1}
+            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_growth_min': 10.0, 'roe_growth_max': 100.0, 'gross_margin_min': 20.0, 'market_cap_min': 1}
         elif st.session_state.preset_applied == "Large Cap Dividend":
             preset_values = {'div_yield_min': 1.0, 'div_yield_max': 10.0, 'payout_ratio_max': 80.0, 'market_cap_min': 4, 'beta_max': 2.0}
         elif st.session_state.preset_applied == "Small Cap Growth":
-            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_min': 15.0, 'roe_max': 100.0, 'gross_margin_min': 25.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
+            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_growth_min': 15.0, 'roe_growth_max': 100.0, 'gross_margin_min': 25.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
 
         with filter_tabs[0]:  # Valuation filters
             col_val1, col_val2, col_val3 = st.columns(3)
@@ -10031,13 +10031,16 @@ def stock_screener_tab():
                 roe_max = st.number_input("Max ROE (%)", min_value=-50.0, value=get_default_value('roe_max', 100.0, preset_values), step=1.0, help="Maximum Return on Equity")
         
         with filter_tabs[1]:  # Growth filters
-            col_growth1, col_growth2 = st.columns(2)
+            col_growth1, col_growth2, col_growth3 = st.columns(3)
             with col_growth1:
                 rev_growth_min = st.number_input("Min Revenue Growth (%)", min_value=-100.0, value=get_default_value('rev_growth_min', 0.0, preset_values), step=1.0, help="Minimum revenue growth rate")
                 earnings_growth_min = st.number_input("Min Earnings Growth (%)", min_value=-100.0, value=get_default_value('earnings_growth_min', 0.0, preset_values), step=1.0, help="Minimum earnings growth rate")
             with col_growth2:
                 profit_margin_min = st.number_input("Min Profit Margin (%)", min_value=-50.0, value=get_default_value('profit_margin_min', 0.0, preset_values), step=1.0, help="Minimum profit margin")
                 gross_margin_min = st.number_input("Min Gross Margin (%)", min_value=-50.0, value=get_default_value('gross_margin_min', 0.0, preset_values), step=1.0, help="Minimum gross profit margin")
+            with col_growth3:
+                roe_growth_min = st.number_input("Min ROE (Growth) (%)", min_value=-50.0, value=get_default_value('roe_growth_min', 0.0, preset_values), step=1.0, help="Minimum Return on Equity for growth screening")
+                roe_growth_max = st.number_input("Max ROE (Growth) (%)", min_value=-50.0, value=get_default_value('roe_growth_max', 100.0, preset_values), step=1.0, help="Maximum Return on Equity for growth screening")
         
         with filter_tabs[2]:  # Dividend filters
             col_div1, col_div2 = st.columns(2)
@@ -10185,6 +10188,7 @@ def stock_screener_tab():
                 'pb_min': pb_min, 'pb_max': pb_max,
                 'rev_growth_min': rev_growth_min, 'earnings_growth_min': earnings_growth_min,
                 'roe_min': roe_min, 'roe_max': roe_max, 'profit_margin_min': profit_margin_min,
+                'roe_growth_min': roe_growth_min, 'roe_growth_max': roe_growth_max,
                 'gross_margin_min': gross_margin_min,
                 'div_yield_min': div_yield_min, 'div_yield_max': div_yield_max,
                 'payout_ratio_max': payout_ratio_max,
@@ -10391,7 +10395,10 @@ def run_stock_screen(filters):
                     continue
                 if earnings_growth is not None and earnings_growth < filters['earnings_growth_min']:
                     continue
+                # Apply both valuation and growth ROE filters (stock must meet both criteria)
                 if roe is not None and (roe < filters['roe_min'] or roe > filters['roe_max']):
+                    continue
+                if roe is not None and (roe < filters['roe_growth_min'] or roe > filters['roe_growth_max']):
                     continue
                 if profit_margin is not None and profit_margin < filters['profit_margin_min']:
                     continue
