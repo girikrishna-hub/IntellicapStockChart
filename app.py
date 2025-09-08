@@ -9466,6 +9466,33 @@ def market_events_tab():
                 # Display the market events table with enhanced formatting
                 st.markdown("### 📋 Weekly Market Events Schedule")
                 
+                # Add CSS for text wrapping in dataframe cells
+                st.markdown("""
+                <style>
+                .stDataFrame [data-testid="stDataFrameResizeHandle"] {
+                    display: none !important;
+                }
+                .stDataFrame td {
+                    white-space: normal !important;
+                    word-wrap: break-word !important;
+                    max-width: 300px !important;
+                    line-height: 1.4 !important;
+                    vertical-align: top !important;
+                    padding: 8px !important;
+                }
+                .stDataFrame th {
+                    white-space: nowrap !important;
+                    font-weight: bold !important;
+                    padding: 8px !important;
+                }
+                /* Specific styling for the Market Impact column */
+                .stDataFrame td:nth-child(7) {
+                    max-width: 400px !important;
+                    min-height: 60px !important;
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
                 # Convert to DataFrame for better display
                 import pandas as pd
                 events_df = pd.DataFrame(events_list)
