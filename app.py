@@ -5077,13 +5077,16 @@ def main():
     st.markdown("---")
     
     # Create data source tabs
-    tab_yahoo, tab_guru = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis"])
+    tab_yahoo, tab_guru, tab_earnings = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis", "📅 Weekly Earnings"])
     
     with tab_yahoo:
         yahoo_finance_tab()
     
     with tab_guru:
         gurufocus_tab()
+    
+    with tab_earnings:
+        weekly_earnings_calendar_tab()
 
 def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
     """Generate a comprehensive PDF report with charts and advanced analysis data in 1-2 pages"""
@@ -8672,110 +8675,6 @@ def display_news_sentiment_analysis(symbol):
             """)
             return
         
-        # Weekly Earnings Calendar Section
-        st.markdown("---")
-        st.markdown("### 📅 Weekly Earnings Calendar")
-        st.markdown("*Companies announcing earnings this week (Monday to Sunday)*")
-        
-        # Add button to load earnings calendar
-        col_earnings1, col_earnings2 = st.columns([2, 1])
-        
-        with col_earnings1:
-            if st.button("📊 Load Weekly Earnings Calendar", type="primary", help="Fetch earnings announcements for the current week"):
-                st.session_state.load_earnings_calendar = True
-        
-        with col_earnings2:
-            # Auto-update info
-            today_name = datetime.now().strftime('%A')
-            st.info(f"Today: {today_name}")
-        
-        # Load and display earnings calendar
-        if st.session_state.get('load_earnings_calendar', False):
-            with st.spinner("Loading weekly earnings calendar..."):
-                earnings_df, error_msg = get_weekly_earnings_calendar()
-                
-                if error_msg:
-                    st.error(f"Error: {error_msg}")
-                    if "FMP API key" in error_msg:
-                        st.info("💡 **How to get FMP API key:**")
-                        st.markdown("""
-                        1. Visit [Financial Modeling Prep](https://financialmodelingprep.com/developer/docs)
-                        2. Sign up for a free account
-                        3. Copy your API key
-                        4. Add it as `FMP_API_KEY` in your environment variables
-                        """)
-                elif earnings_df is not None and not earnings_df.empty:
-                    st.success(f"✅ Found {len(earnings_df)} earnings announcements this week")
-                    
-                    # Display the earnings calendar table
-                    st.dataframe(earnings_df, use_container_width=True, hide_index=True)
-                    
-                    # Export options
-                    st.markdown("#### 📁 Export Options")
-                    col_export1, col_export2 = st.columns(2)
-                    
-                    with col_export1:
-                        # Excel export
-                        excel_data = create_earnings_calendar_excel(earnings_df)
-                        if excel_data:
-                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                            filename = f"weekly_earnings_calendar_{timestamp}.xlsx"
-                            
-                            st.download_button(
-                                label="📊 Download Excel",
-                                data=excel_data,
-                                file_name=filename,
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                help="Download the weekly earnings calendar as an Excel file"
-                            )
-                    
-                    with col_export2:
-                        # CSV export
-                        csv_data = earnings_df.to_csv(index=False)
-                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        csv_filename = f"weekly_earnings_calendar_{timestamp}.csv"
-                        
-                        st.download_button(
-                            label="📋 Download CSV",
-                            data=csv_data,
-                            file_name=csv_filename,
-                            mime="text/csv",
-                            help="Download the weekly earnings calendar as a CSV file"
-                        )
-                    
-                    # Summary statistics
-                    st.markdown("#### 📈 Weekly Summary")
-                    
-                    # Group by day
-                    day_counts = earnings_df['Day'].value_counts()
-                    
-                    col_stats1, col_stats2, col_stats3 = st.columns(3)
-                    
-                    with col_stats1:
-                        st.metric("Total Companies", len(earnings_df))
-                    
-                    with col_stats2:
-                        busiest_day = day_counts.index[0] if not day_counts.empty else "N/A"
-                        busiest_count = day_counts.iloc[0] if not day_counts.empty else 0
-                        st.metric("Busiest Day", f"{busiest_day} ({busiest_count})")
-                    
-                    with col_stats3:
-                        unique_days = len(day_counts)
-                        st.metric("Days with Earnings", unique_days)
-                    
-                    # Display day breakdown
-                    if not day_counts.empty:
-                        st.markdown("**📊 Daily Breakdown:**")
-                        for day, count in day_counts.items():
-                            st.write(f"• **{day}**: {count} companies")
-                            
-                else:
-                    st.info("No earnings announcements found for this week.")
-                    
-                # Update note
-                st.markdown("---")
-                st.info("💡 **Note**: Data updates automatically when you refresh the page on Monday. This calendar shows earnings announcements from Monday to Sunday of the current week.")
-
         # Use the enhanced news sentiment analyzer with multiple sources
         try:
             from news_sentiment_analyzer import run_sentiment_analysis
@@ -8784,6 +8683,200 @@ def display_news_sentiment_analysis(symbol):
         except Exception as e:
             st.error(f"Error loading sentiment analysis: {str(e)}")
             st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
+
+
+def weekly_earnings_calendar_tab():
+    """Weekly Earnings Calendar tab content"""
+    
+    st.markdown("### 📅 Weekly Earnings Calendar")
+    st.markdown("View companies announcing earnings this week with complete export functionality")
+    st.markdown("---")
+    
+    # Information section
+    col_info1, col_info2 = st.columns([3, 1])
+    
+    with col_info1:
+        st.markdown("""
+        📊 **What's Included:**
+        • Company symbols and names
+        • Earnings announcement dates and times
+        • EPS estimates and actual values (when available)
+        • Revenue estimates and actual values (when available)
+        • Export options (Excel & CSV)
+        """)
+    
+    with col_info2:
+        # Current week info
+        today_name = datetime.now().strftime('%A')
+        current_week = datetime.now().strftime('Week of %B %d, %Y')
+        st.info(f"**{current_week}**")
+        st.info(f"Today: {today_name}")
+    
+    st.markdown("---")
+    
+    # Load earnings calendar button
+    col_load1, col_load2 = st.columns([2, 2])
+    
+    with col_load1:
+        if st.button("📊 Load Weekly Earnings Calendar", type="primary", help="Fetch earnings announcements for the current week"):
+            st.session_state.load_earnings_calendar = True
+    
+    with col_load2:
+        # Weekly range info
+        monday = datetime.now() - timedelta(days=datetime.now().weekday())
+        sunday = monday + timedelta(days=6)
+        st.info(f"Range: {monday.strftime('%b %d')} - {sunday.strftime('%b %d, %Y')}")
+    
+    # Load and display earnings calendar
+    if st.session_state.get('load_earnings_calendar', False):
+        with st.spinner("Loading weekly earnings calendar..."):
+            earnings_df, error_msg = get_weekly_earnings_calendar()
+            
+            if error_msg:
+                st.error(f"❌ {error_msg}")
+                if "FMP API key" in error_msg:
+                    st.markdown("### 🔑 How to get FMP API key:")
+                    st.info("""
+                    1. Visit [Financial Modeling Prep](https://financialmodelingprep.com/developer/docs)
+                    2. Sign up for a free account (they offer free tier)
+                    3. Copy your API key from the dashboard
+                    4. Add it as `FMP_API_KEY` in your environment variables
+                    5. Restart the application
+                    """)
+                    
+                    st.markdown("### 🆓 Free Tier Includes:")
+                    st.success("""
+                    • 250 API calls per day
+                    • Earnings calendar data
+                    • Financial statements
+                    • Stock prices and more
+                    """)
+                    
+            elif earnings_df is not None and not earnings_df.empty:
+                st.success(f"✅ Found **{len(earnings_df)}** earnings announcements this week")
+                
+                # Display the earnings calendar table
+                st.markdown("### 📋 Weekly Earnings Schedule")
+                st.dataframe(earnings_df, use_container_width=True, hide_index=True)
+                
+                # Export options
+                st.markdown("### 📁 Export Options")
+                col_export1, col_export2 = st.columns(2)
+                
+                with col_export1:
+                    # Excel export
+                    excel_data = create_earnings_calendar_excel(earnings_df)
+                    if excel_data:
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        filename = f"weekly_earnings_calendar_{timestamp}.xlsx"
+                        
+                        st.download_button(
+                            label="📊 Download Excel File",
+                            data=excel_data,
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            help="Download the weekly earnings calendar as a formatted Excel file"
+                        )
+                
+                with col_export2:
+                    # CSV export
+                    csv_data = earnings_df.to_csv(index=False)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    csv_filename = f"weekly_earnings_calendar_{timestamp}.csv"
+                    
+                    st.download_button(
+                        label="📋 Download CSV File",
+                        data=csv_data,
+                        file_name=csv_filename,
+                        mime="text/csv",
+                        help="Download the weekly earnings calendar as a CSV file"
+                    )
+                
+                # Summary statistics
+                st.markdown("### 📈 Weekly Summary & Statistics")
+                
+                # Group by day
+                day_counts = earnings_df['Day'].value_counts()
+                
+                col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
+                
+                with col_stats1:
+                    st.metric("Total Companies", len(earnings_df))
+                
+                with col_stats2:
+                    busiest_day = day_counts.index[0] if not day_counts.empty else "N/A"
+                    busiest_count = day_counts.iloc[0] if not day_counts.empty else 0
+                    st.metric("Busiest Day", f"{busiest_day}")
+                    st.caption(f"{busiest_count} companies")
+                
+                with col_stats3:
+                    unique_days = len(day_counts)
+                    st.metric("Active Days", unique_days)
+                    st.caption("Days with earnings")
+                
+                with col_stats4:
+                    avg_per_day = len(earnings_df) / max(unique_days, 1)
+                    st.metric("Avg Per Day", f"{avg_per_day:.1f}")
+                    st.caption("Companies per day")
+                
+                # Display detailed day breakdown
+                if not day_counts.empty:
+                    st.markdown("### 📊 Daily Breakdown")
+                    
+                    # Create columns for each day that has earnings
+                    if len(day_counts) <= 3:
+                        day_cols = st.columns(len(day_counts))
+                    else:
+                        # Split into two rows if more than 3 days
+                        day_cols = st.columns(min(3, len(day_counts)))
+                    
+                    for idx, (day, count) in enumerate(day_counts.items()):
+                        col_idx = idx % len(day_cols)
+                        with day_cols[col_idx]:
+                            st.metric(f"**{day}**", f"{count} companies")
+                            
+                            # Show companies for this day
+                            day_companies = earnings_df[earnings_df['Day'] == day]['Symbol'].tolist()
+                            if day_companies:
+                                companies_text = ", ".join(day_companies[:5])  # Show first 5
+                                if len(day_companies) > 5:
+                                    companies_text += f" +{len(day_companies)-5} more"
+                                st.caption(companies_text)
+                        
+                        # Start new row after 3 columns
+                        if (idx + 1) % 3 == 0 and idx < len(day_counts) - 1:
+                            day_cols = st.columns(min(3, len(day_counts) - idx - 1))
+                            
+            else:
+                st.info("📅 No earnings announcements found for this week.")
+                st.markdown("""
+                **Possible reasons:**
+                • This might be a holiday week
+                • Earnings season may not be active
+                • All major companies may have already reported
+                """)
+                
+        # Auto-update information
+        st.markdown("---")
+        st.markdown("### 🔄 Auto-Update Information")
+        
+        col_update1, col_update2 = st.columns(2)
+        
+        with col_update1:
+            st.info("""
+            **📅 Weekly Schedule:**
+            • Data covers Monday through Sunday
+            • Calendar updates when you refresh on Monday
+            • Shows current week's earnings only
+            """)
+        
+        with col_update2:
+            st.info("""
+            **⏰ Timing Notes:**
+            • Times shown are typically Eastern Time
+            • BMO = Before Market Open (usually 7-9 AM ET)
+            • AMC = After Market Close (usually 4-8 PM ET)
+            """)
 
 
 def get_weekly_earnings_calendar():
