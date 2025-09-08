@@ -5077,7 +5077,7 @@ def main():
     st.markdown("---")
     
     # Create data source tabs
-    tab_yahoo, tab_guru, tab_earnings, tab_events = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis", "📅 Weekly Earnings", "🗓️ Market Events"])
+    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis", "📅 Weekly Earnings", "🗓️ Market Events", "🔍 Stock Screener"])
     
     with tab_yahoo:
         yahoo_finance_tab()
@@ -5090,6 +5090,9 @@ def main():
     
     with tab_events:
         market_events_tab()
+    
+    with tab_screener:
+        stock_screener_tab()
 
 def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
     """Generate a comprehensive PDF report with charts and advanced analysis data in 1-2 pages"""
