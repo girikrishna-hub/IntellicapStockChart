@@ -8697,10 +8697,9 @@ def test_fmp_api_access():
     
     try:
         # Test with a simple endpoint first
-        test_url = f"https://financialmodelingprep.com/api/v3/quote/AAPL"
-        params = {'apikey': fmp_api_key}
+        test_url = f"https://financialmodelingprep.com/api/v3/quote/AAPL?apikey={fmp_api_key}"
         
-        response = requests.get(test_url, params=params, timeout=10)
+        response = requests.get(test_url, timeout=10)
         
         if response.status_code == 200:
             # API key works, now test earnings calendar
@@ -8708,14 +8707,9 @@ def test_fmp_api_access():
             monday = today - timedelta(days=today.weekday())
             end_date = monday + timedelta(days=6)
             
-            earnings_url = f"https://financialmodelingprep.com/api/v3/earning_calendar"
-            earnings_params = {
-                'from': monday.strftime('%Y-%m-%d'),
-                'to': end_date.strftime('%Y-%m-%d'),
-                'apikey': fmp_api_key
-            }
+            earnings_url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={monday.strftime('%Y-%m-%d')}&to={end_date.strftime('%Y-%m-%d')}&apikey={fmp_api_key}"
             
-            earnings_response = requests.get(earnings_url, params=earnings_params, timeout=10)
+            earnings_response = requests.get(earnings_url, timeout=10)
             
             if earnings_response.status_code == 200:
                 return True, "API access confirmed"
@@ -9010,14 +9004,9 @@ def get_weekly_earnings_calendar():
         end_date = (monday + timedelta(days=6)).strftime('%Y-%m-%d')
         
         # FMP earnings calendar endpoint
-        url = f"https://financialmodelingprep.com/api/v3/earning_calendar"
-        params = {
-            'from': start_date,
-            'to': end_date,
-            'apikey': fmp_api_key
-        }
+        url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={start_date}&to={end_date}&apikey={fmp_api_key}"
         
-        response = requests.get(url, params=params, timeout=30)
+        response = requests.get(url, timeout=30)
         
         if response.status_code == 200:
             data = response.json()
