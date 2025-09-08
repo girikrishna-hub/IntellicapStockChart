@@ -10173,21 +10173,61 @@ def stock_screener_tab():
     if st.session_state.get('run_screen', False):
         with st.spinner("Screening stocks... This may take a moment"):
             
-            # Create filter criteria dictionary
-            filters = {
-                'pe_min': pe_min, 'pe_max': pe_max,
-                'pb_min': pb_min, 'pb_max': pb_max,
-                'rev_growth_min': rev_growth_min, 'earnings_growth_min': earnings_growth_min,
-                'roe_min': roe_min, 'roe_max': roe_max, 'profit_margin_min': profit_margin_min,
-                'roe_growth_min': roe_growth_min, 'roe_growth_max': roe_growth_max,
-                'gross_margin_min': gross_margin_min,
-                'div_yield_min': div_yield_min, 'div_yield_max': div_yield_max,
-                'payout_ratio_max': payout_ratio_max,
-                'price_change_1m_min': price_change_1m_min, 'price_change_1m_max': price_change_1m_max,
-                'volume_avg_min': volume_avg_min, 'beta_max': beta_max,
-                'market_cap_min': market_cap_min, 'sectors': sectors
-            }
+            # Create filter criteria dictionary - apply preset logic
+            if st.session_state.preset_applied:
+                # PRESET MODE: Only apply preset-specific criteria, use defaults for others
+                filters = {
+                    'pe_min': 0.0, 'pe_max': 50.0,  # Defaults
+                    'pb_min': 0.0, 'pb_max': 10.0,  # Defaults
+                    'rev_growth_min': 0.0, 'earnings_growth_min': 0.0,  # Defaults
+                    'roe_min': 0.0, 'roe_max': 100.0, 'profit_margin_min': 0.0,  # Defaults
+                    'roe_growth_min': 0.0, 'roe_growth_max': 100.0,  # Defaults
+                    'gross_margin_min': 0.0,  # Defaults
+                    'div_yield_min': 0.0, 'div_yield_max': 20.0,  # Defaults
+                    'payout_ratio_max': 100.0,  # Defaults
+                    'price_change_1m_min': -50.0, 'price_change_1m_max': 100.0,  # Defaults
+                    'volume_avg_min': 100000.0, 'beta_max': 3.0,  # Defaults
+                    'market_cap_min': 0, 'sectors': []  # Defaults
+                }
+                # Override with preset-specific values
+                filters.update(preset_values)
+            else:
+                # CUSTOM MODE: Use all user-selected criteria
+                filters = {
+                    'pe_min': pe_min, 'pe_max': pe_max,
+                    'pb_min': pb_min, 'pb_max': pb_max,
+                    'rev_growth_min': rev_growth_min, 'earnings_growth_min': earnings_growth_min,
+                    'roe_min': roe_min, 'roe_max': roe_max, 'profit_margin_min': profit_margin_min,
+                    'roe_growth_min': roe_growth_min, 'roe_growth_max': roe_growth_max,
+                    'gross_margin_min': gross_margin_min,
+                    'div_yield_min': div_yield_min, 'div_yield_max': div_yield_max,
+                    'payout_ratio_max': payout_ratio_max,
+                    'price_change_1m_min': price_change_1m_min, 'price_change_1m_max': price_change_1m_max,
+                    'volume_avg_min': volume_avg_min, 'beta_max': beta_max,
+                    'market_cap_min': market_cap_min, 'sectors': sectors
+                }
             
+            # Debug info: Show active filters
+            if st.session_state.preset_applied:
+                st.info(f"🎯 **{st.session_state.preset_applied} Strategy Active** - Using only preset criteria:")
+                active_criteria = []
+                for key, value in preset_values.items():
+                    if key == 'div_yield_min' and value > 0:
+                        active_criteria.append(f"Dividend yield ≥{value}%")
+                    elif key == 'div_yield_max' and value < 20:
+                        active_criteria.append(f"Dividend yield ≤{value}%")
+                    elif key == 'pe_max' and value < 50:
+                        active_criteria.append(f"P/E ratio ≤{value}")
+                    elif key == 'pb_max' and value < 10:
+                        active_criteria.append(f"P/B ratio ≤{value}")
+                    elif key == 'roe_min' and value > 0:
+                        active_criteria.append(f"ROE ≥{value}%")
+                    elif key == 'market_cap_min' and value > 0:
+                        cap_names = ["Any", "Micro", "Small", "Mid", "Large", "Mega"]
+                        active_criteria.append(f"Market cap: {cap_names[value]}+ cap")
+                if active_criteria:
+                    st.markdown("• " + " • ".join(active_criteria))
+                    
             # Run the screening
             results = run_stock_screen(filters)
             
