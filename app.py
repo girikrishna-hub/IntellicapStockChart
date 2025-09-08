@@ -9225,6 +9225,284 @@ def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx")
         st.error(f"Error creating Excel file: {str(e)}")
         return None
 
+
+def get_weekly_market_events():
+    """
+    Use OpenAI to fetch top 10 key financial market events for the current week
+    
+    Returns:
+        list: List of market events with title, date, time, and description
+    """
+    import os
+    from datetime import datetime, timedelta
+    from openai import OpenAI
+    
+    try:
+        # Check if OpenAI API key is available
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        if not openai_key:
+            return [], "OpenAI API key not found. Please add OPENAI_API_KEY to your environment variables."
+        
+        # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
+        # do not change this unless explicitly requested by the user
+        client = OpenAI(api_key=openai_key)
+        
+        # Get current week dates
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        monday = today - timedelta(days=days_since_monday)
+        sunday = monday + timedelta(days=6)
+        
+        week_range = f"{monday.strftime('%B %d')} - {sunday.strftime('%B %d, %Y')}"
+        
+        print(f"MARKET EVENTS: Fetching events for week {week_range}")
+        
+        # Create prompt for OpenAI
+        prompt = f"""
+        You are a financial market analyst. Provide the top 10 most important financial market events and economic releases for the week of {week_range}.
+
+        Include events such as:
+        - Federal Reserve meetings or announcements
+        - Major economic data releases (GDP, CPI, employment data, etc.)
+        - Central bank meetings from major economies
+        - Important earnings releases from major companies
+        - Key corporate events (IPOs, major announcements)
+        - Economic policy announcements
+        - Important financial conferences or summits
+
+        Format your response as JSON with this exact structure:
+        {{
+          "events": [
+            {{
+              "title": "Brief event title",
+              "date": "YYYY-MM-DD",
+              "time": "Time or 'TBD'",
+              "category": "Fed Meeting|Economic Data|Earnings|Corporate|Policy|Conference",
+              "importance": "High|Medium|Low", 
+              "description": "Brief description of why this event matters to markets"
+            }}
+          ]
+        }}
+
+        Focus on events that could significantly impact stock markets, bond markets, or currency markets.
+        Only include events from {week_range}.
+        """
+        
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=[
+                {"role": "system", "content": "You are a financial market expert providing accurate, current market event information."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        # Parse response
+        import json
+        events_data = json.loads(response.choices[0].message.content)
+        events_list = events_data.get('events', [])
+        
+        print(f"MARKET EVENTS: Found {len(events_list)} events from OpenAI")
+        
+        # Validate and format events
+        formatted_events = []
+        for event in events_list:
+            try:
+                formatted_event = {
+                    'Title': event.get('title', 'N/A'),
+                    'Date': event.get('date', 'TBD'),
+                    'Time': event.get('time', 'TBD'),
+                    'Category': event.get('category', 'N/A'),
+                    'Importance': event.get('importance', 'Medium'),
+                    'Description': event.get('description', 'N/A')
+                }
+                formatted_events.append(formatted_event)
+            except Exception as e:
+                print(f"MARKET EVENTS: Error formatting event: {str(e)}")
+                continue
+        
+        return formatted_events, None
+        
+    except Exception as e:
+        error_msg = f"Error fetching market events: {str(e)}"
+        print(f"MARKET EVENTS ERROR: {error_msg}")
+        return [], error_msg
+
+
+def market_events_tab():
+    """Market Events tab content"""
+    
+    st.markdown("### 🗓️ Weekly Market Events")
+    st.markdown("Top 10 key financial market events for the current week using **OpenAI Analysis**")
+    st.markdown("---")
+    
+    # Information section
+    st.info("""
+    **🤖 About This Data:**
+    - Powered by OpenAI's latest financial market analysis
+    - Covers Federal Reserve meetings, economic data releases, and major corporate events
+    - Updates weekly with focus on market-moving events
+    - Includes event importance ratings and detailed descriptions
+    - Covers global markets and central bank activities
+    
+    **📊 Event Types:** Fed Meetings, Economic Data, Earnings, Corporate Events, Policy Announcements, Conferences
+    """)
+    
+    st.markdown("---")
+    
+    # Load market events section
+    col_info1, col_info2 = st.columns([3, 1])
+    
+    with col_info1:
+        st.markdown("""
+        🗓️ **What's Included:**
+        • Federal Reserve meetings and announcements
+        • Key economic data releases (GDP, CPI, employment)
+        • Central bank meetings from major economies
+        • Important corporate earnings and events
+        • Market-moving policy announcements
+        """)
+    
+    with col_info2:
+        st.markdown("""
+        **📈 Impact Levels:**
+        • **High**: Major market movers
+        • **Medium**: Notable events
+        • **Low**: Minor impact expected
+        """)
+    
+    # Load button
+    col_load1, col_load2 = st.columns([2, 2])
+    
+    with col_load1:
+        if st.button("🤖 Load This Week's Market Events", type="primary", help="Fetch key financial events using OpenAI"):
+            st.session_state.load_market_events = True
+    
+    with col_load2:
+        # Weekly range info
+        monday = datetime.now() - timedelta(days=datetime.now().weekday())
+        sunday = monday + timedelta(days=6)
+        st.info(f"Range: {monday.strftime('%b %d')} - {sunday.strftime('%b %d, %Y')}")
+    
+    # Load and display market events
+    if st.session_state.get('load_market_events', False):
+        with st.spinner("Loading weekly market events using OpenAI..."):
+            events_list, error_msg = get_weekly_market_events()
+            
+            if error_msg:
+                st.error(f"❌ {error_msg}")
+                if "OpenAI API key" in error_msg:
+                    st.markdown("### 🔑 OpenAI API Key Required:")
+                    st.info("""
+                    To use AI-powered market events analysis, you need an OpenAI API key:
+                    
+                    1. Visit [OpenAI API](https://platform.openai.com/api-keys)
+                    2. Sign up or log in to your account
+                    3. Create a new API key
+                    4. Add it as `OPENAI_API_KEY` in your environment variables
+                    5. Restart the application
+                    """)
+                    
+            elif events_list:
+                st.success(f"✅ Found **{len(events_list)}** key market events this week")
+                
+                # Display the market events table with enhanced formatting
+                st.markdown("### 📋 Weekly Market Events Schedule")
+                
+                # Convert to DataFrame for better display
+                import pandas as pd
+                events_df = pd.DataFrame(events_list)
+                
+                # Display with column configuration for better visibility
+                column_config = {
+                    "Title": st.column_config.TextColumn(
+                        "📅 Event",
+                        width="large",
+                        help="Market event title"
+                    ),
+                    "Date": st.column_config.DateColumn(
+                        "📆 Date", 
+                        width="small",
+                        help="Event date"
+                    ),
+                    "Time": st.column_config.TextColumn(
+                        "🕒 Time",
+                        width="small", 
+                        help="Event timing"
+                    ),
+                    "Category": st.column_config.TextColumn(
+                        "🏷️ Category",
+                        width="medium",
+                        help="Event category"
+                    ),
+                    "Importance": st.column_config.TextColumn(
+                        "⚡ Impact",
+                        width="small",
+                        help="Expected market impact"
+                    ),
+                    "Description": st.column_config.TextColumn(
+                        "📝 Description",
+                        width="large",
+                        help="Why this event matters"
+                    )
+                }
+                
+                st.dataframe(
+                    events_df, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config=column_config
+                )
+                
+                # Display summary statistics
+                st.markdown("### 📊 Weekly Summary")
+                col_stats1, col_stats2, col_stats3 = st.columns(3)
+                
+                with col_stats1:
+                    high_impact = len([e for e in events_list if e.get('Importance') == 'High'])
+                    st.metric("High Impact Events", high_impact)
+                
+                with col_stats2:
+                    categories = list(set([e.get('Category', 'N/A') for e in events_list]))
+                    st.metric("Event Categories", len(categories))
+                
+                with col_stats3:
+                    fed_events = len([e for e in events_list if 'Fed' in e.get('Category', '')])
+                    st.metric("Fed-Related Events", fed_events)
+                
+            else:
+                st.warning("⚠️ No major market events found for this week")
+                st.markdown("""
+                This might mean:
+                • Light economic calendar week
+                • Major events scheduled outside current timeframe
+                • OpenAI response formatting issue
+                """)
+        
+        # Auto-update information
+        st.markdown("---")
+        st.markdown("### 🔄 Auto-Update Information")
+        
+        col_update1, col_update2 = st.columns(2)
+        
+        with col_update1:
+            st.info("""
+            **📅 Weekly Schedule:**
+            • Events cover Monday through Sunday
+            • Data refreshes when you reload on Monday
+            • Focuses on market-moving events only
+            """)
+        
+        with col_update2:
+            st.info("""
+            **🤖 AI-Powered:**
+            • Uses OpenAI's latest financial knowledge
+            • Provides importance ratings and descriptions
+            • Covers global markets and central banks
+            """)
+
+
 def calculate_investment_ratings(ticker_info, ticker_obj):
     """
     Calculate 1-5 scale investment ratings for Quantitative, Author, and Sellside analysis
