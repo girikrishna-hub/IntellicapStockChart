@@ -8768,9 +8768,57 @@ def weekly_earnings_calendar_tab():
             elif earnings_df is not None and not earnings_df.empty:
                 st.success(f"✅ Found **{len(earnings_df)}** earnings announcements this week")
                 
-                # Display the earnings calendar table
+                # Display the earnings calendar table with better formatting
                 st.markdown("### 📋 Weekly Earnings Schedule")
-                st.dataframe(earnings_df, use_container_width=True, hide_index=True)
+                
+                # Format the display for better readability
+                display_df = earnings_df.copy()
+                
+                # Ensure Symbol column is first and clearly visible
+                columns_order = ['Symbol', 'Company', 'Date', 'Day', 'Time', 'EPS Estimate']
+                available_columns = [col for col in columns_order if col in display_df.columns]
+                display_df = display_df[available_columns]
+                
+                # Display with column configuration for better visibility
+                column_config = {
+                    "Symbol": st.column_config.TextColumn(
+                        "📈 Symbol",
+                        width="small",
+                        help="Stock ticker symbol"
+                    ),
+                    "Company": st.column_config.TextColumn(
+                        "🏢 Company",
+                        width="large",
+                        help="Company name"
+                    ),
+                    "Date": st.column_config.DateColumn(
+                        "📅 Date",
+                        width="small",
+                        help="Earnings announcement date"
+                    ),
+                    "Day": st.column_config.TextColumn(
+                        "📆 Day",
+                        width="small",
+                        help="Day of the week"
+                    ),
+                    "Time": st.column_config.TextColumn(
+                        "🕒 Time",
+                        width="small",
+                        help="Announcement timing (BMO/AMC/TBD)"
+                    ),
+                    "EPS Estimate": st.column_config.TextColumn(
+                        "💹 EPS Est",
+                        width="small",
+                        help="Estimated earnings per share"
+                    )
+                }
+                
+                st.dataframe(
+                    display_df, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config=column_config
+                )
                 
                 # Export options
                 st.markdown("### 📁 Export Options")
@@ -9017,8 +9065,14 @@ def get_weekly_earnings_calendar():
         # Convert to DataFrame
         df = pd.DataFrame(earnings_this_week)
         
-        # Remove duplicates
-        df = df.drop_duplicates(subset=['Symbol', 'Date']).reset_index(drop=True)
+        # Remove duplicates - only remove if same company on same day (not across different days)
+        # This allows companies to appear on multiple days but prevents true duplicates
+        df = df.drop_duplicates(subset=['Symbol', 'Date', 'Time']).reset_index(drop=True)
+        
+        # If still too many results, prioritize by keeping the most recent 50 companies
+        if len(df) > 50:
+            # Sort by date (most recent first) and take top 50
+            df = df.sort_values(['Date', 'Symbol']).tail(50).reset_index(drop=True)
         
         # Sort by date and symbol
         df = df.sort_values(['Date', 'Symbol']).reset_index(drop=True)
