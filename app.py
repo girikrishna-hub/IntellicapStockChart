@@ -9229,6 +9229,7 @@ def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx")
 def get_weekly_market_events():
     """
     Use OpenAI to fetch top 10 key financial market events for the current week
+    Cache results to avoid repeated API calls for the same week
     
     Returns:
         list: List of market events with title, date, time, and description
@@ -9238,15 +9239,6 @@ def get_weekly_market_events():
     from openai import OpenAI
     
     try:
-        # Check if OpenAI API key is available
-        openai_key = os.environ.get("OPENAI_API_KEY")
-        if not openai_key:
-            return [], "OpenAI API key not found. Please add OPENAI_API_KEY to your environment variables."
-        
-        # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-        # do not change this unless explicitly requested by the user
-        client = OpenAI(api_key=openai_key)
-        
         # Get current week dates
         today = datetime.now()
         days_since_monday = today.weekday()
@@ -9254,8 +9246,25 @@ def get_weekly_market_events():
         sunday = monday + timedelta(days=6)
         
         week_range = f"{monday.strftime('%B %d')} - {sunday.strftime('%B %d, %Y')}"
+        week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
         
-        print(f"MARKET EVENTS: Fetching events for week {week_range}")
+        # Check if we already have cached data for this week
+        cache_key = f"market_events_{week_key}"
+        if cache_key in st.session_state:
+            cached_data = st.session_state[cache_key]
+            print(f"MARKET EVENTS: Using cached data for week {week_range}")
+            return cached_data['events'], None
+        
+        # Check if OpenAI API key is available
+        openai_key = os.environ.get("OPENAI_API_KEY")
+        if not openai_key:
+            return [], "OpenAI API key not found. Please add OPENAI_API_KEY to your environment variables."
+        
+        print(f"MARKET EVENTS: Fetching NEW events for week {week_range} (not in cache)")
+        
+        # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
+        # do not change this unless explicitly requested by the user
+        client = OpenAI(api_key=openai_key)
         
         # Create prompt for OpenAI
         prompt = f"""
@@ -9322,6 +9331,15 @@ def get_weekly_market_events():
                 print(f"MARKET EVENTS: Error formatting event: {str(e)}")
                 continue
         
+        # Cache the results for this week
+        cache_data = {
+            'events': formatted_events,
+            'week_range': week_range,
+            'fetched_at': datetime.now().isoformat()
+        }
+        st.session_state[cache_key] = cache_data
+        print(f"MARKET EVENTS: Cached {len(formatted_events)} events for week {week_range}")
+        
         return formatted_events, None
         
     except Exception as e:
@@ -9346,6 +9364,7 @@ def market_events_tab():
     - Includes event importance ratings and detailed descriptions
     - Covers global markets and central bank activities
     
+    **⚡ Performance:** Data is cached weekly - first load may take 10-20 seconds, subsequent loads are instant
     **📊 Event Types:** Fed Meetings, Economic Data, Earnings, Corporate Events, Policy Announcements, Conferences
     """)
     
@@ -9373,13 +9392,30 @@ def market_events_tab():
         """)
     
     # Load button
-    col_load1, col_load2 = st.columns([2, 2])
+    col_load1, col_load2, col_load3 = st.columns([2, 1.5, 1])
     
     with col_load1:
         if st.button("🤖 Load This Week's Market Events", type="primary", help="Fetch key financial events using OpenAI"):
             st.session_state.load_market_events = True
     
     with col_load2:
+        # Clear cache button
+        if st.button("🔄 Refresh Data", help="Clear cache and fetch fresh data from OpenAI"):
+            # Clear the cache for current week
+            today = datetime.now()
+            days_since_monday = today.weekday()
+            monday = today - timedelta(days=days_since_monday)
+            sunday = monday + timedelta(days=6)
+            week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
+            cache_key = f"market_events_{week_key}"
+            
+            if cache_key in st.session_state:
+                del st.session_state[cache_key]
+                st.success("Cache cleared! Next load will fetch fresh data.")
+            else:
+                st.info("No cached data found for this week.")
+    
+    with col_load3:
         # Weekly range info
         monday = datetime.now() - timedelta(days=datetime.now().weekday())
         sunday = monday + timedelta(days=6)
@@ -9405,7 +9441,18 @@ def market_events_tab():
                     """)
                     
             elif events_list:
-                st.success(f"✅ Found **{len(events_list)}** key market events this week")
+                # Check if data is from cache
+                today = datetime.now()
+                days_since_monday = today.weekday()
+                monday = today - timedelta(days=days_since_monday)
+                sunday = monday + timedelta(days=6)
+                week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
+                cache_key = f"market_events_{week_key}"
+                
+                is_cached = cache_key in st.session_state
+                cache_status = "📋 Cached Data" if is_cached else "🔄 Fresh Data"
+                
+                st.success(f"✅ Found **{len(events_list)}** key market events this week ({cache_status})")
                 
                 # Display the market events table with enhanced formatting
                 st.markdown("### 📋 Weekly Market Events Schedule")
