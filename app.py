@@ -9247,7 +9247,18 @@ def get_weekly_market_events_from_db(monday):
         conn.close()
         
         if result:
-            return json.loads(result[0])['events'], True
+            # Handle both dict and string formats for robustness
+            event_data = result[0]
+            if isinstance(event_data, str):
+                event_data = json.loads(event_data)
+            elif isinstance(event_data, dict):
+                # Data is already parsed
+                pass
+            else:
+                print(f"DATABASE ERROR: Unexpected event_data type: {type(event_data)}")
+                return None, False
+                
+            return event_data.get('events', []), True
         return None, False
         
     except Exception as e:
@@ -9493,39 +9504,56 @@ def market_events_tab():
         if force_refresh:
             st.session_state.force_refresh_market_events = False  # Reset flag
             
-        spinner_text = "Fetching fresh data from OpenAI..." if force_refresh else "Loading weekly market events..."
-        with st.spinner(spinner_text):
-            events_list, error_msg = get_weekly_market_events(force_refresh=force_refresh)
-            
-            if error_msg:
-                st.error(f"❌ {error_msg}")
-                if "OpenAI API key" in error_msg:
-                    st.markdown("### 🔑 OpenAI API Key Required:")
-                    st.info("""
-                    To use AI-powered market events analysis, you need an OpenAI API key:
-                    
-                    1. Visit [OpenAI API](https://platform.openai.com/api-keys)
-                    2. Sign up or log in to your account
-                    3. Create a new API key
-                    4. Add it as `OPENAI_API_KEY` in your environment variables
-                    5. Restart the application
-                    """)
-                    
-            elif events_list:
-                # Check if data is from database or fresh
-                today = datetime.now()
-                days_since_monday = today.weekday()
-                monday = today - timedelta(days=days_since_monday)
+        # Clear and simple logic: Check database first, then OpenAI if needed
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        monday = today - timedelta(days=days_since_monday)
+        
+        if not force_refresh:
+            # First: Check database
+            with st.spinner("Checking database for cached events..."):
                 cached_events, found_in_db = get_weekly_market_events_from_db(monday)
                 
-                if force_refresh:
-                    cache_status = "🔄 Fresh from OpenAI"
-                elif found_in_db:
-                    cache_status = "📊 Retrieved from Database"
+            if found_in_db and cached_events:
+                # Display database data
+                events_list = cached_events
+                st.success(f"✅ Found **{len(events_list)}** key market events this week (📊 Retrieved from Database)")
+                show_events = True
+            else:
+                # No database data found, need to fetch from OpenAI
+                show_events = False
+        else:
+            # Force refresh requested
+            show_events = False
+            
+        # If no database data or force refresh, fetch from OpenAI
+        if not show_events:
+            spinner_text = "Fetching fresh data from OpenAI..." if force_refresh else "No database data found - fetching from OpenAI..."
+            with st.spinner(spinner_text):
+                events_list, error_msg = get_weekly_market_events(force_refresh=True)
+                
+                if error_msg:
+                    st.error(f"❌ {error_msg}")
+                    if "OpenAI API key" in error_msg:
+                        st.markdown("### 🔑 OpenAI API Key Required:")
+                        st.info("""
+                        To use AI-powered market events analysis, you need an OpenAI API key:
+                        
+                        1. Visit [OpenAI API](https://platform.openai.com/api-keys)
+                        2. Sign up or log in to your account
+                        3. Create a new API key
+                        4. Add it as `OPENAI_API_KEY` in your environment variables
+                        5. Restart the application
+                        """)
+                    show_events = False
+                elif events_list:
+                    st.success(f"✅ Found **{len(events_list)}** key market events this week (🔄 Fresh from OpenAI)")
+                    show_events = True
                 else:
-                    cache_status = "⚠️ No Database Cache"
+                    show_events = False
                     
-                st.success(f"✅ Found **{len(events_list)}** key market events this week ({cache_status})")
+        # Display events if we have them
+        if show_events and events_list:
                 
                 # Display market events in card format for better readability
                 st.markdown("### 📋 Weekly Market Events")
@@ -9598,15 +9626,14 @@ def market_events_tab():
                 with col_stats3:
                     fed_events = len([e for e in events_list if 'Fed' in e.get('Category', '')])
                     st.metric("Fed-Related Events", fed_events)
-                
-            else:
-                st.warning("⚠️ No major market events found for this week")
-                st.markdown("""
-                This might mean:
-                • Light economic calendar week
-                • Major events scheduled outside current timeframe
-                • OpenAI response formatting issue
-                """)
+        else:
+            st.warning("⚠️ No major market events found for this week")
+            st.markdown("""
+            This might mean:
+            • Light economic calendar week
+            • Major events scheduled outside current timeframe
+            • OpenAI response formatting issue
+            """)
         
         # Auto-update information
         st.markdown("---")
