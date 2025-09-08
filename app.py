@@ -8913,56 +8913,77 @@ def get_weekly_earnings_calendar():
         
         earnings_this_week = []
         
-        # Get earnings for each day of the week
+        # Get earnings for each day of the week with retry logic
         current_date = monday
+        failed_dates = []
+        
         while current_date <= sunday:
-            try:
-                print(f"NASDAQ EARNINGS: Checking date {current_date.strftime('%Y-%m-%d')}")
-                
-                # Get earnings for this specific date
-                daily_earnings = fc.get_earnings_by_date(current_date)
-                
-                if daily_earnings is not None and not daily_earnings.empty:
-                    print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {current_date.strftime('%Y-%m-%d')}")
+            date_str = current_date.strftime('%Y-%m-%d')
+            print(f"NASDAQ EARNINGS: Checking date {date_str}")
+            
+            # Try up to 3 times for each date
+            success = False
+            for attempt in range(3):
+                try:
+                    # Get earnings for this specific date
+                    daily_earnings = fc.get_earnings_by_date(current_date)
                     
-                    # Process each earning announcement for this date
-                    for _, earning in daily_earnings.iterrows():
-                        try:
-                            # Extract relevant information
-                            symbol = earning.get('symbol', 'N/A')
-                            company_name = earning.get('company', earning.get('name', symbol))
-                            
-                            # Get EPS estimate if available
-                            eps_estimate = earning.get('epsEstimate', earning.get('eps_estimate', 'N/A'))
-                            if eps_estimate == '' or eps_estimate is None:
-                                eps_estimate = 'N/A'
-                            
-                            # Determine timing if available
-                            timing = earning.get('time', earning.get('timing', 'TBD'))
-                            if timing == '' or timing is None:
-                                timing = 'TBD'
-                            
-                            earnings_this_week.append({
-                                'Symbol': symbol,
-                                'Company': company_name,
-                                'Date': current_date.strftime('%Y-%m-%d'),
-                                'Day': current_date.strftime('%A'),
-                                'Time': timing,
-                                'EPS Estimate': eps_estimate
-                            })
-                            
-                        except Exception as e:
-                            print(f"NASDAQ EARNINGS: Error processing earning entry: {str(e)}")
-                            continue
-                
-                else:
-                    print(f"NASDAQ EARNINGS: No earnings found for {current_date.strftime('%Y-%m-%d')}")
+                    if daily_earnings is not None and not daily_earnings.empty:
+                        print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {date_str}")
+                        
+                        # Process each earning announcement for this date
+                        for _, earning in daily_earnings.iterrows():
+                            try:
+                                # Extract relevant information
+                                symbol = earning.get('symbol', 'N/A')
+                                company_name = earning.get('company', earning.get('name', symbol))
+                                
+                                # Get EPS estimate if available
+                                eps_estimate = earning.get('epsEstimate', earning.get('eps_estimate', 'N/A'))
+                                if eps_estimate == '' or eps_estimate is None:
+                                    eps_estimate = 'N/A'
+                                
+                                # Determine timing if available
+                                timing = earning.get('time', earning.get('timing', 'TBD'))
+                                if timing == '' or timing is None:
+                                    timing = 'TBD'
+                                
+                                earnings_this_week.append({
+                                    'Symbol': symbol,
+                                    'Company': company_name,
+                                    'Date': current_date.strftime('%Y-%m-%d'),
+                                    'Day': current_date.strftime('%A'),
+                                    'Time': timing,
+                                    'EPS Estimate': eps_estimate
+                                })
+                                
+                            except Exception as e:
+                                print(f"NASDAQ EARNINGS: Error processing earning entry: {str(e)}")
+                                continue
+                        
+                        success = True
+                        break  # Success, exit retry loop
                     
-            except Exception as e:
-                print(f"NASDAQ EARNINGS: Error fetching earnings for {current_date.strftime('%Y-%m-%d')}: {str(e)}")
+                    else:
+                        print(f"NASDAQ EARNINGS: No earnings found for {date_str}")
+                        success = True
+                        break  # No data is also a successful response
+                        
+                except Exception as e:
+                    if attempt < 2:  # Not the last attempt
+                        print(f"NASDAQ EARNINGS: Attempt {attempt + 1} failed for {date_str}: {str(e)} - Retrying...")
+                        import time
+                        time.sleep(1)  # Brief pause before retry
+                    else:
+                        print(f"NASDAQ EARNINGS: All attempts failed for {date_str}: {str(e)}")
+                        failed_dates.append(date_str)
             
             # Move to next day
             current_date += timedelta(days=1)
+        
+        # Report any failed dates
+        if failed_dates:
+            print(f"NASDAQ EARNINGS: WARNING - Failed to fetch data for: {', '.join(failed_dates)}")
         
         print(f"NASDAQ EARNINGS: Total earnings found for the week: {len(earnings_this_week)}")
         
@@ -8989,6 +9010,8 @@ def get_weekly_earnings_calendar():
         
         if not earnings_this_week:
             error_msg = f"No earnings announcements found for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')} from NASDAQ data. This might mean: (1) Light earnings week, or (2) Earnings scheduled outside current timeframe."
+            if failed_dates:
+                error_msg += f" Note: Failed to fetch data for {len(failed_dates)} days due to connection issues."
             return pd.DataFrame(), error_msg
         
         # Convert to DataFrame
