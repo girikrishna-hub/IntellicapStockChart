@@ -9226,10 +9226,79 @@ def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx")
         return None
 
 
-def get_weekly_market_events():
+def get_weekly_market_events_from_db(monday):
+    """
+    Get market events from database for a specific week
+    """
+    import psycopg2
+    import json
+    import os
+    
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        cur.execute(
+            "SELECT event_data FROM market_events WHERE week_start = %s",
+            (monday.date(),)
+        )
+        
+        result = cur.fetchone()
+        conn.close()
+        
+        if result:
+            return json.loads(result[0])['events'], True
+        return None, False
+        
+    except Exception as e:
+        print(f"DATABASE ERROR: {str(e)}")
+        return None, False
+
+
+def save_weekly_market_events_to_db(monday, sunday, events_list):
+    """
+    Save market events to database
+    """
+    import psycopg2
+    import json
+    import os
+    
+    try:
+        conn = psycopg2.connect(os.environ['DATABASE_URL'])
+        cur = conn.cursor()
+        
+        event_data = {
+            'events': events_list,
+            'week_range': f"{monday.strftime('%B %d')} - {sunday.strftime('%B %d, %Y')}",
+            'fetched_at': datetime.now().isoformat()
+        }
+        
+        cur.execute(
+            """
+            INSERT INTO market_events (week_start, week_end, event_data) 
+            VALUES (%s, %s, %s)
+            ON CONFLICT (week_start) 
+            DO UPDATE SET event_data = EXCLUDED.event_data, created_at = CURRENT_TIMESTAMP
+            """,
+            (monday.date(), sunday.date(), json.dumps(event_data))
+        )
+        
+        conn.commit()
+        conn.close()
+        return True
+        
+    except Exception as e:
+        print(f"DATABASE SAVE ERROR: {str(e)}")
+        return False
+
+
+def get_weekly_market_events(force_refresh=False):
     """
     Use OpenAI to fetch top 10 key financial market events for the current week
-    Cache results to avoid repeated API calls for the same week
+    Store results in database to avoid repeated API calls for the same week
+    
+    Args:
+        force_refresh: If True, bypass database cache and fetch fresh data
     
     Returns:
         list: List of market events with title, date, time, and description
@@ -9246,14 +9315,13 @@ def get_weekly_market_events():
         sunday = monday + timedelta(days=6)
         
         week_range = f"{monday.strftime('%B %d')} - {sunday.strftime('%B %d, %Y')}"
-        week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
         
-        # Check if we already have cached data for this week
-        cache_key = f"market_events_{week_key}"
-        if cache_key in st.session_state:
-            cached_data = st.session_state[cache_key]
-            print(f"MARKET EVENTS: Using cached data for week {week_range}")
-            return cached_data['events'], None
+        # Check database for existing data (unless force refresh)
+        if not force_refresh:
+            cached_events, found_in_db = get_weekly_market_events_from_db(monday)
+            if found_in_db and cached_events:
+                print(f"MARKET EVENTS: Using database data for week {week_range}")
+                return cached_events, None
         
         # Check if OpenAI API key is available
         openai_key = os.environ.get("OPENAI_API_KEY")
@@ -9339,14 +9407,11 @@ def get_weekly_market_events():
                 print(f"MARKET EVENTS: Error formatting event: {str(e)}")
                 continue
         
-        # Cache the results for this week
-        cache_data = {
-            'events': formatted_events,
-            'week_range': week_range,
-            'fetched_at': datetime.now().isoformat()
-        }
-        st.session_state[cache_key] = cache_data
-        print(f"MARKET EVENTS: Cached {len(formatted_events)} events for week {week_range}")
+        # Save the results to database
+        if save_weekly_market_events_to_db(monday, sunday, formatted_events):
+            print(f"MARKET EVENTS: Saved {len(formatted_events)} events to database for week {week_range}")
+        else:
+            print(f"MARKET EVENTS: Failed to save to database, events will not be cached")
         
         return formatted_events, None
         
@@ -9372,7 +9437,7 @@ def market_events_tab():
     - Includes event importance ratings and detailed descriptions
     - Covers global markets and central bank activities
     
-    **⚡ Performance:** Data is cached weekly - first load may take 10-20 seconds, subsequent loads are instant
+    **⚡ Performance:** Data is stored in database - first load may take 10-20 seconds, subsequent loads are instant
     **💹 Enhanced Analysis:** Each event includes detailed market impact explanations and trading implications
     **📊 Event Types:** Fed Meetings, Economic Data, Earnings, Corporate Events, Policy Announcements, Conferences
     """)
@@ -9408,21 +9473,11 @@ def market_events_tab():
             st.session_state.load_market_events = True
     
     with col_load2:
-        # Clear cache button
-        if st.button("🔄 Refresh Data", help="Clear cache and fetch fresh data from OpenAI"):
-            # Clear the cache for current week
-            today = datetime.now()
-            days_since_monday = today.weekday()
-            monday = today - timedelta(days=days_since_monday)
-            sunday = monday + timedelta(days=6)
-            week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
-            cache_key = f"market_events_{week_key}"
-            
-            if cache_key in st.session_state:
-                del st.session_state[cache_key]
-                st.success("Cache cleared! Next load will fetch fresh data.")
-            else:
-                st.info("No cached data found for this week.")
+        # Refresh database button
+        if st.button("🔄 Refresh Data", help="Fetch fresh data from OpenAI and update database"):
+            st.session_state.force_refresh_market_events = True
+            st.session_state.load_market_events = True
+            st.success("Fetching fresh data from OpenAI...")
     
     with col_load3:
         # Weekly range info
@@ -9432,8 +9487,13 @@ def market_events_tab():
     
     # Load and display market events
     if st.session_state.get('load_market_events', False):
-        with st.spinner("Loading weekly market events using OpenAI..."):
-            events_list, error_msg = get_weekly_market_events()
+        force_refresh = st.session_state.get('force_refresh_market_events', False)
+        if force_refresh:
+            st.session_state.force_refresh_market_events = False  # Reset flag
+            
+        spinner_text = "Fetching fresh data from OpenAI..." if force_refresh else "Loading weekly market events..."
+        with st.spinner(spinner_text):
+            events_list, error_msg = get_weekly_market_events(force_refresh=force_refresh)
             
             if error_msg:
                 st.error(f"❌ {error_msg}")
@@ -9450,124 +9510,93 @@ def market_events_tab():
                     """)
                     
             elif events_list:
-                # Check if data is from cache
-                today = datetime.now()
-                days_since_monday = today.weekday()
-                monday = today - timedelta(days=days_since_monday)
-                sunday = monday + timedelta(days=6)
-                week_key = f"{monday.strftime('%Y-%m-%d')}_to_{sunday.strftime('%Y-%m-%d')}"
-                cache_key = f"market_events_{week_key}"
-                
-                is_cached = cache_key in st.session_state
-                cache_status = "📋 Cached Data" if is_cached else "🔄 Fresh Data"
-                
+                # Check if data is from database or fresh
+                cache_status = "🔄 Fresh Data" if force_refresh else "📊 Database Cache"
                 st.success(f"✅ Found **{len(events_list)}** key market events this week ({cache_status})")
                 
-                # Display the market events table with enhanced formatting
+                # Display the market events table with HTML for better text wrapping
                 st.markdown("### 📋 Weekly Market Events Schedule")
                 
-                # Add CSS for text wrapping in dataframe cells
-                st.markdown("""
+                # Convert to HTML table for better text control
+                html_table = """
                 <style>
-                /* Force text wrapping in all dataframe cells */
-                .stDataFrame table, 
-                .stDataFrame tbody, 
-                .stDataFrame tr, 
-                .stDataFrame td,
-                .stDataFrame [data-testid="stTable"] table,
-                .stDataFrame [data-testid="stTable"] tbody,
-                .stDataFrame [data-testid="stTable"] tr,
-                .stDataFrame [data-testid="stTable"] td {
-                    white-space: normal !important;
-                    word-wrap: break-word !important;
-                    word-break: break-word !important;
-                    overflow-wrap: break-word !important;
-                    max-width: 200px !important;
-                    line-height: 1.5 !important;
-                    vertical-align: top !important;
-                    padding: 12px 8px !important;
-                    height: auto !important;
-                    min-height: 50px !important;
+                .market-events-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 20px 0;
+                    font-size: 14px;
+                    font-family: sans-serif;
                 }
-                
-                /* Specific column width controls */
-                .stDataFrame td:nth-child(1), .stDataFrame [data-testid="stTable"] td:nth-child(1) { max-width: 150px !important; }
-                .stDataFrame td:nth-child(2), .stDataFrame [data-testid="stTable"] td:nth-child(2) { max-width: 80px !important; }
-                .stDataFrame td:nth-child(3), .stDataFrame [data-testid="stTable"] td:nth-child(3) { max-width: 60px !important; }
-                .stDataFrame td:nth-child(4), .stDataFrame [data-testid="stTable"] td:nth-child(4) { max-width: 80px !important; }
-                .stDataFrame td:nth-child(5), .stDataFrame [data-testid="stTable"] td:nth-child(5) { max-width: 60px !important; }
-                .stDataFrame td:nth-child(6), .stDataFrame [data-testid="stTable"] td:nth-child(6) { max-width: 200px !important; }
-                .stDataFrame td:nth-child(7), .stDataFrame [data-testid="stTable"] td:nth-child(7) { 
-                    max-width: 300px !important; 
-                    min-height: 80px !important;
+                .market-events-table th {
+                    background-color: #f0f2f6;
+                    color: #262730;
+                    font-weight: bold;
+                    padding: 12px 8px;
+                    text-align: left;
+                    border: 1px solid #ddd;
+                    white-space: nowrap;
                 }
-                
-                /* Headers */
-                .stDataFrame th,
-                .stDataFrame [data-testid="stTable"] th {
-                    white-space: nowrap !important;
-                    font-weight: bold !important;
-                    padding: 8px !important;
-                    background-color: #f0f2f6 !important;
+                .market-events-table td {
+                    padding: 12px 8px;
+                    border: 1px solid #ddd;
+                    vertical-align: top;
+                    line-height: 1.4;
                 }
-                
-                /* Remove resize handles */
-                .stDataFrame [data-testid="stDataFrameResizeHandle"] {
-                    display: none !important;
+                .market-events-table tr:nth-child(even) {
+                    background-color: #f9f9f9;
                 }
+                .market-events-table tr:hover {
+                    background-color: #f5f5f5;
+                }
+                .col-event { width: 15%; }
+                .col-date { width: 8%; }
+                .col-time { width: 8%; }
+                .col-category { width: 10%; }
+                .col-level { width: 8%; }
+                .col-description { width: 20%; word-wrap: break-word; }
+                .col-impact { width: 31%; word-wrap: break-word; max-width: 300px; }
+                .high-impact { color: #d63384; font-weight: bold; }
+                .medium-impact { color: #fd7e14; font-weight: bold; }
+                .low-impact { color: #198754; font-weight: bold; }
                 </style>
-                """, unsafe_allow_html=True)
                 
-                # Convert to DataFrame for better display
-                import pandas as pd
-                events_df = pd.DataFrame(events_list)
+                <table class="market-events-table">
+                <thead>
+                    <tr>
+                        <th class="col-event">📅 Event</th>
+                        <th class="col-date">📆 Date</th>
+                        <th class="col-time">🕒 Time</th>
+                        <th class="col-category">🏷️ Category</th>
+                        <th class="col-level">⚡ Level</th>
+                        <th class="col-description">📝 What It Is</th>
+                        <th class="col-impact">💹 Why It Matters</th>
+                    </tr>
+                </thead>
+                <tbody>
+                """
                 
-                # Display with column configuration for better visibility
-                column_config = {
-                    "Title": st.column_config.TextColumn(
-                        "📅 Event",
-                        width="medium",
-                        help="Market event title"
-                    ),
-                    "Date": st.column_config.DateColumn(
-                        "📆 Date", 
-                        width="small",
-                        help="Event date"
-                    ),
-                    "Time": st.column_config.TextColumn(
-                        "🕒 Time",
-                        width="small", 
-                        help="Event timing"
-                    ),
-                    "Category": st.column_config.TextColumn(
-                        "🏷️ Category",
-                        width="small",
-                        help="Event category"
-                    ),
-                    "Importance": st.column_config.TextColumn(
-                        "⚡ Level",
-                        width="small",
-                        help="Expected market impact level"
-                    ),
-                    "Description": st.column_config.TextColumn(
-                        "📝 What It Is",
-                        width="medium",
-                        help="Description of the event"
-                    ),
-                    "Market Impact": st.column_config.TextColumn(
-                        "💹 Why It Matters",
-                        width=300,  # Set specific pixel width to force wrapping
-                        help="Detailed analysis of market impact and trading implications"
-                    )
-                }
+                for event in events_list:
+                    importance = event.get('Importance', 'Medium')
+                    importance_class = f"{importance.lower()}-impact"
+                    
+                    html_table += f"""
+                    <tr>
+                        <td class="col-event">{event.get('Title', 'N/A')}</td>
+                        <td class="col-date">{event.get('Date', 'TBD')}</td>
+                        <td class="col-time">{event.get('Time', 'TBD')}</td>
+                        <td class="col-category">{event.get('Category', 'N/A')}</td>
+                        <td class="col-level"><span class="{importance_class}">{importance}</span></td>
+                        <td class="col-description">{event.get('Description', 'N/A')}</td>
+                        <td class="col-impact">{event.get('Market Impact', 'N/A')}</td>
+                    </tr>
+                    """
                 
-                st.dataframe(
-                    events_df, 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config=column_config,
-                    height=600  # Set fixed height to enable scrolling and wrapping
-                )
+                html_table += """
+                </tbody>
+                </table>
+                """
+                
+                st.markdown(html_table, unsafe_allow_html=True)
                 
                 # Display summary statistics
                 st.markdown("### 📊 Weekly Summary")
