@@ -8979,20 +8979,38 @@ def get_weekly_earnings_calendar():
                     if daily_earnings is not None and not daily_earnings.empty:
                         print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {date_str}")
                         
+                        # Debug: Print available columns and first few records
+                        if attempt == 0:  # Only print on first attempt to avoid spam
+                            print(f"NASDAQ EARNINGS DEBUG: Available columns: {list(daily_earnings.columns)}")
+                            if len(daily_earnings) > 0:
+                                print(f"NASDAQ EARNINGS DEBUG: First record: {dict(daily_earnings.iloc[0])}")
+                        
                         # Process each earning announcement for this date
                         for _, earning in daily_earnings.iterrows():
                             try:
-                                # Extract relevant information
-                                symbol = earning.get('symbol', 'N/A')
-                                company_name = earning.get('company', earning.get('name', symbol))
+                                # Debug: Print the current earning record
+                                if len(earnings_this_week) < 3:  # Only print first 3 to avoid spam
+                                    print(f"NASDAQ EARNINGS DEBUG: Processing record: {dict(earning)}")
                                 
-                                # Get EPS estimate if available
-                                eps_estimate = earning.get('epsEstimate', earning.get('eps_estimate', 'N/A'))
+                                # Extract relevant information - try multiple field name variations
+                                symbol = (earning.get('symbol') or earning.get('Symbol') or 
+                                         earning.get('ticker') or earning.get('Ticker') or 'N/A')
+                                
+                                company_name = (earning.get('company') or earning.get('Company') or 
+                                              earning.get('name') or earning.get('Name') or 
+                                              earning.get('companyName') or earning.get('CompanyName') or symbol)
+                                
+                                # Get EPS estimate if available - try multiple field variations
+                                eps_estimate = (earning.get('epsEstimate') or earning.get('EpsEstimate') or 
+                                              earning.get('eps_estimate') or earning.get('EPS_Estimate') or
+                                              earning.get('estimate') or earning.get('Estimate') or 'N/A')
                                 if eps_estimate == '' or eps_estimate is None:
                                     eps_estimate = 'N/A'
                                 
-                                # Determine timing if available
-                                timing = earning.get('time', earning.get('timing', 'TBD'))
+                                # Determine timing if available - try multiple field variations
+                                timing = (earning.get('time') or earning.get('Time') or 
+                                         earning.get('timing') or earning.get('Timing') or
+                                         earning.get('when') or earning.get('When') or 'TBD')
                                 if timing == '' or timing is None:
                                     timing = 'TBD'
                                 
