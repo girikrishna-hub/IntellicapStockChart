@@ -8848,17 +8848,18 @@ def get_weekly_earnings_calendar():
             df_formatted.rename(columns=available_columns, inplace=True)
             
             # Format date and sort
-            df_formatted['Date'] = pd.to_datetime(df_formatted['Date']).dt.strftime('%Y-%m-%d')
+            date_series = pd.to_datetime(df_formatted['Date'])
+            df_formatted['Date'] = date_series.dt.strftime('%Y-%m-%d')
             
             # Add day of week
-            df_formatted['Day'] = pd.to_datetime(df_formatted['Date']).dt.strftime('%A')
+            df_formatted['Day'] = date_series.dt.strftime('%A')
             
             # Reorder columns
             column_order = ['Symbol', 'Day', 'Date', 'Time'] + [col for col in df_formatted.columns if col not in ['Symbol', 'Day', 'Date', 'Time']]
             df_formatted = df_formatted[column_order]
             
             # Sort by date and time
-            df_formatted = df_formatted.sort_values(['Date', 'Time'], na_position='last')
+            df_formatted = df_formatted.sort_values(['Date', 'Time'], na_position='last').reset_index(drop=True)
             
             return df_formatted, None
             
