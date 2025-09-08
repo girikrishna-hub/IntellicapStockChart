@@ -5077,7 +5077,7 @@ def main():
     st.markdown("---")
     
     # Create data source tabs
-    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fundamental Analysis", "🎯 Advanced Analysis", "📅 Weekly Earnings", "🗓️ Market Events", "🔍 Stock Screener"])
+    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fundamental", "🎯 Advanced", "📅 Earnings", "🗓️ Events", "🔍 Screener"])
     
     with tab_yahoo:
         yahoo_finance_tab()
