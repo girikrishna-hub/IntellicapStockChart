@@ -10106,49 +10106,40 @@ def stock_screener_tab():
         preset_filter = st.selectbox("Choose Preset Strategy", 
             preset_options,
             index=current_index,
-            help="A preset strategy is already loaded - you can run the screen immediately or change strategies")
+            help="Preset will automatically apply when selected - ready to screen immediately!")
+        
+        # Automatically apply preset when selection changes
+        preset_mapping = {
+            "💰 High Dividend Stocks": "High Dividend",
+            "📉 Value Stocks": "Value Stocks", 
+            "📈 Growth Stocks": "Growth Stocks",
+            "🏦 Large Cap Dividend": "Large Cap Dividend",
+            "⚡ Small Cap Growth": "Small Cap Growth",
+            "Custom (Manual Settings)": None
+        }
+        
+        # Auto-apply when preset changes
+        if preset_mapping[preset_filter] != st.session_state.preset_applied:
+            st.session_state.preset_applied = preset_mapping[preset_filter]
+            st.rerun()
         
         # Show what the selected preset does
         if preset_filter == "💰 High Dividend Stocks":
-            st.info("**Will set:** Dividend yield >2%, Payout ratio <90%, Mid-cap+ stocks")
+            st.info("**Active:** Dividend yield >2%, Payout ratio <90%, Mid-cap+ stocks")
         elif preset_filter == "📉 Value Stocks":
-            st.info("**Will set:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
+            st.info("**Active:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
         elif preset_filter == "📈 Growth Stocks":
-            st.info("**Will set:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
+            st.info("**Active:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
         elif preset_filter == "🏦 Large Cap Dividend":
-            st.info("**Will set:** Large cap stocks, Dividend yield >1%, Stable financials")
+            st.info("**Active:** Large cap stocks, Dividend yield >1%, Stable financials")
         elif preset_filter == "⚡ Small Cap Growth":
-            st.info("**Will set:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Gross margin >18%")
+            st.info("**Active:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Gross margin >18%")
+        elif preset_filter == "Custom (Manual Settings)":
+            st.info("**Custom Mode:** Set your own filter criteria in the tabs above")
         
-        col_preset1, col_preset2 = st.columns(2)
-        
-        with col_preset1:
-            if st.button("Apply Preset", help="Apply the selected preset and clear other filters"):
-                # Apply preset values
-                if preset_filter == "💰 High Dividend Stocks":
-                    st.session_state.preset_applied = "High Dividend"
-                    st.success("✅ High Dividend preset applied! Check the Dividends tab.")
-                    
-                elif preset_filter == "📉 Value Stocks":
-                    st.session_state.preset_applied = "Value Stocks"
-                    st.success("✅ Value Stocks preset applied! Check Valuation & Growth tabs.")
-                    
-                elif preset_filter == "📈 Growth Stocks":
-                    st.session_state.preset_applied = "Growth Stocks"
-                    st.success("✅ Growth Stocks preset applied! Check Growth & Size tabs.")
-                    
-                elif preset_filter == "🏦 Large Cap Dividend":
-                    st.session_state.preset_applied = "Large Cap Dividend"
-                    st.success("✅ Large Cap Dividend preset applied! Check Dividends & Size tabs.")
-                    
-                elif preset_filter == "⚡ Small Cap Growth":
-                    st.session_state.preset_applied = "Small Cap Growth"
-                    st.success("✅ Small Cap Growth preset applied! Check Growth & Size tabs.")
-                    
-                # Trigger page rerun to update UI
-                st.rerun()
-        
-        with col_preset2:
+        # Reset button only
+        col_reset = st.columns(1)[0]
+        with col_reset:
             if st.button("🔄 Reset All", help="Clear all filters and reset to defaults"):
                 # Reset preset
                 st.session_state.preset_applied = None
@@ -10386,34 +10377,51 @@ def run_stock_screen(filters):
                 except:
                     price_change_1m = 0
                 
-                # Apply filters with None checking (only filter if data is available)
-                if pe_ratio is not None and (pe_ratio < filters['pe_min'] or pe_ratio > filters['pe_max']):
+                # Apply filters with None checking (only filter if data is available and user set non-default values)
+                if pe_ratio is not None and filters['pe_min'] > 0 and pe_ratio < filters['pe_min']:
                     continue
-                if pb_ratio is not None and (pb_ratio < filters['pb_min'] or pb_ratio > filters['pb_max']):
+                if pe_ratio is not None and filters['pe_max'] < 50 and pe_ratio > filters['pe_max']:
                     continue
-                if revenue_growth is not None and revenue_growth < filters['rev_growth_min']:
+                if pb_ratio is not None and filters['pb_min'] > 0 and pb_ratio < filters['pb_min']:
                     continue
-                if earnings_growth is not None and earnings_growth < filters['earnings_growth_min']:
+                if pb_ratio is not None and filters['pb_max'] < 10 and pb_ratio > filters['pb_max']:
                     continue
-                # Apply ROE filters - use the most restrictive range from valuation and growth tabs
+                if revenue_growth is not None and filters['rev_growth_min'] > 0 and revenue_growth < filters['rev_growth_min']:
+                    continue
+                if earnings_growth is not None and filters['earnings_growth_min'] > 0 and earnings_growth < filters['earnings_growth_min']:
+                    continue
+                # Apply ROE filters - use valuation ROE as primary, growth ROE as secondary (both must pass)
+                # Only filter if user has set specific values (not defaults)
                 if roe is not None:
-                    effective_roe_min = max(filters['roe_min'], filters['roe_growth_min'])
-                    effective_roe_max = min(filters['roe_max'], filters['roe_growth_max'])
-                    if roe < effective_roe_min or roe > effective_roe_max:
+                    # Check valuation ROE (always applied)
+                    if filters['roe_min'] > 0 and roe < filters['roe_min']:
                         continue
-                if profit_margin is not None and profit_margin < filters['profit_margin_min']:
+                    if filters['roe_max'] < 100 and roe > filters['roe_max']:
+                        continue
+                    # Check growth ROE only if different from defaults
+                    if filters['roe_growth_min'] > 0 and roe < filters['roe_growth_min']:
+                        continue
+                    if filters['roe_growth_max'] < 100 and roe > filters['roe_growth_max']:
+                        continue
+                if profit_margin is not None and filters['profit_margin_min'] > 0 and profit_margin < filters['profit_margin_min']:
                     continue
-                if gross_margin is not None and gross_margin < filters['gross_margin_min']:
+                if gross_margin is not None and filters['gross_margin_min'] > 0 and gross_margin < filters['gross_margin_min']:
                     continue
-                if dividend_yield < filters['div_yield_min'] or dividend_yield > filters['div_yield_max']:
+                # Dividend filters - only apply if user set non-default values
+                if filters['div_yield_min'] > 0 and dividend_yield < filters['div_yield_min']:
                     continue
-                if payout_ratio is not None and payout_ratio > filters['payout_ratio_max']:
+                if filters['div_yield_max'] < 20 and dividend_yield > filters['div_yield_max']:
                     continue
-                if price_change_1m < filters['price_change_1m_min'] or price_change_1m > filters['price_change_1m_max']:
+                if payout_ratio is not None and filters['payout_ratio_max'] < 100 and payout_ratio > filters['payout_ratio_max']:
                     continue
-                if avg_volume < filters['volume_avg_min']:
+                # Technical filters - only apply if non-default
+                if filters['price_change_1m_min'] > -50 and price_change_1m < filters['price_change_1m_min']:
                     continue
-                if beta > filters['beta_max']:
+                if filters['price_change_1m_max'] < 100 and price_change_1m > filters['price_change_1m_max']:
+                    continue
+                if filters['volume_avg_min'] > 100000 and avg_volume < filters['volume_avg_min']:
+                    continue
+                if filters['beta_max'] < 3.0 and beta > filters['beta_max']:
                     continue
                 
                 # Market cap filter
