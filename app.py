@@ -10114,11 +10114,11 @@ def stock_screener_tab():
         elif preset_filter == "📉 Value Stocks":
             st.info("**Will set:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
         elif preset_filter == "📈 Growth Stocks":
-            st.info("**Will set:** Revenue growth >5%, Earnings growth >10%, ROE >10%")
+            st.info("**Will set:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
         elif preset_filter == "🏦 Large Cap Dividend":
             st.info("**Will set:** Large cap stocks, Dividend yield >1%, Stable financials")
         elif preset_filter == "⚡ Small Cap Growth":
-            st.info("**Will set:** Small cap stocks, Growth metrics >10-15%, ROE >15%")
+            st.info("**Will set:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Gross margin >18%")
         
         col_preset1, col_preset2 = st.columns(2)
         
@@ -10286,9 +10286,9 @@ def stock_screener_tab():
         st.markdown("""
         - **✅ Value Stocks** (Currently Loaded): P/E <20, P/B <5, ROE >5% - Find undervalued companies
         - **High Dividend Stocks**: Dividend yield >2%, stable payout ratios - Income-focused investing
-        - **Growth Stocks**: Revenue growth >3%, earnings growth >5%, ROE >8% - Fast-growing companies
+        - **Growth Stocks**: Revenue growth >3%, earnings growth >5%, ROE >8%, margin >15% - Fast-growing companies
         - **Large Cap Dividend**: Large companies with stable dividends - Conservative income
-        - **Small Cap Growth**: Small companies with growth >5%/8%, ROE >10% - Aggressive growth
+        - **Small Cap Growth**: Small companies with growth >5%/8%, ROE >10%, margin >18% - Aggressive growth
         
         **Want to try a different strategy?** Select one from the dropdown above and click 'Apply Preset'
         """)
