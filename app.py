@@ -8685,112 +8685,26 @@ def display_news_sentiment_analysis(symbol):
             st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
 
 
-def test_fmp_api_access():
-    """Test FMP API access and return status"""
-    import os
-    import requests
-    from datetime import datetime, timedelta
-    
-    fmp_api_key = os.getenv('FMP_API_KEY')
-    if not fmp_api_key:
-        return False, "No API key found"
-    
-    try:
-        # Test with a simple endpoint first
-        test_url = f"https://financialmodelingprep.com/api/v3/quote/AAPL?apikey={fmp_api_key}"
-        
-        response = requests.get(test_url, timeout=10)
-        
-        if response.status_code == 200:
-            # API key works, now test earnings calendar
-            today = datetime.now()
-            monday = today - timedelta(days=today.weekday())
-            end_date = monday + timedelta(days=6)
-            
-            earnings_url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={monday.strftime('%Y-%m-%d')}&to={end_date.strftime('%Y-%m-%d')}&apikey={fmp_api_key}"
-            
-            earnings_response = requests.get(earnings_url, timeout=10)
-            
-            if earnings_response.status_code == 200:
-                return True, "API access confirmed"
-            elif earnings_response.status_code == 403:
-                return False, f"Earnings calendar requires paid subscription. Error: {earnings_response.text[:200]}"
-            else:
-                return False, f"Earnings calendar error {earnings_response.status_code}: {earnings_response.text[:200]}"
-        
-        elif response.status_code == 403:
-            return False, f"API key invalid or expired: {response.text[:200]}"
-        else:
-            return False, f"API error {response.status_code}: {response.text[:200]}"
-            
-    except Exception as e:
-        return False, f"Connection error: {str(e)}"
 
 def weekly_earnings_calendar_tab():
     """Weekly Earnings Calendar tab content"""
     
     st.markdown("### 📅 Weekly Earnings Calendar")
-    st.markdown("View companies announcing earnings this week with complete export functionality")
-    st.markdown("---")
-    
-    # Test API access first
-    st.markdown("#### 🔍 API Status Check")
-    
-    if st.button("🧪 Test FMP API Access", help="Check if your API key has access to earnings data"):
-        with st.spinner("Testing API access..."):
-            api_works, api_message = test_fmp_api_access()
-            
-            if api_works:
-                st.success(f"✅ {api_message}")
-            else:
-                st.error(f"❌ {api_message}")
-                
-                # Provide guidance based on the error
-                if "paid subscription" in api_message.lower():
-                    st.warning("""
-                    **📊 Free Tier Limitation Detected**
-                    
-                    The FMP free tier doesn't include access to the earnings calendar endpoint. 
-                    """)
-                    
-                    st.info("""
-                    **🎯 Alternative Solutions:**
-                    
-                    1. **Upgrade FMP Account** ($15/month)
-                       - Full access to earnings calendar
-                       - 10,000+ API calls per month
-                    
-                    2. **Use Yahoo Finance Alternative** (Free)
-                       - Individual stock earnings dates
-                       - Available in Advanced Analysis tab
-                    
-                    3. **Try Alpha Vantage** (Free tier available)
-                       - Different earnings calendar API
-                       - 25 calls per day free
-                    """)
-                    
-                elif "invalid" in api_message.lower():
-                    st.info("""
-                    **🔑 API Key Issues:**
-                    
-                    1. **Double-check your API key**
-                       - Visit your FMP dashboard
-                       - Copy the key exactly (no extra spaces)
-                    
-                    2. **Account verification**
-                       - Some accounts need email verification
-                       - Check your email for verification links
-                    
-                    3. **Try a new key**
-                       - Generate a new API key in your dashboard
-                       - Replace the old one
-                    """)
-                
-                return  # Don't show the rest of the tab if API doesn't work
-    
+    st.markdown("View companies announcing earnings this week using **free Yahoo Finance data**")
     st.markdown("---")
     
     # Information section
+    st.info("""
+    **💡 About This Data:**
+    - Uses Yahoo Finance (completely free, no API key required)
+    - Checks 60+ popular S&P 500 companies for earnings this week
+    - Updates automatically based on current week (Monday-Sunday)
+    - Includes major stocks across Tech, Finance, Healthcare, Consumer, Industrial, and Energy sectors
+    """)
+    
+    st.markdown("---")
+    
+    # Load earnings calendar section
     col_info1, col_info2 = st.columns([3, 1])
     
     with col_info1:
@@ -8979,83 +8893,102 @@ def weekly_earnings_calendar_tab():
 
 def get_weekly_earnings_calendar():
     """
-    Fetch weekly earnings announcements from Financial Modeling Prep API
+    Fetch weekly earnings announcements using Yahoo Finance (free alternative)
     
     Returns:
         pandas.DataFrame: Weekly earnings calendar with company, date, and time information
     """
-    import os
-    import requests
+    import yfinance as yf
     from datetime import datetime, timedelta
     
-    # Get FMP API key
-    fmp_api_key = os.getenv('FMP_API_KEY')
-    if not fmp_api_key:
-        return None, "FMP API key not found. Please set FMP_API_KEY environment variable."
+    # Popular stocks to check for earnings (can be expanded)
+    stock_symbols = [
+        # Major Tech
+        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'NFLX', 'ADBE', 'CRM',
+        # Financial
+        'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'V', 'MA', 'AXP', 'BLK',
+        # Healthcare
+        'JNJ', 'PFE', 'UNH', 'ABT', 'TMO', 'DHR', 'BMY', 'ABBV', 'MRK', 'LLY',
+        # Consumer
+        'PG', 'KO', 'PEP', 'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW',
+        # Industrial
+        'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT', 'DE', 'FDX',
+        # Energy
+        'XOM', 'CVX', 'COP', 'SLB', 'EOG', 'KMI', 'OXY', 'PSX', 'VLO', 'MPC',
+        # Others
+        'BRK-B', 'COST', 'AVGO', 'ORCL', 'CSCO', 'INTC', 'QCOM', 'IBM', 'TXN', 'INTU'
+    ]
     
     try:
         # Get current Monday (start of the week)
         today = datetime.now()
         days_since_monday = today.weekday()
         monday = today - timedelta(days=days_since_monday)
+        sunday = monday + timedelta(days=6)
         
-        # Get upcoming 7 days from Monday
-        start_date = monday.strftime('%Y-%m-%d')
-        end_date = (monday + timedelta(days=6)).strftime('%Y-%m-%d')
+        earnings_this_week = []
         
-        # FMP earnings calendar endpoint
-        url = f"https://financialmodelingprep.com/api/v3/earning_calendar?from={start_date}&to={end_date}&apikey={fmp_api_key}"
+        # Check each stock for earnings this week
+        for symbol in stock_symbols:
+            try:
+                ticker = yf.Ticker(symbol)
+                
+                # Get company info for name
+                info = ticker.info
+                company_name = info.get('longName', symbol)
+                
+                # Check earnings calendar
+                try:
+                    calendar = ticker.calendar
+                    if calendar is not None and not calendar.empty:
+                        for earnings_date in calendar.index:
+                            if monday.date() <= earnings_date.date() <= sunday.date():
+                                earnings_this_week.append({
+                                    'Symbol': symbol,
+                                    'Company': company_name,
+                                    'Date': earnings_date.strftime('%Y-%m-%d'),
+                                    'Day': earnings_date.strftime('%A'),
+                                    'Time': 'TBD',  # Yahoo doesn't provide specific times
+                                    'EPS Estimate': calendar.loc[earnings_date].get('Earnings Estimate', 'N/A') if hasattr(calendar.loc[earnings_date], 'get') else 'N/A'
+                                })
+                except:
+                    # Try earnings_dates if calendar fails
+                    try:
+                        earnings_dates = ticker.earnings_dates
+                        if earnings_dates is not None and not earnings_dates.empty:
+                            for earnings_date in earnings_dates.index:
+                                if monday.date() <= earnings_date.date() <= sunday.date():
+                                    earnings_this_week.append({
+                                        'Symbol': symbol,
+                                        'Company': company_name,
+                                        'Date': earnings_date.strftime('%Y-%m-%d'),
+                                        'Day': earnings_date.strftime('%A'),
+                                        'Time': 'TBD',
+                                        'EPS Estimate': 'N/A'
+                                    })
+                    except:
+                        continue
+                        
+            except Exception as e:
+                # Skip stocks that fail to load
+                continue
         
-        response = requests.get(url, timeout=30)
+        if not earnings_this_week:
+            return pd.DataFrame(), "No earnings announcements found for this week using Yahoo Finance data."
         
-        if response.status_code == 200:
-            data = response.json()
-            
-            if not data:
-                return pd.DataFrame(), "No earnings announcements found for this week."
-            
-            # Convert to DataFrame and format
-            df = pd.DataFrame(data)
-            
-            # Select and rename relevant columns
-            columns_map = {
-                'symbol': 'Symbol',
-                'date': 'Date',
-                'time': 'Time',
-                'eps': 'EPS Actual',
-                'epsEstimated': 'EPS Estimate',
-                'revenue': 'Revenue Actual',
-                'revenueEstimated': 'Revenue Estimate'
-            }
-            
-            # Keep only available columns
-            available_columns = {k: v for k, v in columns_map.items() if k in df.columns}
-            df_formatted = df[list(available_columns.keys())].copy()
-            df_formatted.rename(columns=available_columns, inplace=True)
-            
-            # Format date and sort
-            date_series = pd.to_datetime(df_formatted['Date'])
-            df_formatted['Date'] = date_series.dt.strftime('%Y-%m-%d')
-            
-            # Add day of week
-            df_formatted['Day'] = date_series.dt.strftime('%A')
-            
-            # Reorder columns
-            column_order = ['Symbol', 'Day', 'Date', 'Time'] + [col for col in df_formatted.columns if col not in ['Symbol', 'Day', 'Date', 'Time']]
-            df_formatted = df_formatted[column_order]
-            
-            # Sort by date and time
-            df_formatted = df_formatted.sort_values(['Date', 'Time'], na_position='last').reset_index(drop=True)
-            
-            return df_formatted, None
-            
-        elif response.status_code == 403:
-            return None, "API access denied. Please check your FMP API key subscription level."
-        else:
-            return None, f"API request failed with status code: {response.status_code}"
-            
+        # Convert to DataFrame
+        df = pd.DataFrame(earnings_this_week)
+        
+        # Remove duplicates (same symbol might appear multiple times)
+        df = df.drop_duplicates(subset=['Symbol', 'Date']).reset_index(drop=True)
+        
+        # Sort by date and symbol
+        df = df.sort_values(['Date', 'Symbol']).reset_index(drop=True)
+        
+        return df, None
+        
     except Exception as e:
-        return None, f"Error fetching earnings calendar: {str(e)}"
+        return None, f"Error fetching Yahoo Finance earnings calendar: {str(e)}"
 
 def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx"):
     """
