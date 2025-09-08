@@ -9469,26 +9469,51 @@ def market_events_tab():
                 # Add CSS for text wrapping in dataframe cells
                 st.markdown("""
                 <style>
-                .stDataFrame [data-testid="stDataFrameResizeHandle"] {
-                    display: none !important;
-                }
-                .stDataFrame td {
+                /* Force text wrapping in all dataframe cells */
+                .stDataFrame table, 
+                .stDataFrame tbody, 
+                .stDataFrame tr, 
+                .stDataFrame td,
+                .stDataFrame [data-testid="stTable"] table,
+                .stDataFrame [data-testid="stTable"] tbody,
+                .stDataFrame [data-testid="stTable"] tr,
+                .stDataFrame [data-testid="stTable"] td {
                     white-space: normal !important;
                     word-wrap: break-word !important;
-                    max-width: 300px !important;
-                    line-height: 1.4 !important;
+                    word-break: break-word !important;
+                    overflow-wrap: break-word !important;
+                    max-width: 200px !important;
+                    line-height: 1.5 !important;
                     vertical-align: top !important;
-                    padding: 8px !important;
+                    padding: 12px 8px !important;
+                    height: auto !important;
+                    min-height: 50px !important;
                 }
-                .stDataFrame th {
+                
+                /* Specific column width controls */
+                .stDataFrame td:nth-child(1), .stDataFrame [data-testid="stTable"] td:nth-child(1) { max-width: 150px !important; }
+                .stDataFrame td:nth-child(2), .stDataFrame [data-testid="stTable"] td:nth-child(2) { max-width: 80px !important; }
+                .stDataFrame td:nth-child(3), .stDataFrame [data-testid="stTable"] td:nth-child(3) { max-width: 60px !important; }
+                .stDataFrame td:nth-child(4), .stDataFrame [data-testid="stTable"] td:nth-child(4) { max-width: 80px !important; }
+                .stDataFrame td:nth-child(5), .stDataFrame [data-testid="stTable"] td:nth-child(5) { max-width: 60px !important; }
+                .stDataFrame td:nth-child(6), .stDataFrame [data-testid="stTable"] td:nth-child(6) { max-width: 200px !important; }
+                .stDataFrame td:nth-child(7), .stDataFrame [data-testid="stTable"] td:nth-child(7) { 
+                    max-width: 300px !important; 
+                    min-height: 80px !important;
+                }
+                
+                /* Headers */
+                .stDataFrame th,
+                .stDataFrame [data-testid="stTable"] th {
                     white-space: nowrap !important;
                     font-weight: bold !important;
                     padding: 8px !important;
+                    background-color: #f0f2f6 !important;
                 }
-                /* Specific styling for the Market Impact column */
-                .stDataFrame td:nth-child(7) {
-                    max-width: 400px !important;
-                    min-height: 60px !important;
+                
+                /* Remove resize handles */
+                .stDataFrame [data-testid="stDataFrameResizeHandle"] {
+                    display: none !important;
                 }
                 </style>
                 """, unsafe_allow_html=True)
@@ -9531,7 +9556,7 @@ def market_events_tab():
                     ),
                     "Market Impact": st.column_config.TextColumn(
                         "💹 Why It Matters",
-                        width="large",
+                        width=300,  # Set specific pixel width to force wrapping
                         help="Detailed analysis of market impact and trading implications"
                     )
                 }
@@ -9540,7 +9565,8 @@ def market_events_tab():
                     events_df, 
                     use_container_width=True, 
                     hide_index=True,
-                    column_config=column_config
+                    column_config=column_config,
+                    height=600  # Set fixed height to enable scrolling and wrapping
                 )
                 
                 # Display summary statistics
