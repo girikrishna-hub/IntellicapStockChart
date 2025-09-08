@@ -9125,13 +9125,37 @@ def get_weekly_earnings_calendar():
         # This allows companies to appear on multiple days but prevents true duplicates
         df = df.drop_duplicates(subset=['Symbol', 'Date', 'Time']).reset_index(drop=True)
         
-        # If still too many results, prioritize by keeping the most recent 50 companies
-        if len(df) > 50:
-            # Sort by date (most recent first) and take top 50
-            df = df.sort_values(['Date', 'Symbol']).tail(50).reset_index(drop=True)
+        # If still too many results, prioritize by keeping up to 100 companies
+        if len(df) > 100:
+            # Sort by date and take top 100, but prioritize major companies
+            df_sorted = df.sort_values(['Date', 'Symbol'])
+            
+            # Ensure major companies like Oracle, Adobe are included
+            major_companies = ['ORCL', 'ADBE', 'AAPL', 'MSFT', 'GOOGL', 'META', 'TSLA', 'NVDA', 'AMZN']
+            major_df = df_sorted[df_sorted['Symbol'].isin(major_companies)]
+            other_df = df_sorted[~df_sorted['Symbol'].isin(major_companies)]
+            
+            # Combine: all major companies + fill remaining slots with others
+            remaining_slots = 100 - len(major_df)
+            if remaining_slots > 0:
+                df = pd.concat([major_df, other_df.head(remaining_slots)]).reset_index(drop=True)
+            else:
+                df = major_df.head(100).reset_index(drop=True)
         
-        # Sort by date and symbol
+        # Final sort by date and symbol
         df = df.sort_values(['Date', 'Symbol']).reset_index(drop=True)
+        
+        # Check if major companies are included
+        major_symbols_found = []
+        major_companies_check = ['ORCL', 'ADBE', 'AAPL', 'MSFT', 'GOOGL', 'META', 'TSLA', 'NVDA', 'AMZN']
+        for symbol in major_companies_check:
+            if symbol in df['Symbol'].values:
+                major_symbols_found.append(symbol)
+        
+        if major_symbols_found:
+            print(f"NASDAQ EARNINGS: Major companies found in results: {', '.join(major_symbols_found)}")
+        else:
+            print("NASDAQ EARNINGS: No major companies found in this week's results")
         
         print(f"NASDAQ EARNINGS: Returning {len(df)} unique earnings announcements")
         return df, None
