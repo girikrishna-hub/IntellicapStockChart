@@ -9288,10 +9288,17 @@ def get_weekly_market_events():
               "time": "Time or 'TBD'",
               "category": "Fed Meeting|Economic Data|Earnings|Corporate|Policy|Conference",
               "importance": "High|Medium|Low", 
-              "description": "Brief description of why this event matters to markets"
+              "description": "Detailed explanation of why this event matters to markets",
+              "market_impact": "Specific explanation of how this could affect stock prices, bond yields, currency values, and investor sentiment. Include potential market reactions and trading implications."
             }}
           ]
         }}
+
+        For each event, provide:
+        1. A clear description of what the event is
+        2. Detailed market impact analysis explaining why investors should care
+        3. Specific mention of which market sectors or asset classes could be most affected
+        4. Expected volatility or directional impact if predictable
 
         Focus on events that could significantly impact stock markets, bond markets, or currency markets.
         Only include events from {week_range}.
@@ -9324,7 +9331,8 @@ def get_weekly_market_events():
                     'Time': event.get('time', 'TBD'),
                     'Category': event.get('category', 'N/A'),
                     'Importance': event.get('importance', 'Medium'),
-                    'Description': event.get('description', 'N/A')
+                    'Description': event.get('description', 'N/A'),
+                    'Market Impact': event.get('market_impact', 'N/A')
                 }
                 formatted_events.append(formatted_event)
             except Exception as e:
@@ -9365,6 +9373,7 @@ def market_events_tab():
     - Covers global markets and central bank activities
     
     **⚡ Performance:** Data is cached weekly - first load may take 10-20 seconds, subsequent loads are instant
+    **💹 Enhanced Analysis:** Each event includes detailed market impact explanations and trading implications
     **📊 Event Types:** Fed Meetings, Economic Data, Earnings, Corporate Events, Policy Announcements, Conferences
     """)
     
@@ -9465,7 +9474,7 @@ def market_events_tab():
                 column_config = {
                     "Title": st.column_config.TextColumn(
                         "📅 Event",
-                        width="large",
+                        width="medium",
                         help="Market event title"
                     ),
                     "Date": st.column_config.DateColumn(
@@ -9480,18 +9489,23 @@ def market_events_tab():
                     ),
                     "Category": st.column_config.TextColumn(
                         "🏷️ Category",
-                        width="medium",
+                        width="small",
                         help="Event category"
                     ),
                     "Importance": st.column_config.TextColumn(
-                        "⚡ Impact",
+                        "⚡ Level",
                         width="small",
-                        help="Expected market impact"
+                        help="Expected market impact level"
                     ),
                     "Description": st.column_config.TextColumn(
-                        "📝 Description",
+                        "📝 What It Is",
+                        width="medium",
+                        help="Description of the event"
+                    ),
+                    "Market Impact": st.column_config.TextColumn(
+                        "💹 Why It Matters",
                         width="large",
-                        help="Why this event matters"
+                        help="Detailed analysis of market impact and trading implications"
                     )
                 }
                 
