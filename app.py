@@ -10010,22 +10010,25 @@ def stock_screener_tab():
         if st.session_state.preset_applied == "High Dividend":
             preset_values = {'div_yield_min': 2.0, 'div_yield_max': 15.0, 'payout_ratio_max': 90.0, 'market_cap_min': 2}
         elif st.session_state.preset_applied == "Value Stocks":
-            preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'market_cap_min': 0}
+            preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'roe_max': 100.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Growth Stocks":
-            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_min': 10.0, 'market_cap_min': 1}
+            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_min': 10.0, 'roe_max': 100.0, 'gross_margin_min': 20.0, 'market_cap_min': 1}
         elif st.session_state.preset_applied == "Large Cap Dividend":
             preset_values = {'div_yield_min': 1.0, 'div_yield_max': 10.0, 'payout_ratio_max': 80.0, 'market_cap_min': 4, 'beta_max': 2.0}
         elif st.session_state.preset_applied == "Small Cap Growth":
-            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_min': 15.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
+            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_min': 15.0, 'roe_max': 100.0, 'gross_margin_min': 25.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
 
         with filter_tabs[0]:  # Valuation filters
-            col_val1, col_val2 = st.columns(2)
+            col_val1, col_val2, col_val3 = st.columns(3)
             with col_val1:
                 pe_min = st.number_input("Min P/E Ratio", min_value=0.0, value=get_default_value('pe_min', 0.0, preset_values), step=0.1, help="Minimum Price-to-Earnings ratio")
                 pe_max = st.number_input("Max P/E Ratio", min_value=0.0, value=get_default_value('pe_max', 50.0, preset_values), step=0.1, help="Maximum Price-to-Earnings ratio")
             with col_val2:
                 pb_min = st.number_input("Min P/B Ratio", min_value=0.0, value=get_default_value('pb_min', 0.0, preset_values), step=0.1, help="Minimum Price-to-Book ratio")
                 pb_max = st.number_input("Max P/B Ratio", min_value=0.0, value=get_default_value('pb_max', 10.0, preset_values), step=0.1, help="Maximum Price-to-Book ratio")
+            with col_val3:
+                roe_min = st.number_input("Min ROE (%)", min_value=-50.0, value=get_default_value('roe_min', 0.0, preset_values), step=1.0, help="Minimum Return on Equity")
+                roe_max = st.number_input("Max ROE (%)", min_value=-50.0, value=get_default_value('roe_max', 100.0, preset_values), step=1.0, help="Maximum Return on Equity")
         
         with filter_tabs[1]:  # Growth filters
             col_growth1, col_growth2 = st.columns(2)
@@ -10033,8 +10036,8 @@ def stock_screener_tab():
                 rev_growth_min = st.number_input("Min Revenue Growth (%)", min_value=-100.0, value=get_default_value('rev_growth_min', 0.0, preset_values), step=1.0, help="Minimum revenue growth rate")
                 earnings_growth_min = st.number_input("Min Earnings Growth (%)", min_value=-100.0, value=get_default_value('earnings_growth_min', 0.0, preset_values), step=1.0, help="Minimum earnings growth rate")
             with col_growth2:
-                roe_min = st.number_input("Min ROE (%)", min_value=-50.0, value=get_default_value('roe_min', 0.0, preset_values), step=1.0, help="Minimum Return on Equity")
                 profit_margin_min = st.number_input("Min Profit Margin (%)", min_value=-50.0, value=get_default_value('profit_margin_min', 0.0, preset_values), step=1.0, help="Minimum profit margin")
+                gross_margin_min = st.number_input("Min Gross Margin (%)", min_value=-50.0, value=get_default_value('gross_margin_min', 0.0, preset_values), step=1.0, help="Minimum gross profit margin")
         
         with filter_tabs[2]:  # Dividend filters
             col_div1, col_div2 = st.columns(2)
@@ -10181,7 +10184,8 @@ def stock_screener_tab():
                 'pe_min': pe_min, 'pe_max': pe_max,
                 'pb_min': pb_min, 'pb_max': pb_max,
                 'rev_growth_min': rev_growth_min, 'earnings_growth_min': earnings_growth_min,
-                'roe_min': roe_min, 'profit_margin_min': profit_margin_min,
+                'roe_min': roe_min, 'roe_max': roe_max, 'profit_margin_min': profit_margin_min,
+                'gross_margin_min': gross_margin_min,
                 'div_yield_min': div_yield_min, 'div_yield_max': div_yield_max,
                 'payout_ratio_max': payout_ratio_max,
                 'price_change_1m_min': price_change_1m_min, 'price_change_1m_max': price_change_1m_max,
@@ -10368,6 +10372,7 @@ def run_stock_screen(filters):
                 revenue_growth = (info.get('revenueGrowth', None) or 0) * 100 if info.get('revenueGrowth') else None
                 earnings_growth = (info.get('earningsGrowth', None) or 0) * 100 if info.get('earningsGrowth') else None
                 payout_ratio = (info.get('payoutRatio', None) or 0) * 100 if info.get('payoutRatio') else None
+                gross_margin = (info.get('grossMargins', None) or 0) * 100 if info.get('grossMargins') else None
                 sector = info.get('sector', 'Unknown')
                 
                 # Calculate 1-month price change
@@ -10386,9 +10391,11 @@ def run_stock_screen(filters):
                     continue
                 if earnings_growth is not None and earnings_growth < filters['earnings_growth_min']:
                     continue
-                if roe is not None and roe < filters['roe_min']:
+                if roe is not None and (roe < filters['roe_min'] or roe > filters['roe_max']):
                     continue
                 if profit_margin is not None and profit_margin < filters['profit_margin_min']:
+                    continue
+                if gross_margin is not None and gross_margin < filters['gross_margin_min']:
                     continue
                 if dividend_yield < filters['div_yield_min'] or dividend_yield > filters['div_yield_max']:
                     continue
