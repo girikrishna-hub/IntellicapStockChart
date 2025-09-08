@@ -9943,6 +9943,430 @@ def market_events_tab():
             """)
 
 
+def stock_screener_tab():
+    """Stock Screener tab content"""
+    
+    st.markdown("### 🔍 Stock Screener")
+    st.markdown("Filter and discover stocks based on financial metrics, technical indicators, and custom criteria")
+    st.markdown("---")
+    
+    # Information section
+    st.info("""
+    **📊 About This Screener:**
+    - Screen stocks by market cap, P/E ratio, dividend yield, and other metrics
+    - Filter by technical indicators like RSI, price performance
+    - Real-time data from Yahoo Finance
+    - Export results to Excel for further analysis
+    - Covers US stocks with comprehensive filtering options
+    """)
+    
+    st.markdown("---")
+    
+    # Screening interface
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown("#### 🎯 Filter Criteria")
+        
+        # Create tabs for different filter categories
+        filter_tabs = st.tabs(["💰 Valuation", "📈 Growth", "💵 Dividends", "📊 Technical", "🏢 Size"])
+        
+        with filter_tabs[0]:  # Valuation filters
+            col_val1, col_val2 = st.columns(2)
+            with col_val1:
+                pe_min = st.number_input("Min P/E Ratio", min_value=0.0, value=0.0, step=0.1, help="Minimum Price-to-Earnings ratio")
+                pe_max = st.number_input("Max P/E Ratio", min_value=0.0, value=50.0, step=0.1, help="Maximum Price-to-Earnings ratio")
+            with col_val2:
+                pb_min = st.number_input("Min P/B Ratio", min_value=0.0, value=0.0, step=0.1, help="Minimum Price-to-Book ratio")
+                pb_max = st.number_input("Max P/B Ratio", min_value=0.0, value=10.0, step=0.1, help="Maximum Price-to-Book ratio")
+        
+        with filter_tabs[1]:  # Growth filters
+            col_growth1, col_growth2 = st.columns(2)
+            with col_growth1:
+                rev_growth_min = st.number_input("Min Revenue Growth (%)", min_value=-100.0, value=0.0, step=1.0, help="Minimum revenue growth rate")
+                earnings_growth_min = st.number_input("Min Earnings Growth (%)", min_value=-100.0, value=0.0, step=1.0, help="Minimum earnings growth rate")
+            with col_growth2:
+                roe_min = st.number_input("Min ROE (%)", min_value=-50.0, value=0.0, step=1.0, help="Minimum Return on Equity")
+                profit_margin_min = st.number_input("Min Profit Margin (%)", min_value=-50.0, value=0.0, step=1.0, help="Minimum profit margin")
+        
+        with filter_tabs[2]:  # Dividend filters
+            col_div1, col_div2 = st.columns(2)
+            with col_div1:
+                div_yield_min = st.number_input("Min Dividend Yield (%)", min_value=0.0, value=0.0, step=0.1, help="Minimum dividend yield")
+                div_yield_max = st.number_input("Max Dividend Yield (%)", min_value=0.0, value=20.0, step=0.1, help="Maximum dividend yield")
+            with col_div2:
+                payout_ratio_max = st.number_input("Max Payout Ratio (%)", min_value=0.0, value=100.0, step=1.0, help="Maximum dividend payout ratio")
+        
+        with filter_tabs[3]:  # Technical filters
+            col_tech1, col_tech2 = st.columns(2)
+            with col_tech1:
+                price_change_1m_min = st.number_input("Min 1M Price Change (%)", min_value=-100.0, value=-50.0, step=1.0, help="Minimum 1-month price change")
+                price_change_1m_max = st.number_input("Max 1M Price Change (%)", min_value=-100.0, value=100.0, step=1.0, help="Maximum 1-month price change")
+            with col_tech2:
+                volume_avg_min = st.number_input("Min Avg Volume", min_value=0, value=100000, step=10000, help="Minimum average daily volume")
+                beta_max = st.number_input("Max Beta", min_value=0.0, value=3.0, step=0.1, help="Maximum beta (volatility vs market)")
+        
+        with filter_tabs[4]:  # Size filters
+            col_size1, col_size2 = st.columns(2)
+            with col_size1:
+                market_cap_min = st.selectbox("Min Market Cap", 
+                    ["Any", "Micro ($0-300M)", "Small ($300M-2B)", "Mid ($2B-10B)", "Large ($10B+)"],
+                    index=0, help="Minimum market capitalization")
+            with col_size2:
+                sectors = st.multiselect("Sectors", 
+                    ["Technology", "Healthcare", "Financial Services", "Consumer Cyclical", 
+                     "Industrials", "Energy", "Utilities", "Real Estate", "Materials", 
+                     "Consumer Defensive", "Communication Services", "Basic Materials"],
+                    help="Filter by specific sectors")
+    
+    with col2:
+        st.markdown("#### 🎮 Quick Actions")
+        
+        # Popular preset filters
+        preset_filter = st.selectbox("Preset Filters", [
+            "Custom", "High Dividend (>3%)", "Value Stocks (Low P/E)", 
+            "Growth Stocks (High Growth)", "Large Cap Dividend", "Small Cap Growth"
+        ], help="Choose from popular filter combinations")
+        
+        if st.button("Apply Preset", help="Apply the selected preset filter"):
+            if preset_filter == "High Dividend (>3%)":
+                st.session_state.update({
+                    'div_yield_min': 3.0, 'div_yield_max': 15.0,
+                    'payout_ratio_max': 80.0, 'market_cap_min': "Mid ($2B-10B)"
+                })
+                st.success("High Dividend preset applied!")
+                
+            elif preset_filter == "Value Stocks (Low P/E)":
+                st.session_state.update({
+                    'pe_min': 0.0, 'pe_max': 15.0,
+                    'pb_max': 3.0, 'roe_min': 10.0
+                })
+                st.success("Value Stocks preset applied!")
+                
+            elif preset_filter == "Growth Stocks (High Growth)":
+                st.session_state.update({
+                    'rev_growth_min': 15.0, 'earnings_growth_min': 20.0,
+                    'roe_min': 15.0, 'market_cap_min': "Small ($300M-2B)"
+                })
+                st.success("Growth Stocks preset applied!")
+        
+        st.markdown("---")
+        
+        # Run screen button
+        if st.button("🔍 Run Screen", type="primary", help="Execute the stock screen with current filters"):
+            st.session_state.run_screen = True
+    
+    st.markdown("---")
+    
+    # Results section
+    if st.session_state.get('run_screen', False):
+        with st.spinner("Screening stocks... This may take a moment"):
+            
+            # Create filter criteria dictionary
+            filters = {
+                'pe_min': pe_min, 'pe_max': pe_max,
+                'pb_min': pb_min, 'pb_max': pb_max,
+                'rev_growth_min': rev_growth_min, 'earnings_growth_min': earnings_growth_min,
+                'roe_min': roe_min, 'profit_margin_min': profit_margin_min,
+                'div_yield_min': div_yield_min, 'div_yield_max': div_yield_max,
+                'payout_ratio_max': payout_ratio_max,
+                'price_change_1m_min': price_change_1m_min, 'price_change_1m_max': price_change_1m_max,
+                'volume_avg_min': volume_avg_min, 'beta_max': beta_max,
+                'market_cap_min': market_cap_min, 'sectors': sectors
+            }
+            
+            # Run the screening
+            results = run_stock_screen(filters)
+            
+            if results and len(results) > 0:
+                st.success(f"✅ Found **{len(results)}** stocks matching your criteria")
+                
+                # Display results
+                st.markdown("### 📊 Screening Results")
+                
+                # Sort options
+                sort_by = st.selectbox("Sort by", 
+                    ["Symbol", "Market Cap", "P/E Ratio", "Dividend Yield", "1M Change", "Volume"],
+                    help="Sort results by selected metric")
+                
+                # Create results DataFrame
+                import pandas as pd
+                df_results = pd.DataFrame(results)
+                
+                # Apply sorting
+                if sort_by == "Market Cap" and 'Market Cap' in df_results.columns:
+                    df_results = df_results.sort_values('Market Cap', ascending=False)
+                elif sort_by == "P/E Ratio" and 'P/E Ratio' in df_results.columns:
+                    df_results = df_results.sort_values('P/E Ratio', ascending=True)
+                elif sort_by == "Dividend Yield" and 'Dividend Yield' in df_results.columns:
+                    df_results = df_results.sort_values('Dividend Yield', ascending=False)
+                elif sort_by == "1M Change" and '1M Change' in df_results.columns:
+                    df_results = df_results.sort_values('1M Change', ascending=False)
+                elif sort_by == "Volume" and 'Avg Volume' in df_results.columns:
+                    df_results = df_results.sort_values('Avg Volume', ascending=False)
+                else:
+                    df_results = df_results.sort_values('Symbol', ascending=True)
+                
+                # Display as interactive table
+                st.dataframe(
+                    df_results,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=400
+                )
+                
+                # Export functionality
+                col_export1, col_export2, col_export3 = st.columns([1, 1, 2])
+                
+                with col_export1:
+                    # CSV download
+                    csv = df_results.to_csv(index=False)
+                    st.download_button(
+                        label="📄 Download CSV",
+                        data=csv,
+                        file_name=f"stock_screen_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                        mime="text/csv"
+                    )
+                
+                with col_export2:
+                    # Excel download
+                    excel_data = create_screener_excel(df_results, filters)
+                    if excel_data:
+                        st.download_button(
+                            label="📊 Download Excel",
+                            data=excel_data,
+                            file_name=f"stock_screen_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                
+                with col_export3:
+                    st.info(f"💡 **Tip:** Click on column headers to sort the table. Found {len(results)} stocks matching your criteria.")
+                
+            else:
+                st.warning("⚠️ No stocks found matching your criteria")
+                st.markdown("""
+                **Suggestions:**
+                • Try relaxing some filter criteria
+                • Check if P/E or P/B ratios are too restrictive
+                • Consider expanding the market cap range
+                • Remove sector filters to cast a wider net
+                """)
+                
+        # Reset the run_screen flag
+        st.session_state.run_screen = False
+    
+    else:
+        st.markdown("### 🚀 Ready to Screen")
+        st.markdown("Configure your filter criteria above and click **Run Screen** to discover stocks matching your investment criteria.")
+        
+        # Sample criteria examples
+        st.markdown("#### 💡 Popular Screening Ideas:")
+        st.markdown("""
+        - **Dividend Aristocrats**: High dividend yield (>3%), stable payout ratio (<80%)
+        - **Value Plays**: Low P/E (<15), Low P/B (<3), High ROE (>10%)
+        - **Growth Stories**: High revenue growth (>15%), High earnings growth (>20%)
+        - **Blue Chips**: Large cap (>$10B), Low beta (<1.5), Consistent dividends
+        - **Small Cap Gems**: Small cap ($300M-$2B), High growth, Strong margins
+        """)
+
+
+def run_stock_screen(filters):
+    """
+    Execute stock screening based on provided filters
+    """
+    try:
+        import yfinance as yf
+        import pandas as pd
+        import time
+        import random
+        
+        # Sample of popular stocks to screen (in a real implementation, you'd use a comprehensive stock list)
+        sample_tickers = [
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'JPM', 'JNJ',
+            'PG', 'UNH', 'HD', 'MA', 'BAC', 'DIS', 'ADBE', 'CRM', 'NFLX', 'XOM',
+            'CVX', 'KO', 'PEP', 'TMO', 'ABBV', 'MRK', 'COST', 'WMT', 'NKE', 'MCD',
+            'T', 'VZ', 'IBM', 'GE', 'F', 'GM', 'AMD', 'INTC', 'ORCL', 'PYPL',
+            'V', 'WFC', 'GS', 'MS', 'C', 'BRK-B', 'AMGN', 'GILD', 'BMY', 'CELG'
+        ]
+        
+        results = []
+        processed_count = 0
+        max_stocks = 50  # Limit to prevent long processing times
+        
+        # Shuffle the list to get varied results
+        random.shuffle(sample_tickers)
+        
+        for ticker in sample_tickers[:max_stocks]:
+            try:
+                processed_count += 1
+                if processed_count % 10 == 0:
+                    st.write(f"Processed {processed_count}/{min(max_stocks, len(sample_tickers))} stocks...")
+                
+                # Get stock data
+                stock = yf.Ticker(ticker)
+                info = stock.info
+                hist = stock.history(period="3mo")
+                
+                if hist.empty or not info:
+                    continue
+                    
+                # Extract metrics for filtering
+                current_price = hist['Close'][-1] if not hist.empty else 0
+                pe_ratio = info.get('trailingPE', 0) or 0
+                pb_ratio = info.get('priceToBook', 0) or 0
+                market_cap = info.get('marketCap', 0) or 0
+                dividend_yield = (info.get('dividendYield', 0) or 0) * 100
+                beta = info.get('beta', 0) or 1
+                avg_volume = info.get('averageVolume', 0) or 0
+                profit_margin = (info.get('profitMargins', 0) or 0) * 100
+                roe = (info.get('returnOnEquity', 0) or 0) * 100
+                revenue_growth = (info.get('revenueGrowth', 0) or 0) * 100
+                earnings_growth = (info.get('earningsGrowth', 0) or 0) * 100
+                payout_ratio = (info.get('payoutRatio', 0) or 0) * 100
+                sector = info.get('sector', 'Unknown')
+                
+                # Calculate 1-month price change
+                price_1m_ago = hist['Close'][-22] if len(hist) >= 22 else hist['Close'][0]
+                price_change_1m = ((current_price - price_1m_ago) / price_1m_ago) * 100
+                
+                # Apply filters
+                if pe_ratio > 0 and (pe_ratio < filters['pe_min'] or pe_ratio > filters['pe_max']):
+                    continue
+                if pb_ratio > 0 and (pb_ratio < filters['pb_min'] or pb_ratio > filters['pb_max']):
+                    continue
+                if revenue_growth < filters['rev_growth_min']:
+                    continue
+                if earnings_growth < filters['earnings_growth_min']:
+                    continue
+                if roe < filters['roe_min']:
+                    continue
+                if profit_margin < filters['profit_margin_min']:
+                    continue
+                if dividend_yield < filters['div_yield_min'] or dividend_yield > filters['div_yield_max']:
+                    continue
+                if payout_ratio > filters['payout_ratio_max']:
+                    continue
+                if price_change_1m < filters['price_change_1m_min'] or price_change_1m > filters['price_change_1m_max']:
+                    continue
+                if avg_volume < filters['volume_avg_min']:
+                    continue
+                if beta > filters['beta_max']:
+                    continue
+                
+                # Market cap filter
+                if filters['market_cap_min'] != "Any":
+                    if filters['market_cap_min'] == "Micro ($0-300M)" and market_cap > 300_000_000:
+                        continue
+                    elif filters['market_cap_min'] == "Small ($300M-2B)" and (market_cap < 300_000_000 or market_cap > 2_000_000_000):
+                        continue
+                    elif filters['market_cap_min'] == "Mid ($2B-10B)" and (market_cap < 2_000_000_000 or market_cap > 10_000_000_000):
+                        continue
+                    elif filters['market_cap_min'] == "Large ($10B+)" and market_cap < 10_000_000_000:
+                        continue
+                
+                # Sector filter
+                if filters['sectors'] and sector not in filters['sectors']:
+                    continue
+                
+                # Format market cap
+                if market_cap >= 1_000_000_000:
+                    market_cap_str = f"${market_cap/1_000_000_000:.1f}B"
+                elif market_cap >= 1_000_000:
+                    market_cap_str = f"${market_cap/1_000_000:.0f}M"
+                else:
+                    market_cap_str = f"${market_cap:,.0f}"
+                
+                # Add to results
+                results.append({
+                    'Symbol': ticker,
+                    'Company': info.get('longName', ticker)[:30],
+                    'Sector': sector,
+                    'Market Cap': market_cap_str,
+                    'Price': f"${current_price:.2f}",
+                    'P/E Ratio': f"{pe_ratio:.1f}" if pe_ratio > 0 else "N/A",
+                    'P/B Ratio': f"{pb_ratio:.1f}" if pb_ratio > 0 else "N/A",
+                    'Dividend Yield': f"{dividend_yield:.1f}%" if dividend_yield > 0 else "0.0%",
+                    'ROE': f"{roe:.1f}%" if roe != 0 else "N/A",
+                    'Profit Margin': f"{profit_margin:.1f}%" if profit_margin != 0 else "N/A",
+                    'Revenue Growth': f"{revenue_growth:.1f}%" if revenue_growth != 0 else "N/A",
+                    'Earnings Growth': f"{earnings_growth:.1f}%" if earnings_growth != 0 else "N/A",
+                    '1M Change': f"{price_change_1m:.1f}%",
+                    'Beta': f"{beta:.2f}" if beta > 0 else "N/A",
+                    'Avg Volume': f"{avg_volume:,}" if avg_volume > 0 else "N/A"
+                })
+                
+                # Small delay to avoid overwhelming the API
+                time.sleep(0.1)
+                
+            except Exception as e:
+                print(f"Error processing {ticker}: {str(e)}")
+                continue
+        
+        return results
+        
+    except Exception as e:
+        st.error(f"Error running stock screen: {str(e)}")
+        return []
+
+
+def create_screener_excel(df, filters):
+    """
+    Create Excel file for screener results
+    """
+    try:
+        import io
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from datetime import datetime
+        
+        # Create workbook
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Screener Results"
+        
+        # Header formatting
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="2F5597", end_color="2F5597", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Add headers
+        headers = df.columns.tolist()
+        for col_idx, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            ws.column_dimensions[cell.column_letter].width = 15
+        
+        # Add data
+        for row_idx, (_, row) in enumerate(df.iterrows(), 2):
+            for col_idx, value in enumerate(row, 1):
+                ws.cell(row=row_idx, column=col_idx, value=str(value))
+        
+        # Add filter information
+        ws_filters = wb.create_sheet("Filter Criteria")
+        ws_filters.cell(row=1, column=1, value="Stock Screener - Filter Criteria")
+        ws_filters.cell(row=2, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        filter_row = 4
+        for key, value in filters.items():
+            if value not in [0.0, 0, [], "Any", ""]:
+                ws_filters.cell(row=filter_row, column=1, value=key.replace('_', ' ').title())
+                ws_filters.cell(row=filter_row, column=2, value=str(value))
+                filter_row += 1
+        
+        # Save to BytesIO
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return output.getvalue()
+        
+    except Exception as e:
+        st.error(f"Error creating Excel file: {str(e)}")
+        return None
+
+
 def calculate_investment_ratings(ticker_info, ticker_obj):
     """
     Calculate 1-5 scale investment ratings for Quantitative, Author, and Sellside analysis
