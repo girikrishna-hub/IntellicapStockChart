@@ -8685,11 +8685,115 @@ def display_news_sentiment_analysis(symbol):
             st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
 
 
+def test_fmp_api_access():
+    """Test FMP API access and return status"""
+    import os
+    import requests
+    from datetime import datetime, timedelta
+    
+    fmp_api_key = os.getenv('FMP_API_KEY')
+    if not fmp_api_key:
+        return False, "No API key found"
+    
+    try:
+        # Test with a simple endpoint first
+        test_url = f"https://financialmodelingprep.com/api/v3/quote/AAPL"
+        params = {'apikey': fmp_api_key}
+        
+        response = requests.get(test_url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            # API key works, now test earnings calendar
+            today = datetime.now()
+            monday = today - timedelta(days=today.weekday())
+            end_date = monday + timedelta(days=6)
+            
+            earnings_url = f"https://financialmodelingprep.com/api/v3/earning_calendar"
+            earnings_params = {
+                'from': monday.strftime('%Y-%m-%d'),
+                'to': end_date.strftime('%Y-%m-%d'),
+                'apikey': fmp_api_key
+            }
+            
+            earnings_response = requests.get(earnings_url, params=earnings_params, timeout=10)
+            
+            if earnings_response.status_code == 200:
+                return True, "API access confirmed"
+            elif earnings_response.status_code == 403:
+                return False, f"Earnings calendar requires paid subscription. Error: {earnings_response.text[:200]}"
+            else:
+                return False, f"Earnings calendar error {earnings_response.status_code}: {earnings_response.text[:200]}"
+        
+        elif response.status_code == 403:
+            return False, f"API key invalid or expired: {response.text[:200]}"
+        else:
+            return False, f"API error {response.status_code}: {response.text[:200]}"
+            
+    except Exception as e:
+        return False, f"Connection error: {str(e)}"
+
 def weekly_earnings_calendar_tab():
     """Weekly Earnings Calendar tab content"""
     
     st.markdown("### 📅 Weekly Earnings Calendar")
     st.markdown("View companies announcing earnings this week with complete export functionality")
+    st.markdown("---")
+    
+    # Test API access first
+    st.markdown("#### 🔍 API Status Check")
+    
+    if st.button("🧪 Test FMP API Access", help="Check if your API key has access to earnings data"):
+        with st.spinner("Testing API access..."):
+            api_works, api_message = test_fmp_api_access()
+            
+            if api_works:
+                st.success(f"✅ {api_message}")
+            else:
+                st.error(f"❌ {api_message}")
+                
+                # Provide guidance based on the error
+                if "paid subscription" in api_message.lower():
+                    st.warning("""
+                    **📊 Free Tier Limitation Detected**
+                    
+                    The FMP free tier doesn't include access to the earnings calendar endpoint. 
+                    """)
+                    
+                    st.info("""
+                    **🎯 Alternative Solutions:**
+                    
+                    1. **Upgrade FMP Account** ($15/month)
+                       - Full access to earnings calendar
+                       - 10,000+ API calls per month
+                    
+                    2. **Use Yahoo Finance Alternative** (Free)
+                       - Individual stock earnings dates
+                       - Available in Advanced Analysis tab
+                    
+                    3. **Try Alpha Vantage** (Free tier available)
+                       - Different earnings calendar API
+                       - 25 calls per day free
+                    """)
+                    
+                elif "invalid" in api_message.lower():
+                    st.info("""
+                    **🔑 API Key Issues:**
+                    
+                    1. **Double-check your API key**
+                       - Visit your FMP dashboard
+                       - Copy the key exactly (no extra spaces)
+                    
+                    2. **Account verification**
+                       - Some accounts need email verification
+                       - Check your email for verification links
+                    
+                    3. **Try a new key**
+                       - Generate a new API key in your dashboard
+                       - Replace the old one
+                    """)
+                
+                return  # Don't show the rest of the tab if API doesn't work
+    
     st.markdown("---")
     
     # Information section
