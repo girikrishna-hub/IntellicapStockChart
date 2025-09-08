@@ -8926,38 +8926,55 @@ def get_weekly_earnings_calendar():
         monday = today - timedelta(days=days_since_monday)
         sunday = monday + timedelta(days=6)
         
-        earnings_this_week = []
+        print(f"EARNINGS DEBUG: Checking earnings for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')}")
         
-        # Check each stock for earnings this week
-        for symbol in stock_symbols:
+        earnings_this_week = []
+        debug_info = []
+        
+        # Test specific stocks first (Adobe and Oracle)
+        test_symbols = ['ADBE', 'ORCL', 'AAPL', 'MSFT', 'GOOGL']
+        
+        for symbol in test_symbols:
             try:
+                print(f"EARNINGS DEBUG: Checking {symbol}...")
                 ticker = yf.Ticker(symbol)
                 
                 # Get company info for name
                 info = ticker.info
                 company_name = info.get('longName', symbol)
                 
-                # Check earnings calendar
+                # Check earnings calendar first
                 try:
                     calendar = ticker.calendar
+                    print(f"EARNINGS DEBUG: {symbol} calendar type: {type(calendar)}, empty: {calendar is None or (hasattr(calendar, 'empty') and calendar.empty)}")
+                    
                     if calendar is not None and not calendar.empty:
+                        print(f"EARNINGS DEBUG: {symbol} calendar dates: {list(calendar.index)}")
                         for earnings_date in calendar.index:
+                            print(f"EARNINGS DEBUG: {symbol} checking date {earnings_date.date()} vs week {monday.date()}-{sunday.date()}")
                             if monday.date() <= earnings_date.date() <= sunday.date():
+                                print(f"EARNINGS DEBUG: {symbol} MATCH! Adding to weekly earnings")
                                 earnings_this_week.append({
                                     'Symbol': symbol,
                                     'Company': company_name,
                                     'Date': earnings_date.strftime('%Y-%m-%d'),
                                     'Day': earnings_date.strftime('%A'),
-                                    'Time': 'TBD',  # Yahoo doesn't provide specific times
-                                    'EPS Estimate': calendar.loc[earnings_date].get('Earnings Estimate', 'N/A') if hasattr(calendar.loc[earnings_date], 'get') else 'N/A'
+                                    'Time': 'TBD',
+                                    'EPS Estimate': 'N/A'
                                 })
-                except:
+                except Exception as e:
+                    print(f"EARNINGS DEBUG: {symbol} calendar error: {str(e)}")
                     # Try earnings_dates if calendar fails
                     try:
                         earnings_dates = ticker.earnings_dates
+                        print(f"EARNINGS DEBUG: {symbol} earnings_dates type: {type(earnings_dates)}, empty: {earnings_dates is None or (hasattr(earnings_dates, 'empty') and earnings_dates.empty)}")
+                        
                         if earnings_dates is not None and not earnings_dates.empty:
+                            print(f"EARNINGS DEBUG: {symbol} earnings_dates: {list(earnings_dates.index[:10])}")  # Show first 10
                             for earnings_date in earnings_dates.index:
+                                print(f"EARNINGS DEBUG: {symbol} checking earnings_date {earnings_date.date()} vs week {monday.date()}-{sunday.date()}")
                                 if monday.date() <= earnings_date.date() <= sunday.date():
+                                    print(f"EARNINGS DEBUG: {symbol} EARNINGS_DATES MATCH! Adding to weekly earnings")
                                     earnings_this_week.append({
                                         'Symbol': symbol,
                                         'Company': company_name,
@@ -8966,15 +8983,51 @@ def get_weekly_earnings_calendar():
                                         'Time': 'TBD',
                                         'EPS Estimate': 'N/A'
                                     })
-                    except:
+                    except Exception as e2:
+                        print(f"EARNINGS DEBUG: {symbol} earnings_dates error: {str(e2)}")
                         continue
                         
             except Exception as e:
-                # Skip stocks that fail to load
+                print(f"EARNINGS DEBUG: {symbol} general error: {str(e)}")
                 continue
         
+        # Now check all other stocks if test stocks worked
+        if earnings_this_week:
+            print(f"EARNINGS DEBUG: Found {len(earnings_this_week)} earnings from test stocks, checking all stocks...")
+            for symbol in stock_symbols:
+                if symbol in test_symbols:
+                    continue  # Already checked
+                try:
+                    ticker = yf.Ticker(symbol)
+                    info = ticker.info
+                    company_name = info.get('longName', symbol)
+                    
+                    # Check both calendar and earnings_dates
+                    for method_name, method in [('calendar', lambda t: t.calendar), ('earnings_dates', lambda t: t.earnings_dates)]:
+                        try:
+                            earnings_data = method(ticker)
+                            if earnings_data is not None and not earnings_data.empty:
+                                for earnings_date in earnings_data.index:
+                                    if monday.date() <= earnings_date.date() <= sunday.date():
+                                        earnings_this_week.append({
+                                            'Symbol': symbol,
+                                            'Company': company_name,
+                                            'Date': earnings_date.strftime('%Y-%m-%d'),
+                                            'Day': earnings_date.strftime('%A'),
+                                            'Time': 'TBD',
+                                            'EPS Estimate': 'N/A'
+                                        })
+                                break  # Don't check other method if this one worked
+                        except:
+                            continue
+                except:
+                    continue
+        
+        print(f"EARNINGS DEBUG: Total earnings found: {len(earnings_this_week)}")
+        
         if not earnings_this_week:
-            return pd.DataFrame(), "No earnings announcements found for this week using Yahoo Finance data."
+            error_msg = f"No earnings announcements found for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')}. This could mean: (1) No major companies have earnings this week, (2) Yahoo Finance data is delayed, or (3) Earnings are scheduled outside our 60-stock list."
+            return pd.DataFrame(), error_msg
         
         # Convert to DataFrame
         df = pd.DataFrame(earnings_this_week)
