@@ -10005,18 +10005,18 @@ def stock_screener_tab():
                 return preset_values[key]
             return default_val
         
-        # Get preset values if any (made more realistic/less restrictive)
+        # Get preset values if any (made very realistic/lenient to ensure we find companies)
         preset_values = {}
         if st.session_state.preset_applied == "High Dividend":
-            preset_values = {'div_yield_min': 2.0, 'div_yield_max': 15.0, 'payout_ratio_max': 90.0, 'market_cap_min': 2}
+            preset_values = {'div_yield_min': 0.5, 'div_yield_max': 15.0, 'payout_ratio_max': 95.0, 'market_cap_min': 1}
         elif st.session_state.preset_applied == "Value Stocks":
             preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'roe_max': 100.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Growth Stocks":
             preset_values = {'rev_growth_min': 3.0, 'earnings_growth_min': 5.0, 'roe_growth_min': 8.0, 'roe_growth_max': 100.0, 'gross_margin_min': 15.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Large Cap Dividend":
-            preset_values = {'div_yield_min': 1.0, 'div_yield_max': 10.0, 'payout_ratio_max': 80.0, 'market_cap_min': 4, 'beta_max': 2.0}
+            preset_values = {'div_yield_min': 0.2, 'div_yield_max': 12.0, 'payout_ratio_max': 90.0, 'market_cap_min': 4, 'beta_max': 2.5}
         elif st.session_state.preset_applied == "Small Cap Growth":
-            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 8.0, 'roe_growth_min': 10.0, 'roe_growth_max': 100.0, 'gross_margin_min': 18.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
+            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 8.0, 'roe_growth_min': 10.0, 'roe_growth_max': 100.0, 'gross_margin_min': 18.0, 'market_cap_min': 1, 'volume_avg_min': 10000}
 
         with filter_tabs[0]:  # Valuation filters
             col_val1, col_val2, col_val3 = st.columns(3)
@@ -10125,15 +10125,15 @@ def stock_screener_tab():
         
         # Show what the selected preset does
         if preset_filter == "💰 High Dividend Stocks":
-            st.info("**Active:** Dividend yield >2%, Payout ratio <90%, Mid-cap+ stocks")
+            st.info("**Active:** Dividend yield >0.5%, Payout ratio <95%, Small-cap+ stocks")
         elif preset_filter == "📉 Value Stocks":
             st.info("**Active:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
         elif preset_filter == "📈 Growth Stocks":
             st.info("**Active:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
         elif preset_filter == "🏦 Large Cap Dividend":
-            st.info("**Active:** Large cap stocks, Dividend yield >1%, Stable financials")
+            st.info("**Active:** Large cap stocks, Dividend yield >0.2%, Stable financials")
         elif preset_filter == "⚡ Small Cap Growth":
-            st.info("**Active:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Gross margin >18%")
+            st.info("**Active:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Volume >10K")
         elif preset_filter == "Custom (Manual Settings)":
             st.info("**Custom Mode:** Set your own filter criteria in the tabs above")
         
@@ -10276,12 +10276,12 @@ def stock_screener_tab():
         st.markdown("#### 💡 Available Investment Strategies:")
         st.markdown("""
         - **✅ Value Stocks** (Currently Loaded): P/E <20, P/B <5, ROE >5% - Find undervalued companies
-        - **High Dividend Stocks**: Dividend yield >2%, stable payout ratios - Income-focused investing
+        - **High Dividend Stocks**: Dividend yield >0.5%, stable payout ratios - Income-focused investing
         - **Growth Stocks**: Revenue growth >3%, earnings growth >5%, ROE >8%, margin >15% - Fast-growing companies
-        - **Large Cap Dividend**: Large companies with stable dividends - Conservative income
-        - **Small Cap Growth**: Small companies with growth >5%/8%, ROE >10%, margin >18% - Aggressive growth
+        - **Large Cap Dividend**: Large companies with dividend yield >0.2% - Conservative income
+        - **Small Cap Growth**: Small companies with growth >5%/8%, ROE >10%, volume >10K - Aggressive growth
         
-        **Want to try a different strategy?** Select one from the dropdown above and click 'Apply Preset'
+        **Want to try a different strategy?** Select one from the dropdown above - it applies automatically!
         """)
 
 
@@ -10408,10 +10408,12 @@ def run_stock_screen(filters):
                 if gross_margin is not None and filters['gross_margin_min'] > 0 and gross_margin < filters['gross_margin_min']:
                     continue
                 # Dividend filters - only apply if user set non-default values
+                # For dividend strategies, only exclude if dividend is 0 AND we require >0
                 if filters['div_yield_min'] > 0 and dividend_yield < filters['div_yield_min']:
                     continue
                 if filters['div_yield_max'] < 20 and dividend_yield > filters['div_yield_max']:
                     continue
+                # Payout ratio: only filter if data exists and user set specific limit
                 if payout_ratio is not None and filters['payout_ratio_max'] < 100 and payout_ratio > filters['payout_ratio_max']:
                     continue
                 # Technical filters - only apply if non-default
