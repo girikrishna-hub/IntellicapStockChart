@@ -9976,12 +9976,12 @@ def stock_screener_tab():
     
     # Information section
     st.info("""
-    **📊 About This Screener:**
-    - Screen stocks by market cap, P/E ratio, dividend yield, and other metrics
-    - Filter by technical indicators like RSI, price performance
-    - Real-time data from Yahoo Finance
+    **📊 Ready to Screen Stocks:**
+    - **Value Stocks strategy is pre-loaded** - Click "Run Screen" to start immediately!
+    - Or customize filters: market cap, P/E ratio, dividend yield, growth metrics
+    - Real-time data from Yahoo Finance across 100+ major US stocks
     - Export results to Excel for further analysis
-    - Covers US stocks with comprehensive filtering options
+    - Choose from 5 preset investment strategies or create custom filters
     """)
     
     st.markdown("---")
@@ -9995,9 +9995,9 @@ def stock_screener_tab():
         # Create tabs for different filter categories
         filter_tabs = st.tabs(["💰 Valuation", "📈 Growth", "💵 Dividends", "📊 Technical", "🏢 Size"])
         
-        # Initialize preset values if not set
+        # Initialize preset values if not set - default to Value Stocks for immediate use
         if 'preset_applied' not in st.session_state:
-            st.session_state.preset_applied = None
+            st.session_state.preset_applied = "Value Stocks"
             
         # Set default values based on any applied preset
         def get_default_value(key, default_val, preset_values=None):
@@ -10074,14 +10074,33 @@ def stock_screener_tab():
         st.markdown("#### 🎮 Quick Actions")
         
         # Popular preset filters with clear descriptions
-        preset_filter = st.selectbox("Choose Preset Strategy", [
+        # Set default index based on current preset
+        preset_options = [
             "Custom (Manual Settings)",
             "💰 High Dividend Stocks", 
             "📉 Value Stocks", 
             "📈 Growth Stocks",
             "🏦 Large Cap Dividend",
             "⚡ Small Cap Growth"
-        ], help="Select a pre-configured investment strategy")
+        ]
+        
+        # Find current preset index
+        current_index = 0  # Default to Custom
+        if st.session_state.preset_applied == "High Dividend":
+            current_index = 1
+        elif st.session_state.preset_applied == "Value Stocks":
+            current_index = 2
+        elif st.session_state.preset_applied == "Growth Stocks":
+            current_index = 3
+        elif st.session_state.preset_applied == "Large Cap Dividend":
+            current_index = 4
+        elif st.session_state.preset_applied == "Small Cap Growth":
+            current_index = 5
+            
+        preset_filter = st.selectbox("Choose Preset Strategy", 
+            preset_options,
+            index=current_index,
+            help="A preset strategy is already loaded - you can run the screen immediately or change strategies")
         
         # Show what the selected preset does
         if preset_filter == "💰 High Dividend Stocks":
@@ -10132,6 +10151,21 @@ def stock_screener_tab():
         
         st.markdown("---")
         
+        # Show current status and run screen button
+        if st.session_state.preset_applied:
+            if st.session_state.preset_applied == "Value Stocks":
+                st.success("✅ **Value Stocks strategy loaded** - Ready to screen for undervalued companies!")
+            elif st.session_state.preset_applied == "High Dividend":
+                st.success("✅ **High Dividend strategy loaded** - Ready to screen for dividend-paying stocks!")
+            elif st.session_state.preset_applied == "Growth Stocks":
+                st.success("✅ **Growth Stocks strategy loaded** - Ready to screen for growing companies!")
+            elif st.session_state.preset_applied == "Large Cap Dividend":
+                st.success("✅ **Large Cap Dividend strategy loaded** - Ready to screen for stable dividend stocks!")
+            elif st.session_state.preset_applied == "Small Cap Growth":
+                st.success("✅ **Small Cap Growth strategy loaded** - Ready to screen for small growth companies!")
+        else:
+            st.info("💡 Customize your filters above or select a preset strategy")
+            
         # Run screen button
         if st.button("🔍 Run Screen", type="primary", help="Execute the stock screen with current filters"):
             st.session_state.run_screen = True
@@ -10237,16 +10271,18 @@ def stock_screener_tab():
     
     else:
         st.markdown("### 🚀 Ready to Screen")
-        st.markdown("Configure your filter criteria above and click **Run Screen** to discover stocks matching your investment criteria.")
+        st.markdown("✅ **Value Stocks strategy is pre-loaded and ready to use!** Click **'Run Screen'** above to find undervalued companies immediately.")
         
         # Sample criteria examples
-        st.markdown("#### 💡 Popular Screening Ideas:")
+        st.markdown("#### 💡 Available Investment Strategies:")
         st.markdown("""
-        - **Dividend Aristocrats**: High dividend yield (>3%), stable payout ratio (<80%)
-        - **Value Plays**: Low P/E (<15), Low P/B (<3), High ROE (>10%)
-        - **Growth Stories**: High revenue growth (>15%), High earnings growth (>20%)
-        - **Blue Chips**: Large cap (>$10B), Low beta (<1.5), Consistent dividends
-        - **Small Cap Gems**: Small cap ($300M-$2B), High growth, Strong margins
+        - **✅ Value Stocks** (Currently Loaded): P/E <20, P/B <5, ROE >5% - Find undervalued companies
+        - **High Dividend Stocks**: Dividend yield >2%, stable payout ratios - Income-focused investing
+        - **Growth Stocks**: Revenue growth >5%, earnings growth >10% - Fast-growing companies
+        - **Large Cap Dividend**: Large companies with stable dividends - Conservative income
+        - **Small Cap Growth**: Small companies with high growth potential - Aggressive growth
+        
+        **Want to try a different strategy?** Select one from the dropdown above and click 'Apply Preset'
         """)
 
 
