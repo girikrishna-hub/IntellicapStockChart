@@ -8672,6 +8672,110 @@ def display_news_sentiment_analysis(symbol):
             """)
             return
         
+        # Weekly Earnings Calendar Section
+        st.markdown("---")
+        st.markdown("### 📅 Weekly Earnings Calendar")
+        st.markdown("*Companies announcing earnings this week (Monday to Sunday)*")
+        
+        # Add button to load earnings calendar
+        col_earnings1, col_earnings2 = st.columns([2, 1])
+        
+        with col_earnings1:
+            if st.button("📊 Load Weekly Earnings Calendar", type="primary", help="Fetch earnings announcements for the current week"):
+                st.session_state.load_earnings_calendar = True
+        
+        with col_earnings2:
+            # Auto-update info
+            today_name = datetime.now().strftime('%A')
+            st.info(f"Today: {today_name}")
+        
+        # Load and display earnings calendar
+        if st.session_state.get('load_earnings_calendar', False):
+            with st.spinner("Loading weekly earnings calendar..."):
+                earnings_df, error_msg = get_weekly_earnings_calendar()
+                
+                if error_msg:
+                    st.error(f"Error: {error_msg}")
+                    if "FMP API key" in error_msg:
+                        st.info("💡 **How to get FMP API key:**")
+                        st.markdown("""
+                        1. Visit [Financial Modeling Prep](https://financialmodelingprep.com/developer/docs)
+                        2. Sign up for a free account
+                        3. Copy your API key
+                        4. Add it as `FMP_API_KEY` in your environment variables
+                        """)
+                elif earnings_df is not None and not earnings_df.empty:
+                    st.success(f"✅ Found {len(earnings_df)} earnings announcements this week")
+                    
+                    # Display the earnings calendar table
+                    st.dataframe(earnings_df, use_container_width=True, hide_index=True)
+                    
+                    # Export options
+                    st.markdown("#### 📁 Export Options")
+                    col_export1, col_export2 = st.columns(2)
+                    
+                    with col_export1:
+                        # Excel export
+                        excel_data = create_earnings_calendar_excel(earnings_df)
+                        if excel_data:
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            filename = f"weekly_earnings_calendar_{timestamp}.xlsx"
+                            
+                            st.download_button(
+                                label="📊 Download Excel",
+                                data=excel_data,
+                                file_name=filename,
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                help="Download the weekly earnings calendar as an Excel file"
+                            )
+                    
+                    with col_export2:
+                        # CSV export
+                        csv_data = earnings_df.to_csv(index=False)
+                        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        csv_filename = f"weekly_earnings_calendar_{timestamp}.csv"
+                        
+                        st.download_button(
+                            label="📋 Download CSV",
+                            data=csv_data,
+                            file_name=csv_filename,
+                            mime="text/csv",
+                            help="Download the weekly earnings calendar as a CSV file"
+                        )
+                    
+                    # Summary statistics
+                    st.markdown("#### 📈 Weekly Summary")
+                    
+                    # Group by day
+                    day_counts = earnings_df['Day'].value_counts()
+                    
+                    col_stats1, col_stats2, col_stats3 = st.columns(3)
+                    
+                    with col_stats1:
+                        st.metric("Total Companies", len(earnings_df))
+                    
+                    with col_stats2:
+                        busiest_day = day_counts.index[0] if not day_counts.empty else "N/A"
+                        busiest_count = day_counts.iloc[0] if not day_counts.empty else 0
+                        st.metric("Busiest Day", f"{busiest_day} ({busiest_count})")
+                    
+                    with col_stats3:
+                        unique_days = len(day_counts)
+                        st.metric("Days with Earnings", unique_days)
+                    
+                    # Display day breakdown
+                    if not day_counts.empty:
+                        st.markdown("**📊 Daily Breakdown:**")
+                        for day, count in day_counts.items():
+                            st.write(f"• **{day}**: {count} companies")
+                            
+                else:
+                    st.info("No earnings announcements found for this week.")
+                    
+                # Update note
+                st.markdown("---")
+                st.info("💡 **Note**: Data updates automatically when you refresh the page on Monday. This calendar shows earnings announcements from Monday to Sunday of the current week.")
+
         # Use the enhanced news sentiment analyzer with multiple sources
         try:
             from news_sentiment_analyzer import run_sentiment_analysis
@@ -8681,6 +8785,147 @@ def display_news_sentiment_analysis(symbol):
             st.error(f"Error loading sentiment analysis: {str(e)}")
             st.info("Please ensure all required dependencies are installed and OpenAI API key is configured correctly.")
 
+
+def get_weekly_earnings_calendar():
+    """
+    Fetch weekly earnings announcements from Financial Modeling Prep API
+    
+    Returns:
+        pandas.DataFrame: Weekly earnings calendar with company, date, and time information
+    """
+    import os
+    import requests
+    from datetime import datetime, timedelta
+    
+    # Get FMP API key
+    fmp_api_key = os.getenv('FMP_API_KEY')
+    if not fmp_api_key:
+        return None, "FMP API key not found. Please set FMP_API_KEY environment variable."
+    
+    try:
+        # Get current Monday (start of the week)
+        today = datetime.now()
+        days_since_monday = today.weekday()
+        monday = today - timedelta(days=days_since_monday)
+        
+        # Get upcoming 7 days from Monday
+        start_date = monday.strftime('%Y-%m-%d')
+        end_date = (monday + timedelta(days=6)).strftime('%Y-%m-%d')
+        
+        # FMP earnings calendar endpoint
+        url = f"https://financialmodelingprep.com/api/v3/earning_calendar"
+        params = {
+            'from': start_date,
+            'to': end_date,
+            'apikey': fmp_api_key
+        }
+        
+        response = requests.get(url, params=params, timeout=30)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if not data:
+                return pd.DataFrame(), "No earnings announcements found for this week."
+            
+            # Convert to DataFrame and format
+            df = pd.DataFrame(data)
+            
+            # Select and rename relevant columns
+            columns_map = {
+                'symbol': 'Symbol',
+                'date': 'Date',
+                'time': 'Time',
+                'eps': 'EPS Actual',
+                'epsEstimated': 'EPS Estimate',
+                'revenue': 'Revenue Actual',
+                'revenueEstimated': 'Revenue Estimate'
+            }
+            
+            # Keep only available columns
+            available_columns = {k: v for k, v in columns_map.items() if k in df.columns}
+            df_formatted = df[list(available_columns.keys())].copy()
+            df_formatted.rename(columns=available_columns, inplace=True)
+            
+            # Format date and sort
+            df_formatted['Date'] = pd.to_datetime(df_formatted['Date']).dt.strftime('%Y-%m-%d')
+            
+            # Add day of week
+            df_formatted['Day'] = pd.to_datetime(df_formatted['Date']).dt.strftime('%A')
+            
+            # Reorder columns
+            column_order = ['Symbol', 'Day', 'Date', 'Time'] + [col for col in df_formatted.columns if col not in ['Symbol', 'Day', 'Date', 'Time']]
+            df_formatted = df_formatted[column_order]
+            
+            # Sort by date and time
+            df_formatted = df_formatted.sort_values(['Date', 'Time'], na_position='last')
+            
+            return df_formatted, None
+            
+        elif response.status_code == 403:
+            return None, "API access denied. Please check your FMP API key subscription level."
+        else:
+            return None, f"API request failed with status code: {response.status_code}"
+            
+    except Exception as e:
+        return None, f"Error fetching earnings calendar: {str(e)}"
+
+def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx"):
+    """
+    Create Excel file from earnings calendar DataFrame
+    
+    Args:
+        df (pandas.DataFrame): Earnings calendar data
+        filename (str): Output filename
+    
+    Returns:
+        bytes: Excel file data
+    """
+    try:
+        buffer = io.BytesIO()
+        
+        with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+            # Write main data
+            df.to_excel(writer, sheet_name='Weekly Earnings Calendar', index=False)
+            
+            # Get the workbook and worksheet
+            workbook = writer.book
+            worksheet = writer.sheets['Weekly Earnings Calendar']
+            
+            # Format headers
+            header_font = Font(bold=True, color='FFFFFF')
+            header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+            header_alignment = Alignment(horizontal='center', vertical='center')
+            
+            for col_num, column_title in enumerate(df.columns, 1):
+                cell = worksheet.cell(row=1, column=col_num)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = header_alignment
+            
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 30)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
+            # Add creation timestamp
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            worksheet.cell(row=len(df) + 3, column=1, value=f"Generated: {timestamp}")
+        
+        buffer.seek(0)
+        return buffer.getvalue()
+        
+    except Exception as e:
+        st.error(f"Error creating Excel file: {str(e)}")
+        return None
 
 def calculate_investment_ratings(ticker_info, ticker_obj):
     """
