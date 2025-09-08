@@ -10012,11 +10012,11 @@ def stock_screener_tab():
         elif st.session_state.preset_applied == "Value Stocks":
             preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'roe_max': 100.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Growth Stocks":
-            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_growth_min': 10.0, 'roe_growth_max': 100.0, 'gross_margin_min': 20.0, 'market_cap_min': 1}
+            preset_values = {'rev_growth_min': 3.0, 'earnings_growth_min': 5.0, 'roe_growth_min': 8.0, 'roe_growth_max': 100.0, 'gross_margin_min': 15.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Large Cap Dividend":
             preset_values = {'div_yield_min': 1.0, 'div_yield_max': 10.0, 'payout_ratio_max': 80.0, 'market_cap_min': 4, 'beta_max': 2.0}
         elif st.session_state.preset_applied == "Small Cap Growth":
-            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_growth_min': 15.0, 'roe_growth_max': 100.0, 'gross_margin_min': 25.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
+            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 8.0, 'roe_growth_min': 10.0, 'roe_growth_max': 100.0, 'gross_margin_min': 18.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
 
         with filter_tabs[0]:  # Valuation filters
             col_val1, col_val2, col_val3 = st.columns(3)
@@ -10286,9 +10286,9 @@ def stock_screener_tab():
         st.markdown("""
         - **✅ Value Stocks** (Currently Loaded): P/E <20, P/B <5, ROE >5% - Find undervalued companies
         - **High Dividend Stocks**: Dividend yield >2%, stable payout ratios - Income-focused investing
-        - **Growth Stocks**: Revenue growth >5%, earnings growth >10% - Fast-growing companies
+        - **Growth Stocks**: Revenue growth >3%, earnings growth >5%, ROE >8% - Fast-growing companies
         - **Large Cap Dividend**: Large companies with stable dividends - Conservative income
-        - **Small Cap Growth**: Small companies with high growth potential - Aggressive growth
+        - **Small Cap Growth**: Small companies with growth >5%/8%, ROE >10% - Aggressive growth
         
         **Want to try a different strategy?** Select one from the dropdown above and click 'Apply Preset'
         """)
@@ -10395,11 +10395,12 @@ def run_stock_screen(filters):
                     continue
                 if earnings_growth is not None and earnings_growth < filters['earnings_growth_min']:
                     continue
-                # Apply both valuation and growth ROE filters (stock must meet both criteria)
-                if roe is not None and (roe < filters['roe_min'] or roe > filters['roe_max']):
-                    continue
-                if roe is not None and (roe < filters['roe_growth_min'] or roe > filters['roe_growth_max']):
-                    continue
+                # Apply ROE filters - use the most restrictive range from valuation and growth tabs
+                if roe is not None:
+                    effective_roe_min = max(filters['roe_min'], filters['roe_growth_min'])
+                    effective_roe_max = min(filters['roe_max'], filters['roe_growth_max'])
+                    if roe < effective_roe_min or roe > effective_roe_max:
+                        continue
                 if profit_margin is not None and profit_margin < filters['profit_margin_min']:
                     continue
                 if gross_margin is not None and gross_margin < filters['gross_margin_min']:
