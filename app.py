@@ -9320,8 +9320,10 @@ def get_weekly_market_events(force_refresh=False):
         if not force_refresh:
             cached_events, found_in_db = get_weekly_market_events_from_db(monday)
             if found_in_db and cached_events:
-                print(f"MARKET EVENTS: Using database data for week {week_range}")
+                print(f"MARKET EVENTS: Using database data for week {week_range} - found {len(cached_events)} events")
                 return cached_events, None
+            else:
+                print(f"MARKET EVENTS: No database data found for week {week_range}, will fetch from OpenAI")
         
         # Check if OpenAI API key is available
         openai_key = os.environ.get("OPENAI_API_KEY")
@@ -9511,113 +9513,75 @@ def market_events_tab():
                     
             elif events_list:
                 # Check if data is from database or fresh
-                cache_status = "🔄 Fresh Data" if force_refresh else "📊 Database Cache"
+                today = datetime.now()
+                days_since_monday = today.weekday()
+                monday = today - timedelta(days=days_since_monday)
+                cached_events, found_in_db = get_weekly_market_events_from_db(monday)
+                
+                if force_refresh:
+                    cache_status = "🔄 Fresh from OpenAI"
+                elif found_in_db:
+                    cache_status = "📊 Retrieved from Database"
+                else:
+                    cache_status = "⚠️ No Database Cache"
+                    
                 st.success(f"✅ Found **{len(events_list)}** key market events this week ({cache_status})")
                 
-                # Display the market events table
-                st.markdown("### 📋 Weekly Market Events Schedule")
+                # Display market events in card format for better readability
+                st.markdown("### 📋 Weekly Market Events")
                 
-                # Convert to DataFrame but with better formatting
-                import pandas as pd
-                events_df = pd.DataFrame(events_list)
-                
-                # Format the data for better display
-                for idx, row in events_df.iterrows():
-                    # Add line breaks to long text in Market Impact column
-                    impact_text = row.get('Market Impact', '')
-                    if len(impact_text) > 100:
-                        # Break long sentences at logical points
-                        words = impact_text.split(' ')
-                        chunks = []
-                        current_chunk = []
-                        current_length = 0
-                        
-                        for word in words:
-                            if current_length + len(word) > 80 and current_chunk:
-                                chunks.append(' '.join(current_chunk))
-                                current_chunk = [word]
-                                current_length = len(word)
-                            else:
-                                current_chunk.append(word)
-                                current_length += len(word) + 1
-                        
-                        if current_chunk:
-                            chunks.append(' '.join(current_chunk))
-                        
-                        events_df.at[idx, 'Market Impact'] = '\n'.join(chunks)
-                
-                # Enhanced column configuration with better text handling
-                column_config = {
-                    "Title": st.column_config.TextColumn(
-                        "📅 Event",
-                        width="medium",
-                        help="Market event title"
-                    ),
-                    "Date": st.column_config.DateColumn(
-                        "📆 Date", 
-                        width="small",
-                        help="Event date"
-                    ),
-                    "Time": st.column_config.TextColumn(
-                        "🕒 Time",
-                        width="small", 
-                        help="Event timing"
-                    ),
-                    "Category": st.column_config.TextColumn(
-                        "🏷️ Category",
-                        width="small",
-                        help="Event category"
-                    ),
-                    "Importance": st.column_config.TextColumn(
-                        "⚡ Level",
-                        width="small",
-                        help="Expected market impact level"
-                    ),
-                    "Description": st.column_config.TextColumn(
-                        "📝 What It Is",
-                        width="medium",
-                        help="Description of the event"
-                    ),
-                    "Market Impact": st.column_config.TextColumn(
-                        "💹 Why It Matters",
-                        width="large",
-                        help="Detailed analysis of market impact and trading implications"
-                    )
-                }
-                
-                # Display the table
-                st.dataframe(
-                    events_df, 
-                    use_container_width=True, 
-                    hide_index=True,
-                    column_config=column_config,
-                    height=600
-                )
-                
-                # Show events in expandable sections for better readability
-                st.markdown("### 📖 Detailed Event Analysis")
-                
+                # Show events as cards with proper text wrapping
                 for i, event in enumerate(events_list, 1):
                     importance = event.get('Importance', 'Medium')
-                    color = "🔴" if importance == "High" else "🟡" if importance == "Medium" else "🟢"
                     
-                    with st.expander(f"{color} {event.get('Title', 'N/A')} - {event.get('Date', 'TBD')}"):
-                        col1, col2, col3 = st.columns([1, 1, 2])
+                    # Color coding for importance
+                    if importance == "High":
+                        border_color = "#dc3545"
+                        bg_color = "#fff5f5"
+                        icon = "🔴"
+                    elif importance == "Medium":
+                        border_color = "#fd7e14"
+                        bg_color = "#fff8f0"
+                        icon = "🟡"
+                    else:
+                        border_color = "#198754"
+                        bg_color = "#f0fff4"
+                        icon = "🟢"
+                    
+                    # Create a container for each event
+                    with st.container():
+                        st.markdown(f"""
+                        <div style="
+                            border: 2px solid {border_color};
+                            border-radius: 10px;
+                            padding: 20px;
+                            margin: 15px 0;
+                            background-color: {bg_color};
+                        ">
+                            <h4 style="margin-top: 0; color: {border_color};">
+                                {icon} {event.get('Title', 'N/A')}
+                            </h4>
+                            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 15px;">
+                                <span><strong>📆 Date:</strong> {event.get('Date', 'TBD')}</span>
+                                <span><strong>🕒 Time:</strong> {event.get('Time', 'TBD')}</span>
+                                <span><strong>🏷️ Category:</strong> {event.get('Category', 'N/A')}</span>
+                                <span><strong>⚡ Impact:</strong> {importance}</span>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Use Streamlit columns for better text wrapping
+                        col1, col2 = st.columns([1, 1])
                         
                         with col1:
-                            st.write(f"**📆 Date:** {event.get('Date', 'TBD')}")
-                            st.write(f"**🕒 Time:** {event.get('Time', 'TBD')}")
-                        
-                        with col2:
-                            st.write(f"**🏷️ Category:** {event.get('Category', 'N/A')}")
-                            st.write(f"**⚡ Impact:** {importance}")
-                        
-                        with col3:
-                            st.write("**📝 What It Is:**")
+                            st.markdown("**📝 What It Is:**")
                             st.write(event.get('Description', 'N/A'))
                         
-                        st.markdown("**💹 Why It Matters:**")
-                        st.write(event.get('Market Impact', 'N/A'))
+                        with col2:
+                            st.markdown("**💹 Why It Matters:**")
+                            st.write(event.get('Market Impact', 'N/A'))
+                        
+                        st.markdown("---")
                 
                 # Display summary statistics
                 st.markdown("### 📊 Weekly Summary")
