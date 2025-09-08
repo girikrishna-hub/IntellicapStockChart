@@ -10005,18 +10005,18 @@ def stock_screener_tab():
                 return preset_values[key]
             return default_val
         
-        # Get preset values if any
+        # Get preset values if any (made more realistic/less restrictive)
         preset_values = {}
         if st.session_state.preset_applied == "High Dividend":
-            preset_values = {'div_yield_min': 3.0, 'div_yield_max': 15.0, 'payout_ratio_max': 80.0, 'market_cap_min': 3}
+            preset_values = {'div_yield_min': 2.0, 'div_yield_max': 15.0, 'payout_ratio_max': 90.0, 'market_cap_min': 2}
         elif st.session_state.preset_applied == "Value Stocks":
-            preset_values = {'pe_min': 0.0, 'pe_max': 15.0, 'pb_min': 0.0, 'pb_max': 3.0, 'roe_min': 10.0, 'market_cap_min': 0}
+            preset_values = {'pe_min': 0.0, 'pe_max': 20.0, 'pb_min': 0.0, 'pb_max': 5.0, 'roe_min': 5.0, 'market_cap_min': 0}
         elif st.session_state.preset_applied == "Growth Stocks":
-            preset_values = {'rev_growth_min': 15.0, 'earnings_growth_min': 20.0, 'roe_min': 15.0, 'market_cap_min': 2}
+            preset_values = {'rev_growth_min': 5.0, 'earnings_growth_min': 10.0, 'roe_min': 10.0, 'market_cap_min': 1}
         elif st.session_state.preset_applied == "Large Cap Dividend":
-            preset_values = {'div_yield_min': 2.0, 'div_yield_max': 8.0, 'payout_ratio_max': 70.0, 'market_cap_min': 4, 'beta_max': 1.5}
+            preset_values = {'div_yield_min': 1.0, 'div_yield_max': 10.0, 'payout_ratio_max': 80.0, 'market_cap_min': 4, 'beta_max': 2.0}
         elif st.session_state.preset_applied == "Small Cap Growth":
-            preset_values = {'rev_growth_min': 20.0, 'earnings_growth_min': 25.0, 'roe_min': 20.0, 'market_cap_min': 2, 'volume_avg_min': 50000}
+            preset_values = {'rev_growth_min': 10.0, 'earnings_growth_min': 15.0, 'roe_min': 15.0, 'market_cap_min': 1, 'volume_avg_min': 25000}
 
         with filter_tabs[0]:  # Valuation filters
             col_val1, col_val2 = st.columns(2)
@@ -10085,15 +10085,15 @@ def stock_screener_tab():
         
         # Show what the selected preset does
         if preset_filter == "💰 High Dividend Stocks":
-            st.info("**Will set:** Dividend yield >3%, Payout ratio <80%, Mid-cap+ stocks")
+            st.info("**Will set:** Dividend yield >2%, Payout ratio <90%, Mid-cap+ stocks")
         elif preset_filter == "📉 Value Stocks":
-            st.info("**Will set:** P/E <15, P/B <3, ROE >10% (undervalued companies)")
+            st.info("**Will set:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
         elif preset_filter == "📈 Growth Stocks":
-            st.info("**Will set:** Revenue growth >15%, Earnings growth >20%, ROE >15%")
+            st.info("**Will set:** Revenue growth >5%, Earnings growth >10%, ROE >10%")
         elif preset_filter == "🏦 Large Cap Dividend":
-            st.info("**Will set:** Large cap stocks, Dividend yield >2%, Stable financials")
+            st.info("**Will set:** Large cap stocks, Dividend yield >1%, Stable financials")
         elif preset_filter == "⚡ Small Cap Growth":
-            st.info("**Will set:** Small cap stocks, High growth metrics, ROE >20%")
+            st.info("**Will set:** Small cap stocks, Growth metrics >10-15%, ROE >15%")
         
         col_preset1, col_preset2 = st.columns(2)
         
@@ -10260,71 +10260,103 @@ def run_stock_screen(filters):
         import time
         import random
         
-        # Sample of popular stocks to screen (in a real implementation, you'd use a comprehensive stock list)
+        # Expanded stock universe with current, active stocks
         sample_tickers = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'JPM', 'JNJ',
-            'PG', 'UNH', 'HD', 'MA', 'BAC', 'DIS', 'ADBE', 'CRM', 'NFLX', 'XOM',
-            'CVX', 'KO', 'PEP', 'TMO', 'ABBV', 'MRK', 'COST', 'WMT', 'NKE', 'MCD',
-            'T', 'VZ', 'IBM', 'GE', 'F', 'GM', 'AMD', 'INTC', 'ORCL', 'PYPL',
-            'V', 'WFC', 'GS', 'MS', 'C', 'BRK-B', 'AMGN', 'GILD', 'BMY', 'CELG'
+            # Tech Giants
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'NFLX', 'ADBE', 'CRM',
+            'ORCL', 'IBM', 'INTC', 'AMD', 'QCOM', 'AVGO', 'TXN', 'LRCX', 'KLAC', 'MRVL',
+            
+            # Financial Services
+            'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'USB', 'PNC', 'TFC', 'COF',
+            'AXP', 'BLK', 'SPGI', 'ICE', 'CME', 'V', 'MA', 'PYPL', 'FIS', 'FISV',
+            
+            # Healthcare & Pharma
+            'JNJ', 'UNH', 'PFE', 'ABBV', 'MRK', 'TMO', 'ABT', 'DHR', 'BMY', 'AMGN',
+            'GILD', 'BIIB', 'REGN', 'VRTX', 'MRNA', 'ZTS', 'CVS', 'CI', 'HUM', 'ANTM',
+            
+            # Consumer & Retail
+            'WMT', 'HD', 'PG', 'KO', 'PEP', 'COST', 'TGT', 'LOW', 'SBUX', 'MCD',
+            'NKE', 'DIS', 'CMCSA', 'VZ', 'T', 'CHTR', 'PM', 'MO', 'CL', 'KMB',
+            
+            # Industrial & Energy
+            'XOM', 'CVX', 'COP', 'EOG', 'PSX', 'VLO', 'SLB', 'OXY', 'KMI', 'WMB',
+            'GE', 'CAT', 'BA', 'RTX', 'LMT', 'NOC', 'GD', 'HON', 'UPS', 'FDX',
+            
+            # REITs & Utilities
+            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'XEL', 'WEC', 'ES',
+            'AMT', 'CCI', 'EQIX', 'PLD', 'SPG', 'O', 'WELL', 'EXR', 'AVB', 'EQR',
+            
+            # Materials & Other
+            'LIN', 'APD', 'ECL', 'SHW', 'FCX', 'NEM', 'GOLD', 'FNV', 'BHP', 'RIO'
         ]
         
         results = []
         processed_count = 0
-        max_stocks = 50  # Limit to prevent long processing times
+        failed_count = 0
+        max_stocks = 100  # Increased limit for better screening results
         
         # Shuffle the list to get varied results
         random.shuffle(sample_tickers)
+        
+        # Add status placeholder
+        status_placeholder = st.empty()
         
         for ticker in sample_tickers[:max_stocks]:
             try:
                 processed_count += 1
                 if processed_count % 10 == 0:
-                    st.write(f"Processed {processed_count}/{min(max_stocks, len(sample_tickers))} stocks...")
+                    status_placeholder.info(f"🔄 Processing {processed_count}/{min(max_stocks, len(sample_tickers))} stocks... Found {len(results)} matches so far.")
                 
                 # Get stock data
                 stock = yf.Ticker(ticker)
                 info = stock.info
                 hist = stock.history(period="3mo")
                 
-                if hist.empty or not info:
+                if hist.empty or not info or len(info) < 5:
+                    failed_count += 1
                     continue
                     
-                # Extract metrics for filtering
+                # Extract metrics for filtering with better error handling
                 current_price = hist['Close'].iloc[-1] if not hist.empty else 0
-                pe_ratio = info.get('trailingPE', 0) or 0
-                pb_ratio = info.get('priceToBook', 0) or 0
+                if current_price <= 0:
+                    continue
+                    
+                pe_ratio = info.get('trailingPE', None) 
+                pb_ratio = info.get('priceToBook', None)
                 market_cap = info.get('marketCap', 0) or 0
                 dividend_yield = (info.get('dividendYield', 0) or 0) * 100
-                beta = info.get('beta', 0) or 1
+                beta = info.get('beta', 1) or 1
                 avg_volume = info.get('averageVolume', 0) or 0
-                profit_margin = (info.get('profitMargins', 0) or 0) * 100
-                roe = (info.get('returnOnEquity', 0) or 0) * 100
-                revenue_growth = (info.get('revenueGrowth', 0) or 0) * 100
-                earnings_growth = (info.get('earningsGrowth', 0) or 0) * 100
-                payout_ratio = (info.get('payoutRatio', 0) or 0) * 100
+                profit_margin = (info.get('profitMargins', None) or 0) * 100 if info.get('profitMargins') else None
+                roe = (info.get('returnOnEquity', None) or 0) * 100 if info.get('returnOnEquity') else None
+                revenue_growth = (info.get('revenueGrowth', None) or 0) * 100 if info.get('revenueGrowth') else None
+                earnings_growth = (info.get('earningsGrowth', None) or 0) * 100 if info.get('earningsGrowth') else None
+                payout_ratio = (info.get('payoutRatio', None) or 0) * 100 if info.get('payoutRatio') else None
                 sector = info.get('sector', 'Unknown')
                 
                 # Calculate 1-month price change
-                price_1m_ago = hist['Close'].iloc[-22] if len(hist) >= 22 else hist['Close'].iloc[0]
-                price_change_1m = ((current_price - price_1m_ago) / price_1m_ago) * 100
+                try:
+                    price_1m_ago = hist['Close'].iloc[-22] if len(hist) >= 22 else hist['Close'].iloc[0]
+                    price_change_1m = ((current_price - price_1m_ago) / price_1m_ago) * 100
+                except:
+                    price_change_1m = 0
                 
-                # Apply filters
-                if pe_ratio > 0 and (pe_ratio < filters['pe_min'] or pe_ratio > filters['pe_max']):
+                # Apply filters with None checking (only filter if data is available)
+                if pe_ratio is not None and (pe_ratio < filters['pe_min'] or pe_ratio > filters['pe_max']):
                     continue
-                if pb_ratio > 0 and (pb_ratio < filters['pb_min'] or pb_ratio > filters['pb_max']):
+                if pb_ratio is not None and (pb_ratio < filters['pb_min'] or pb_ratio > filters['pb_max']):
                     continue
-                if revenue_growth < filters['rev_growth_min']:
+                if revenue_growth is not None and revenue_growth < filters['rev_growth_min']:
                     continue
-                if earnings_growth < filters['earnings_growth_min']:
+                if earnings_growth is not None and earnings_growth < filters['earnings_growth_min']:
                     continue
-                if roe < filters['roe_min']:
+                if roe is not None and roe < filters['roe_min']:
                     continue
-                if profit_margin < filters['profit_margin_min']:
+                if profit_margin is not None and profit_margin < filters['profit_margin_min']:
                     continue
                 if dividend_yield < filters['div_yield_min'] or dividend_yield > filters['div_yield_max']:
                     continue
-                if payout_ratio > filters['payout_ratio_max']:
+                if payout_ratio is not None and payout_ratio > filters['payout_ratio_max']:
                     continue
                 if price_change_1m < filters['price_change_1m_min'] or price_change_1m > filters['price_change_1m_max']:
                     continue
@@ -10366,13 +10398,13 @@ def run_stock_screen(filters):
                     'Sector': sector,
                     'Market Cap': market_cap_str,
                     'Price': f"${current_price:.2f}",
-                    'P/E Ratio': f"{pe_ratio:.1f}" if pe_ratio > 0 else "N/A",
-                    'P/B Ratio': f"{pb_ratio:.1f}" if pb_ratio > 0 else "N/A",
+                    'P/E Ratio': f"{pe_ratio:.1f}" if pe_ratio is not None and pe_ratio > 0 else "N/A",
+                    'P/B Ratio': f"{pb_ratio:.1f}" if pb_ratio is not None and pb_ratio > 0 else "N/A",
                     'Dividend Yield': f"{dividend_yield:.1f}%" if dividend_yield > 0 else "0.0%",
-                    'ROE': f"{roe:.1f}%" if roe != 0 else "N/A",
-                    'Profit Margin': f"{profit_margin:.1f}%" if profit_margin != 0 else "N/A",
-                    'Revenue Growth': f"{revenue_growth:.1f}%" if revenue_growth != 0 else "N/A",
-                    'Earnings Growth': f"{earnings_growth:.1f}%" if earnings_growth != 0 else "N/A",
+                    'ROE': f"{roe:.1f}%" if roe is not None else "N/A",
+                    'Profit Margin': f"{profit_margin:.1f}%" if profit_margin is not None else "N/A",
+                    'Revenue Growth': f"{revenue_growth:.1f}%" if revenue_growth is not None else "N/A",
+                    'Earnings Growth': f"{earnings_growth:.1f}%" if earnings_growth is not None else "N/A",
                     '1M Change': f"{price_change_1m:.1f}%",
                     'Beta': f"{beta:.2f}" if beta > 0 else "N/A",
                     'Avg Volume': f"{avg_volume:,}" if avg_volume > 0 else "N/A"
@@ -10383,7 +10415,11 @@ def run_stock_screen(filters):
                 
             except Exception as e:
                 print(f"Error processing {ticker}: {str(e)}")
+                failed_count += 1
                 continue
+        
+        # Clear status and show final results
+        status_placeholder.success(f"✅ Screening complete! Processed {processed_count} stocks, found {len(results)} matches, {failed_count} failed.")
         
         return results
         
