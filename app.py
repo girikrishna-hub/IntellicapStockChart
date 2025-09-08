@@ -9998,81 +9998,145 @@ def stock_screener_tab():
         with filter_tabs[0]:  # Valuation filters
             col_val1, col_val2 = st.columns(2)
             with col_val1:
-                pe_min = st.number_input("Min P/E Ratio", min_value=0.0, value=0.0, step=0.1, help="Minimum Price-to-Earnings ratio")
-                pe_max = st.number_input("Max P/E Ratio", min_value=0.0, value=50.0, step=0.1, help="Maximum Price-to-Earnings ratio")
+                pe_min = st.number_input("Min P/E Ratio", min_value=0.0, value=st.session_state.get('pe_min', 0.0), step=0.1, help="Minimum Price-to-Earnings ratio", key="pe_min")
+                pe_max = st.number_input("Max P/E Ratio", min_value=0.0, value=st.session_state.get('pe_max', 50.0), step=0.1, help="Maximum Price-to-Earnings ratio", key="pe_max")
             with col_val2:
-                pb_min = st.number_input("Min P/B Ratio", min_value=0.0, value=0.0, step=0.1, help="Minimum Price-to-Book ratio")
-                pb_max = st.number_input("Max P/B Ratio", min_value=0.0, value=10.0, step=0.1, help="Maximum Price-to-Book ratio")
+                pb_min = st.number_input("Min P/B Ratio", min_value=0.0, value=st.session_state.get('pb_min', 0.0), step=0.1, help="Minimum Price-to-Book ratio", key="pb_min")
+                pb_max = st.number_input("Max P/B Ratio", min_value=0.0, value=st.session_state.get('pb_max', 10.0), step=0.1, help="Maximum Price-to-Book ratio", key="pb_max")
         
         with filter_tabs[1]:  # Growth filters
             col_growth1, col_growth2 = st.columns(2)
             with col_growth1:
-                rev_growth_min = st.number_input("Min Revenue Growth (%)", min_value=-100.0, value=0.0, step=1.0, help="Minimum revenue growth rate")
-                earnings_growth_min = st.number_input("Min Earnings Growth (%)", min_value=-100.0, value=0.0, step=1.0, help="Minimum earnings growth rate")
+                rev_growth_min = st.number_input("Min Revenue Growth (%)", min_value=-100.0, value=st.session_state.get('rev_growth_min', 0.0), step=1.0, help="Minimum revenue growth rate", key="rev_growth_min")
+                earnings_growth_min = st.number_input("Min Earnings Growth (%)", min_value=-100.0, value=st.session_state.get('earnings_growth_min', 0.0), step=1.0, help="Minimum earnings growth rate", key="earnings_growth_min")
             with col_growth2:
-                roe_min = st.number_input("Min ROE (%)", min_value=-50.0, value=0.0, step=1.0, help="Minimum Return on Equity")
-                profit_margin_min = st.number_input("Min Profit Margin (%)", min_value=-50.0, value=0.0, step=1.0, help="Minimum profit margin")
+                roe_min = st.number_input("Min ROE (%)", min_value=-50.0, value=st.session_state.get('roe_min', 0.0), step=1.0, help="Minimum Return on Equity", key="roe_min")
+                profit_margin_min = st.number_input("Min Profit Margin (%)", min_value=-50.0, value=st.session_state.get('profit_margin_min', 0.0), step=1.0, help="Minimum profit margin", key="profit_margin_min")
         
         with filter_tabs[2]:  # Dividend filters
             col_div1, col_div2 = st.columns(2)
             with col_div1:
-                div_yield_min = st.number_input("Min Dividend Yield (%)", min_value=0.0, value=0.0, step=0.1, help="Minimum dividend yield")
-                div_yield_max = st.number_input("Max Dividend Yield (%)", min_value=0.0, value=20.0, step=0.1, help="Maximum dividend yield")
+                div_yield_min = st.number_input("Min Dividend Yield (%)", min_value=0.0, value=st.session_state.get('div_yield_min', 0.0), step=0.1, help="Minimum dividend yield", key="div_yield_min")
+                div_yield_max = st.number_input("Max Dividend Yield (%)", min_value=0.0, value=st.session_state.get('div_yield_max', 20.0), step=0.1, help="Maximum dividend yield", key="div_yield_max")
             with col_div2:
-                payout_ratio_max = st.number_input("Max Payout Ratio (%)", min_value=0.0, value=100.0, step=1.0, help="Maximum dividend payout ratio")
+                payout_ratio_max = st.number_input("Max Payout Ratio (%)", min_value=0.0, value=st.session_state.get('payout_ratio_max', 100.0), step=1.0, help="Maximum dividend payout ratio", key="payout_ratio_max")
         
         with filter_tabs[3]:  # Technical filters
             col_tech1, col_tech2 = st.columns(2)
             with col_tech1:
-                price_change_1m_min = st.number_input("Min 1M Price Change (%)", min_value=-100.0, value=-50.0, step=1.0, help="Minimum 1-month price change")
-                price_change_1m_max = st.number_input("Max 1M Price Change (%)", min_value=-100.0, value=100.0, step=1.0, help="Maximum 1-month price change")
+                price_change_1m_min = st.number_input("Min 1M Price Change (%)", min_value=-100.0, value=st.session_state.get('price_change_1m_min', -50.0), step=1.0, help="Minimum 1-month price change", key="price_change_1m_min")
+                price_change_1m_max = st.number_input("Max 1M Price Change (%)", min_value=-100.0, value=st.session_state.get('price_change_1m_max', 100.0), step=1.0, help="Maximum 1-month price change", key="price_change_1m_max")
             with col_tech2:
-                volume_avg_min = st.number_input("Min Avg Volume", min_value=0, value=100000, step=10000, help="Minimum average daily volume")
-                beta_max = st.number_input("Max Beta", min_value=0.0, value=3.0, step=0.1, help="Maximum beta (volatility vs market)")
+                volume_avg_min = st.number_input("Min Avg Volume", min_value=0, value=st.session_state.get('volume_avg_min', 100000), step=10000, help="Minimum average daily volume", key="volume_avg_min")
+                beta_max = st.number_input("Max Beta", min_value=0.0, value=st.session_state.get('beta_max', 3.0), step=0.1, help="Maximum beta (volatility vs market)", key="beta_max")
         
         with filter_tabs[4]:  # Size filters
             col_size1, col_size2 = st.columns(2)
             with col_size1:
                 market_cap_min = st.selectbox("Min Market Cap", 
                     ["Any", "Micro ($0-300M)", "Small ($300M-2B)", "Mid ($2B-10B)", "Large ($10B+)"],
-                    index=0, help="Minimum market capitalization")
+                    index=["Any", "Micro ($0-300M)", "Small ($300M-2B)", "Mid ($2B-10B)", "Large ($10B+)"].index(st.session_state.get('market_cap_min', 'Any')), 
+                    help="Minimum market capitalization", key="market_cap_min")
             with col_size2:
                 sectors = st.multiselect("Sectors", 
                     ["Technology", "Healthcare", "Financial Services", "Consumer Cyclical", 
                      "Industrials", "Energy", "Utilities", "Real Estate", "Materials", 
                      "Consumer Defensive", "Communication Services", "Basic Materials"],
-                    help="Filter by specific sectors")
+                    default=st.session_state.get('sectors', []),
+                    help="Filter by specific sectors", key="sectors")
     
     with col2:
         st.markdown("#### 🎮 Quick Actions")
         
-        # Popular preset filters
-        preset_filter = st.selectbox("Preset Filters", [
-            "Custom", "High Dividend (>3%)", "Value Stocks (Low P/E)", 
-            "Growth Stocks (High Growth)", "Large Cap Dividend", "Small Cap Growth"
-        ], help="Choose from popular filter combinations")
+        # Popular preset filters with clear descriptions
+        preset_filter = st.selectbox("Choose Preset Strategy", [
+            "Custom (Manual Settings)",
+            "💰 High Dividend Stocks", 
+            "📉 Value Stocks", 
+            "📈 Growth Stocks",
+            "🏦 Large Cap Dividend",
+            "⚡ Small Cap Growth"
+        ], help="Select a pre-configured investment strategy")
         
-        if st.button("Apply Preset", help="Apply the selected preset filter"):
-            if preset_filter == "High Dividend (>3%)":
-                st.session_state.update({
-                    'div_yield_min': 3.0, 'div_yield_max': 15.0,
-                    'payout_ratio_max': 80.0, 'market_cap_min': "Mid ($2B-10B)"
-                })
-                st.success("High Dividend preset applied!")
+        # Show what the selected preset does
+        if preset_filter == "💰 High Dividend Stocks":
+            st.info("**Will set:** Dividend yield >3%, Payout ratio <80%, Mid-cap+ stocks")
+        elif preset_filter == "📉 Value Stocks":
+            st.info("**Will set:** P/E <15, P/B <3, ROE >10% (undervalued companies)")
+        elif preset_filter == "📈 Growth Stocks":
+            st.info("**Will set:** Revenue growth >15%, Earnings growth >20%, ROE >15%")
+        elif preset_filter == "🏦 Large Cap Dividend":
+            st.info("**Will set:** Large cap stocks, Dividend yield >2%, Stable financials")
+        elif preset_filter == "⚡ Small Cap Growth":
+            st.info("**Will set:** Small cap stocks, High growth metrics, ROE >20%")
+        
+        col_preset1, col_preset2 = st.columns(2)
+        
+        with col_preset1:
+            if st.button("Apply Preset", help="Apply the selected preset and clear other filters"):
+                # Reset all filters first
+                reset_keys = ['pe_min', 'pe_max', 'pb_min', 'pb_max', 'rev_growth_min', 'earnings_growth_min', 
+                             'roe_min', 'profit_margin_min', 'div_yield_min', 'div_yield_max', 'payout_ratio_max',
+                             'price_change_1m_min', 'price_change_1m_max', 'volume_avg_min', 'beta_max', 'sectors']
                 
-            elif preset_filter == "Value Stocks (Low P/E)":
-                st.session_state.update({
-                    'pe_min': 0.0, 'pe_max': 15.0,
-                    'pb_max': 3.0, 'roe_min': 10.0
-                })
-                st.success("Value Stocks preset applied!")
+                for key in reset_keys:
+                    if key in st.session_state:
+                        del st.session_state[key]
                 
-            elif preset_filter == "Growth Stocks (High Growth)":
-                st.session_state.update({
-                    'rev_growth_min': 15.0, 'earnings_growth_min': 20.0,
-                    'roe_min': 15.0, 'market_cap_min': "Small ($300M-2B)"
-                })
-                st.success("Growth Stocks preset applied!")
+                # Apply preset values
+                if preset_filter == "💰 High Dividend Stocks":
+                    st.session_state.update({
+                        'div_yield_min': 3.0, 'div_yield_max': 15.0,
+                        'payout_ratio_max': 80.0, 'market_cap_min': "Mid ($2B-10B)"
+                    })
+                    st.success("✅ High Dividend preset applied! Check the Dividends tab.")
+                    
+                elif preset_filter == "📉 Value Stocks":
+                    st.session_state.update({
+                        'pe_min': 0.0, 'pe_max': 15.0,
+                        'pb_min': 0.0, 'pb_max': 3.0, 
+                        'roe_min': 10.0, 'market_cap_min': "Any"
+                    })
+                    st.success("✅ Value Stocks preset applied! Check Valuation & Growth tabs.")
+                    
+                elif preset_filter == "📈 Growth Stocks":
+                    st.session_state.update({
+                        'rev_growth_min': 15.0, 'earnings_growth_min': 20.0,
+                        'roe_min': 15.0, 'market_cap_min': "Small ($300M-2B)"
+                    })
+                    st.success("✅ Growth Stocks preset applied! Check Growth & Size tabs.")
+                    
+                elif preset_filter == "🏦 Large Cap Dividend":
+                    st.session_state.update({
+                        'div_yield_min': 2.0, 'div_yield_max': 8.0,
+                        'payout_ratio_max': 70.0, 'market_cap_min': "Large ($10B+)",
+                        'beta_max': 1.5
+                    })
+                    st.success("✅ Large Cap Dividend preset applied! Check Dividends & Size tabs.")
+                    
+                elif preset_filter == "⚡ Small Cap Growth":
+                    st.session_state.update({
+                        'rev_growth_min': 20.0, 'earnings_growth_min': 25.0,
+                        'roe_min': 20.0, 'market_cap_min': "Small ($300M-2B)",
+                        'volume_avg_min': 50000
+                    })
+                    st.success("✅ Small Cap Growth preset applied! Check Growth & Size tabs.")
+                    
+                # Trigger page rerun to update UI
+                st.rerun()
+        
+        with col_preset2:
+            if st.button("🔄 Reset All", help="Clear all filters and reset to defaults"):
+                # Clear all filter values from session state
+                filter_keys = ['pe_min', 'pe_max', 'pb_min', 'pb_max', 'rev_growth_min', 'earnings_growth_min', 
+                              'roe_min', 'profit_margin_min', 'div_yield_min', 'div_yield_max', 'payout_ratio_max',
+                              'price_change_1m_min', 'price_change_1m_max', 'volume_avg_min', 'beta_max', 
+                              'market_cap_min', 'sectors']
+                for key in filter_keys:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                st.success("✅ All filters reset to defaults!")
+                st.rerun()
         
         st.markdown("---")
         
@@ -10235,7 +10299,7 @@ def run_stock_screen(filters):
                     continue
                     
                 # Extract metrics for filtering
-                current_price = hist['Close'][-1] if not hist.empty else 0
+                current_price = hist['Close'].iloc[-1] if not hist.empty else 0
                 pe_ratio = info.get('trailingPE', 0) or 0
                 pb_ratio = info.get('priceToBook', 0) or 0
                 market_cap = info.get('marketCap', 0) or 0
@@ -10250,7 +10314,7 @@ def run_stock_screen(filters):
                 sector = info.get('sector', 'Unknown')
                 
                 # Calculate 1-month price change
-                price_1m_ago = hist['Close'][-22] if len(hist) >= 22 else hist['Close'][0]
+                price_1m_ago = hist['Close'].iloc[-22] if len(hist) >= 22 else hist['Close'].iloc[0]
                 price_change_1m = ((current_price - price_1m_ago) / price_1m_ago) * 100
                 
                 # Apply filters
