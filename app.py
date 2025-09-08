@@ -8701,6 +8701,9 @@ def weekly_earnings_calendar_tab():
     - Updates automatically based on current week (Monday-Sunday)
     - Includes comprehensive data for all major exchanges (NYSE, NASDAQ, etc.)
     - More reliable than Yahoo Finance for upcoming earnings dates
+    
+    **📈 Stock Symbols:** NASDAQ API provides company names but not ticker symbols. 
+    Major companies (ORCL, ADBE, etc.) are mapped correctly, others show approximations.
     """)
     
     st.markdown("---")
@@ -8940,6 +8943,48 @@ def weekly_earnings_calendar_tab():
             """)
 
 
+def extract_ticker_from_company_name(company_name):
+    """
+    Try to extract or guess ticker symbol from company name
+    This is a best-effort approach since NASDAQ API doesn't provide tickers
+    """
+    if not company_name or company_name == 'N/A':
+        return 'N/A'
+    
+    # Known mapping for major companies
+    known_companies = {
+        'Oracle Corporation': 'ORCL',
+        'Adobe Inc.': 'ADBE', 
+        'Adobe Inc': 'ADBE',
+        'Apple Inc.': 'AAPL',
+        'Microsoft Corporation': 'MSFT',
+        'Amazon.com, Inc.': 'AMZN',
+        'Alphabet Inc.': 'GOOGL',
+        'Meta Platforms, Inc.': 'META',
+        'Tesla, Inc.': 'TSLA',
+        'NVIDIA Corporation': 'NVDA',
+        'Chewy, Inc.': 'CHWY',
+        'Caseys General Stores, Inc.': 'CASY',
+        'Value Line, Inc.': 'VALU'
+    }
+    
+    # Check known companies first
+    if company_name in known_companies:
+        return known_companies[company_name]
+    
+    # For companies not in our known list, extract first word as approximation
+    first_word = company_name.split()[0].upper()
+    
+    # Remove common suffixes
+    if first_word.endswith(','):
+        first_word = first_word[:-1]
+    
+    # Keep only letters and limit length
+    ticker_approx = ''.join(char for char in first_word if char.isalpha())[:4]
+    
+    return ticker_approx if ticker_approx else 'N/A'
+
+
 def get_weekly_earnings_calendar():
     """
     Fetch weekly earnings announcements using NASDAQ API (completely free, no API key required)
@@ -8979,40 +9024,33 @@ def get_weekly_earnings_calendar():
                     if daily_earnings is not None and not daily_earnings.empty:
                         print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {date_str}")
                         
-                        # Debug: Print available columns and first few records
-                        if attempt == 0:  # Only print on first attempt to avoid spam
-                            print(f"NASDAQ EARNINGS DEBUG: Available columns: {list(daily_earnings.columns)}")
-                            if len(daily_earnings) > 0:
-                                print(f"NASDAQ EARNINGS DEBUG: First record: {dict(daily_earnings.iloc[0])}")
-                        
                         # Process each earning announcement for this date
                         for _, earning in daily_earnings.iterrows():
                             try:
-                                # Debug: Print the current earning record
-                                if len(earnings_this_week) < 3:  # Only print first 3 to avoid spam
-                                    print(f"NASDAQ EARNINGS DEBUG: Processing record: {dict(earning)}")
                                 
-                                # Extract relevant information - try multiple field name variations
-                                symbol = (earning.get('symbol') or earning.get('Symbol') or 
-                                         earning.get('ticker') or earning.get('Ticker') or 'N/A')
+                                # Extract information using correct NASDAQ API field names
+                                company_name = earning.get('name', 'N/A')
                                 
-                                company_name = (earning.get('company') or earning.get('Company') or 
-                                              earning.get('name') or earning.get('Name') or 
-                                              earning.get('companyName') or earning.get('CompanyName') or symbol)
-                                
-                                # Get EPS estimate if available - try multiple field variations
-                                eps_estimate = (earning.get('epsEstimate') or earning.get('EpsEstimate') or 
-                                              earning.get('eps_estimate') or earning.get('EPS_Estimate') or
-                                              earning.get('estimate') or earning.get('Estimate') or 'N/A')
+                                # EPS forecast from NASDAQ API
+                                eps_estimate = earning.get('epsForecast', 'N/A')
                                 if eps_estimate == '' or eps_estimate is None:
                                     eps_estimate = 'N/A'
                                 
-                                # Determine timing if available - try multiple field variations
-                                timing = (earning.get('time') or earning.get('Time') or 
-                                         earning.get('timing') or earning.get('Timing') or
-                                         earning.get('when') or earning.get('When') or 'TBD')
-                                if timing == '' or timing is None:
+                                # Clean up timing information
+                                timing_raw = earning.get('time', 'TBD')
+                                if timing_raw and timing_raw.startswith('time-'):
+                                    timing = timing_raw.replace('time-', '').replace('-', ' ').title()
+                                    if timing == 'After Hours':
+                                        timing = 'AMC'
+                                    elif timing == 'Pre Market':
+                                        timing = 'BMO'
+                                    elif timing == 'Not Supplied':
+                                        timing = 'TBD'
+                                else:
                                     timing = 'TBD'
+                                
+                                # Try to extract ticker symbol from company name (basic approach)
+                                symbol = extract_ticker_from_company_name(company_name)
                                 
                                 earnings_this_week.append({
                                     'Symbol': symbol,
