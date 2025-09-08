@@ -9226,6 +9226,91 @@ def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx")
         return None
 
 
+def create_market_events_excel(df):
+    """
+    Create Excel file for market events data
+    """
+    try:
+        import io
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from datetime import datetime
+        
+        # Create a new workbook and worksheet
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Weekly Market Events"
+        
+        # Define column headers and their widths
+        headers = [
+            ("Event", 25),
+            ("Date", 12),
+            ("Time", 10),
+            ("Category", 15),
+            ("Impact Level", 12),
+            ("Description", 40),
+            ("Market Impact Analysis", 50)
+        ]
+        
+        # Add headers with formatting
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        for col_idx, (header, width) in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_idx, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            ws.column_dimensions[cell.column_letter].width = width
+        
+        # Add data rows
+        for row_idx, (_, row) in enumerate(df.iterrows(), 2):
+            ws.cell(row=row_idx, column=1, value=row.get('Title', 'N/A'))
+            ws.cell(row=row_idx, column=2, value=row.get('Date', 'TBD'))
+            ws.cell(row=row_idx, column=3, value=row.get('Time', 'TBD'))
+            ws.cell(row=row_idx, column=4, value=row.get('Category', 'N/A'))
+            
+            # Color-code importance level
+            importance_cell = ws.cell(row=row_idx, column=5, value=row.get('Importance', 'Medium'))
+            importance = row.get('Importance', 'Medium')
+            if importance == 'High':
+                importance_cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+                importance_cell.font = Font(color="CC0000", bold=True)
+            elif importance == 'Medium':
+                importance_cell.fill = PatternFill(start_color="FFF8E1", end_color="FFF8E1", fill_type="solid")
+                importance_cell.font = Font(color="FF8C00", bold=True)
+            else:
+                importance_cell.fill = PatternFill(start_color="E8F5E8", end_color="E8F5E8", fill_type="solid")
+                importance_cell.font = Font(color="228B22", bold=True)
+            
+            # Add description and market impact with text wrapping
+            desc_cell = ws.cell(row=row_idx, column=6, value=row.get('Description', 'N/A'))
+            desc_cell.alignment = Alignment(wrap_text=True, vertical="top")
+            
+            impact_cell = ws.cell(row=row_idx, column=7, value=row.get('Market Impact', 'N/A'))
+            impact_cell.alignment = Alignment(wrap_text=True, vertical="top")
+            
+            # Set row height for better readability
+            ws.row_dimensions[row_idx].height = 60
+        
+        # Add metadata at the bottom
+        last_row = len(df) + 3
+        ws.cell(row=last_row, column=1, value=f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        ws.cell(row=last_row + 1, column=1, value="Source: OpenAI Market Analysis")
+        
+        # Create BytesIO object and save workbook
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        return output.getvalue()
+        
+    except Exception as e:
+        print(f"Excel generation error: {str(e)}")
+        return None
+
+
 def get_weekly_market_events_from_db(monday):
     """
     Get market events from database for a specific week
@@ -9611,9 +9696,9 @@ def market_events_tab():
                         
                         st.markdown("---")
                 
-                # Display summary statistics
+                # Display summary statistics and download option
                 st.markdown("### 📊 Weekly Summary")
-                col_stats1, col_stats2, col_stats3 = st.columns(3)
+                col_stats1, col_stats2, col_stats3, col_stats4 = st.columns(4)
                 
                 with col_stats1:
                     high_impact = len([e for e in events_list if e.get('Importance') == 'High'])
@@ -9626,6 +9711,30 @@ def market_events_tab():
                 with col_stats3:
                     fed_events = len([e for e in events_list if 'Fed' in e.get('Category', '')])
                     st.metric("Fed-Related Events", fed_events)
+                
+                with col_stats4:
+                    # Excel download button
+                    import pandas as pd
+                    events_df = pd.DataFrame(events_list)
+                    
+                    # Generate Excel file
+                    excel_data = create_market_events_excel(events_df)
+                    
+                    if excel_data:
+                        today = datetime.now()
+                        days_since_monday = today.weekday()
+                        monday = today - timedelta(days=days_since_monday)
+                        sunday = monday + timedelta(days=6)
+                        week_range = f"{monday.strftime('%b_%d')}-{sunday.strftime('%b_%d_%Y')}"
+                        filename = f"Market_Events_{week_range}.xlsx"
+                        
+                        st.download_button(
+                            label="📥 Download Excel",
+                            data=excel_data,
+                            file_name=filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            help="Download events as Excel file"
+                        )
         else:
             st.warning("⚠️ No major market events found for this week")
             st.markdown("""
