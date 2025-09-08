@@ -8690,16 +8690,17 @@ def weekly_earnings_calendar_tab():
     """Weekly Earnings Calendar tab content"""
     
     st.markdown("### 📅 Weekly Earnings Calendar")
-    st.markdown("View companies announcing earnings this week using **free Yahoo Finance data**")
+    st.markdown("View companies announcing earnings this week using **NASDAQ's free public API**")
     st.markdown("---")
     
     # Information section
     st.info("""
     **💡 About This Data:**
-    - Uses Yahoo Finance (completely free, no API key required)
-    - Checks 60+ popular S&P 500 companies for earnings this week
+    - Uses NASDAQ's public earnings calendar API (completely free, no API key required)
+    - Covers ALL US stocks with earnings announcements 
     - Updates automatically based on current week (Monday-Sunday)
-    - Includes major stocks across Tech, Finance, Healthcare, Consumer, Industrial, and Energy sectors
+    - Includes comprehensive data for all major exchanges (NYSE, NASDAQ, etc.)
+    - More reliable than Yahoo Finance for upcoming earnings dates
     """)
     
     st.markdown("---")
@@ -8893,31 +8894,13 @@ def weekly_earnings_calendar_tab():
 
 def get_weekly_earnings_calendar():
     """
-    Fetch weekly earnings announcements using Yahoo Finance (free alternative)
+    Fetch weekly earnings announcements using NASDAQ API (completely free, no API key required)
     
     Returns:
         pandas.DataFrame: Weekly earnings calendar with company, date, and time information
     """
-    import yfinance as yf
+    from finance_calendars import finance_calendars as fc
     from datetime import datetime, timedelta
-    
-    # Popular stocks to check for earnings (can be expanded)
-    stock_symbols = [
-        # Major Tech
-        'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA', 'NFLX', 'ADBE', 'CRM',
-        # Financial
-        'JPM', 'BAC', 'WFC', 'GS', 'MS', 'C', 'V', 'MA', 'AXP', 'BLK',
-        # Healthcare
-        'JNJ', 'PFE', 'UNH', 'ABT', 'TMO', 'DHR', 'BMY', 'ABBV', 'MRK', 'LLY',
-        # Consumer
-        'PG', 'KO', 'PEP', 'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW',
-        # Industrial
-        'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT', 'DE', 'FDX',
-        # Energy
-        'XOM', 'CVX', 'COP', 'SLB', 'EOG', 'KMI', 'OXY', 'PSX', 'VLO', 'MPC',
-        # Others
-        'BRK-B', 'COST', 'AVGO', 'ORCL', 'CSCO', 'INTC', 'QCOM', 'IBM', 'TXN', 'INTU'
-    ]
     
     try:
         # Get current Monday (start of the week)
@@ -8926,122 +8909,104 @@ def get_weekly_earnings_calendar():
         monday = today - timedelta(days=days_since_monday)
         sunday = monday + timedelta(days=6)
         
-        print(f"EARNINGS DEBUG: Checking earnings for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')}")
+        print(f"NASDAQ EARNINGS: Fetching earnings for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')}")
         
         earnings_this_week = []
-        debug_info = []
         
-        # Test specific stocks first (Adobe and Oracle)
-        test_symbols = ['ADBE', 'ORCL', 'AAPL', 'MSFT', 'GOOGL']
-        
-        for symbol in test_symbols:
+        # Get earnings for each day of the week
+        current_date = monday
+        while current_date <= sunday:
             try:
-                print(f"EARNINGS DEBUG: Checking {symbol}...")
-                ticker = yf.Ticker(symbol)
+                print(f"NASDAQ EARNINGS: Checking date {current_date.strftime('%Y-%m-%d')}")
                 
-                # Get company info for name
-                info = ticker.info
-                company_name = info.get('longName', symbol)
+                # Get earnings for this specific date
+                daily_earnings = fc.get_earnings_by_date(current_date)
                 
-                # Check earnings calendar first
-                try:
-                    calendar = ticker.calendar
-                    print(f"EARNINGS DEBUG: {symbol} calendar type: {type(calendar)}, empty: {calendar is None or (hasattr(calendar, 'empty') and calendar.empty)}")
+                if daily_earnings and len(daily_earnings) > 0:
+                    print(f"NASDAQ EARNINGS: Found {len(daily_earnings)} earnings on {current_date.strftime('%Y-%m-%d')}")
                     
-                    if calendar is not None and not calendar.empty:
-                        print(f"EARNINGS DEBUG: {symbol} calendar dates: {list(calendar.index)}")
-                        for earnings_date in calendar.index:
-                            print(f"EARNINGS DEBUG: {symbol} checking date {earnings_date.date()} vs week {monday.date()}-{sunday.date()}")
-                            if monday.date() <= earnings_date.date() <= sunday.date():
-                                print(f"EARNINGS DEBUG: {symbol} MATCH! Adding to weekly earnings")
-                                earnings_this_week.append({
-                                    'Symbol': symbol,
-                                    'Company': company_name,
-                                    'Date': earnings_date.strftime('%Y-%m-%d'),
-                                    'Day': earnings_date.strftime('%A'),
-                                    'Time': 'TBD',
-                                    'EPS Estimate': 'N/A'
-                                })
-                except Exception as e:
-                    print(f"EARNINGS DEBUG: {symbol} calendar error: {str(e)}")
-                    # Try earnings_dates if calendar fails
-                    try:
-                        earnings_dates = ticker.earnings_dates
-                        print(f"EARNINGS DEBUG: {symbol} earnings_dates type: {type(earnings_dates)}, empty: {earnings_dates is None or (hasattr(earnings_dates, 'empty') and earnings_dates.empty)}")
-                        
-                        if earnings_dates is not None and not earnings_dates.empty:
-                            print(f"EARNINGS DEBUG: {symbol} earnings_dates: {list(earnings_dates.index[:10])}")  # Show first 10
-                            for earnings_date in earnings_dates.index:
-                                print(f"EARNINGS DEBUG: {symbol} checking earnings_date {earnings_date.date()} vs week {monday.date()}-{sunday.date()}")
-                                if monday.date() <= earnings_date.date() <= sunday.date():
-                                    print(f"EARNINGS DEBUG: {symbol} EARNINGS_DATES MATCH! Adding to weekly earnings")
-                                    earnings_this_week.append({
-                                        'Symbol': symbol,
-                                        'Company': company_name,
-                                        'Date': earnings_date.strftime('%Y-%m-%d'),
-                                        'Day': earnings_date.strftime('%A'),
-                                        'Time': 'TBD',
-                                        'EPS Estimate': 'N/A'
-                                    })
-                    except Exception as e2:
-                        print(f"EARNINGS DEBUG: {symbol} earnings_dates error: {str(e2)}")
-                        continue
-                        
-            except Exception as e:
-                print(f"EARNINGS DEBUG: {symbol} general error: {str(e)}")
-                continue
-        
-        # Now check all other stocks if test stocks worked
-        if earnings_this_week:
-            print(f"EARNINGS DEBUG: Found {len(earnings_this_week)} earnings from test stocks, checking all stocks...")
-            for symbol in stock_symbols:
-                if symbol in test_symbols:
-                    continue  # Already checked
-                try:
-                    ticker = yf.Ticker(symbol)
-                    info = ticker.info
-                    company_name = info.get('longName', symbol)
-                    
-                    # Check both calendar and earnings_dates
-                    for method_name, method in [('calendar', lambda t: t.calendar), ('earnings_dates', lambda t: t.earnings_dates)]:
+                    # Process each earning announcement for this date
+                    for earning in daily_earnings:
                         try:
-                            earnings_data = method(ticker)
-                            if earnings_data is not None and not earnings_data.empty:
-                                for earnings_date in earnings_data.index:
-                                    if monday.date() <= earnings_date.date() <= sunday.date():
-                                        earnings_this_week.append({
-                                            'Symbol': symbol,
-                                            'Company': company_name,
-                                            'Date': earnings_date.strftime('%Y-%m-%d'),
-                                            'Day': earnings_date.strftime('%A'),
-                                            'Time': 'TBD',
-                                            'EPS Estimate': 'N/A'
-                                        })
-                                break  # Don't check other method if this one worked
-                        except:
+                            # Extract relevant information
+                            symbol = earning.get('symbol', 'N/A')
+                            company_name = earning.get('company', earning.get('name', symbol))
+                            
+                            # Get EPS estimate if available
+                            eps_estimate = earning.get('epsEstimate', earning.get('eps_estimate', 'N/A'))
+                            if eps_estimate == '' or eps_estimate is None:
+                                eps_estimate = 'N/A'
+                            
+                            # Determine timing if available
+                            timing = earning.get('time', earning.get('timing', 'TBD'))
+                            if timing == '' or timing is None:
+                                timing = 'TBD'
+                            
+                            earnings_this_week.append({
+                                'Symbol': symbol,
+                                'Company': company_name,
+                                'Date': current_date.strftime('%Y-%m-%d'),
+                                'Day': current_date.strftime('%A'),
+                                'Time': timing,
+                                'EPS Estimate': eps_estimate
+                            })
+                            
+                        except Exception as e:
+                            print(f"NASDAQ EARNINGS: Error processing earning entry: {str(e)}")
                             continue
-                except:
-                    continue
+                
+                else:
+                    print(f"NASDAQ EARNINGS: No earnings found for {current_date.strftime('%Y-%m-%d')}")
+                    
+            except Exception as e:
+                print(f"NASDAQ EARNINGS: Error fetching earnings for {current_date.strftime('%Y-%m-%d')}: {str(e)}")
+            
+            # Move to next day
+            current_date += timedelta(days=1)
         
-        print(f"EARNINGS DEBUG: Total earnings found: {len(earnings_this_week)}")
+        print(f"NASDAQ EARNINGS: Total earnings found for the week: {len(earnings_this_week)}")
         
         if not earnings_this_week:
-            error_msg = f"No earnings announcements found for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')}. This could mean: (1) No major companies have earnings this week, (2) Yahoo Finance data is delayed, or (3) Earnings are scheduled outside our 60-stock list."
+            # Also try today's earnings as a fallback
+            try:
+                print("NASDAQ EARNINGS: Trying today's earnings as fallback...")
+                today_earnings = fc.get_earnings_today()
+                if today_earnings and len(today_earnings) > 0:
+                    print(f"NASDAQ EARNINGS: Found {len(today_earnings)} earnings for today")
+                    for earning in today_earnings[:5]:  # Limit to 5 for demo
+                        symbol = earning.get('symbol', 'N/A')
+                        company_name = earning.get('company', earning.get('name', symbol))
+                        earnings_this_week.append({
+                            'Symbol': symbol,
+                            'Company': company_name,
+                            'Date': today.strftime('%Y-%m-%d'),
+                            'Day': today.strftime('%A'),
+                            'Time': earning.get('time', 'TBD'),
+                            'EPS Estimate': earning.get('epsEstimate', 'N/A')
+                        })
+            except Exception as e:
+                print(f"NASDAQ EARNINGS: Error with today's earnings fallback: {str(e)}")
+        
+        if not earnings_this_week:
+            error_msg = f"No earnings announcements found for week {monday.strftime('%Y-%m-%d')} to {sunday.strftime('%Y-%m-%d')} from NASDAQ data. This might mean: (1) Light earnings week, or (2) Earnings scheduled outside current timeframe."
             return pd.DataFrame(), error_msg
         
         # Convert to DataFrame
         df = pd.DataFrame(earnings_this_week)
         
-        # Remove duplicates (same symbol might appear multiple times)
+        # Remove duplicates
         df = df.drop_duplicates(subset=['Symbol', 'Date']).reset_index(drop=True)
         
         # Sort by date and symbol
         df = df.sort_values(['Date', 'Symbol']).reset_index(drop=True)
         
+        print(f"NASDAQ EARNINGS: Returning {len(df)} unique earnings announcements")
         return df, None
         
     except Exception as e:
-        return None, f"Error fetching Yahoo Finance earnings calendar: {str(e)}"
+        error_msg = f"Error fetching NASDAQ earnings calendar: {str(e)}"
+        print(f"NASDAQ EARNINGS ERROR: {error_msg}")
+        return None, error_msg
 
 def create_earnings_calendar_excel(df, filename="weekly_earnings_calendar.xlsx"):
     """

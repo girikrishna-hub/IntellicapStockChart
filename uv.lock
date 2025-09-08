@@ -527,6 +527,15 @@ wheels = [
 ]
 
 [[package]]
+name = "finance-calendars"
+version = "0.0.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2e/6f/2e3970c14f1d9b8dd8f845ec606fcb7f2910ac7ec5ad9e76d1f8b2db5d67/finance_calendars-0.0.7.tar.gz", hash = "sha256:46e80655b4084b973ee001be44ad721c0afe7beaa1c166582e047a7de8ad4835", size = 3366 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/70/8f7f96d9dc505460562673c998f210dbb8d41dd3a72d44e26d85db54206e/finance_calendars-0.0.7-py3-none-any.whl", hash = "sha256:a15823951377f87fda36cad4895ac7dd8bb3bf4a362d7279fdbc6092985f2ceb", size = 3717 },
+]
+
+[[package]]
 name = "finvizfinance"
 version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2042,6 +2051,7 @@ dependencies = [
     { name = "alpha-vantage" },
     { name = "anthropic" },
     { name = "feedparser" },
+    { name = "finance-calendars" },
     { name = "finvizfinance" },
     { name = "google-genai" },
     { name = "kaleido" },
@@ -2067,6 +2077,7 @@ requires-dist = [
     { name = "alpha-vantage", specifier = ">=3.0.0" },
     { name = "anthropic", specifier = ">=0.64.0" },
     { name = "feedparser", specifier = ">=6.0.11" },
+    { name = "finance-calendars", specifier = ">=0.0.7" },
     { name = "finvizfinance", specifier = ">=1.1.1" },
     { name = "google-genai", specifier = ">=1.30.0" },
     { name = "kaleido", specifier = ">=1.0.0" },
