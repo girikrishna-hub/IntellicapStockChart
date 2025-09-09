@@ -262,22 +262,48 @@ def admin_secrets_tab():
     # Initialize secrets manager first
     secrets_manager = SecretsManager()
     
-    # Migration helper
+    # Migration helper with password protection
     st.markdown("#### 🔄 Migration Helper")
-    col_migrate, col_info = st.columns([1, 2])
     
-    with col_migrate:
-        if st.button("📥 Import from Environment", help="Copy your existing API keys from environment variables"):
-            with st.spinner("Importing existing keys..."):
-                success, message = secrets_manager.migrate_env_secrets_manually()
-                if success:
-                    st.success(f"✅ {message}")
-                    st.rerun()
-                else:
-                    st.error(f"❌ {message}")
+    # Check if any secrets are already configured
+    secrets = secrets_manager.get_all_secrets()
+    configured_count = sum(1 for s in secrets if s['is_configured'])
     
-    with col_info:
-        st.info("💡 **First time?** Click 'Import from Environment' to automatically copy your existing API keys so you don't have to re-enter them.")
+    if configured_count == 0:
+        # Show migration option only if no secrets configured yet
+        with st.expander("📥 Import from Environment Variables", expanded=False):
+            st.warning("⚠️ **Production Security**: This feature imports environment variables and should only be used by the application owner during initial setup.")
+            
+            migration_password = st.text_input(
+                "Admin Password", 
+                type="password",
+                help="Required to import environment variables in production",
+                placeholder="Enter admin password to import existing keys"
+            )
+            
+            col_migrate, col_info = st.columns([1, 2])
+            
+            with col_migrate:
+                if st.button("🔐 Import (Password Required)", help="Import existing API keys from environment variables"):
+                    if not migration_password:
+                        st.error("❌ Admin password required")
+                    elif migration_password != os.environ.get("ADMIN_MIGRATION_PASSWORD", "defaultAdminPass123"):
+                        st.error("❌ Invalid admin password")
+                    else:
+                        with st.spinner("Importing existing keys..."):
+                            success, message = secrets_manager.migrate_env_secrets_manually()
+                            if success:
+                                st.success(f"✅ {message}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {message}")
+            
+            with col_info:
+                st.info("💡 **For app owner only**: This imports your existing environment variables. Regular users should configure their own API keys below.")
+    
+    else:
+        # Show info that migration is not needed
+        st.info("💡 **Migration not needed**: API keys are already configured. Use the sections below to manage them.")
     
     st.markdown("---")
     
