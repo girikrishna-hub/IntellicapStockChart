@@ -23,6 +23,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "reportlab>=4.4.3",
     "requests>=2.32.4",
+    "sendgrid>=6.12.4",
     "streamlit>=1.48.1",
     "trafilatura>=2.0.0",
     "xlsxwriter>=3.2.5",

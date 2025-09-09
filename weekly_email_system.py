@@ -10,10 +10,14 @@ from email.mime.multipart import MIMEMultipart
 import smtplib
 import json
 
-# the newest OpenAI model is "gpt-5" which was released August 7, 2025.
+# the newest OpenAI model is "gpt-4o" which was released August 7, 2025.
 # do not change this unless explicitly requested by the user
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+# Gmail SMTP configuration
+GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 
 class WeeklyEmailGenerator:
     """Generate comprehensive weekly market analysis emails"""
@@ -363,6 +367,38 @@ class WeeklyEmailGenerator:
         except Exception as e:
             return f"Error getting action items data: {str(e)}"
     
+    def send_email(self, recipient_email, email_html):
+        """Send email using Gmail SMTP"""
+        try:
+            if not GMAIL_EMAIL or not GMAIL_APP_PASSWORD:
+                return False, "Gmail credentials not configured"
+            
+            # Create message
+            msg = MIMEMultipart('alternative')
+            market_label = f" - {self.market} Markets" if hasattr(self, 'market') else ""
+            msg['Subject'] = f"Weekly Market Analysis{market_label} - {datetime.now().strftime('%B %d, %Y')}"
+            msg['From'] = GMAIL_EMAIL
+            msg['To'] = recipient_email
+            
+            # Add HTML content
+            html_part = MIMEText(email_html, 'html')
+            msg.attach(html_part)
+            
+            # Connect to Gmail SMTP server
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(GMAIL_EMAIL, GMAIL_APP_PASSWORD)
+            
+            # Send email
+            text = msg.as_string()
+            server.sendmail(GMAIL_EMAIL, recipient_email, text)
+            server.quit()
+            
+            return True, "Email sent successfully!"
+            
+        except Exception as e:
+            return False, f"Failed to send email: {str(e)}"
+    
     def generate_complete_email(self):
         """Generate the complete weekly email HTML"""
         try:
@@ -470,13 +506,30 @@ def weekly_email_tab():
         - Risk management tips
         """)
         
-        # Send email functionality (placeholder)
+        # Send email functionality
         if st.button("📤 Send Email"):
             if user_email and 'generated_email' in st.session_state:
                 market_type = st.session_state.get('email_market', 'US')
-                st.info("📧 Email sending functionality will be implemented with SMTP integration")
-                st.markdown(f"**Email would be sent to:** {user_email}")
-                st.markdown(f"**Market Focus:** {market_type} Markets")
+                
+                with st.spinner("Sending email..."):
+                    # Create email generator instance to access send_email method
+                    email_generator = WeeklyEmailGenerator(market=market_type)
+                    success, message = email_generator.send_email(user_email, st.session_state.generated_email)
+                    
+                    if success:
+                        st.success(f"✅ {message}")
+                        st.markdown(f"📧 **Email sent to:** {user_email}")
+                        st.markdown(f"🌍 **Market Focus:** {market_type} Markets")
+                        st.balloons()
+                    else:
+                        st.error(f"❌ {message}")
+                        st.info("💡 **Troubleshooting Tips:**")
+                        st.markdown("""
+                        - Verify your Gmail credentials are correct
+                        - Ensure 2-factor authentication is enabled on Gmail
+                        - Check that you're using an App Password (not your regular password)
+                        - Make sure Gmail allows less secure app access
+                        """)
             else:
                 st.warning("⚠️ Please generate email content first and enter your email address")
         
