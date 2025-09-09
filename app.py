@@ -1,5 +1,6 @@
 import streamlit as st
 import yfinance as yf
+from auth_helper import check_authentication, show_logout_option
 import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
@@ -4959,6 +4960,14 @@ def main():
     """
     Main application function
     """
+    # Check authentication first
+    if not check_authentication():
+        show_logout_option()  # Show logout in sidebar if partially authenticated
+        return
+    
+    # Show logout option in sidebar
+    show_logout_option()
+    
     # Custom CSS to make tabs bigger and more visible
     st.markdown("""
     <style>
