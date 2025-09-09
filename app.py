@@ -9990,7 +9990,13 @@ def stock_screener_tab():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown("#### 🎯 Filter Criteria")
+        # Clear indication of filter tab status
+        if st.session_state.preset_applied:
+            st.markdown("#### 🎯 Filter Criteria")
+            st.markdown(f"<div style='background: #fff3cd; border: 1px solid #ffeaa7; padding: 8px; border-radius: 6px; color: #856404; margin-bottom: 15px;'><strong>⚠️ PRESET MODE:</strong> Filter tabs show values but are overridden by <strong>{st.session_state.preset_applied}</strong> preset</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("#### 🎯 Filter Criteria")
+            st.markdown("<div style='background: #d1ecf1; border: 1px solid #bee5eb; padding: 8px; border-radius: 6px; color: #0c5460; margin-bottom: 15px;'><strong>🛠️ CUSTOM MODE:</strong> All filter tabs are active and control the screening</div>", unsafe_allow_html=True)
         
         # Create tabs for different filter categories
         filter_tabs = st.tabs(["💰 Valuation", "📈 Growth", "💵 Dividends", "📊 Technical", "🏢 Size"])
@@ -10077,7 +10083,13 @@ def stock_screener_tab():
                     help="Filter by specific sectors")
     
     with col2:
-        st.markdown("#### 🎮 Quick Actions")
+        # MODE INDICATOR - Clear visual distinction
+        if st.session_state.preset_applied:
+            st.markdown("#### 🤖 **PRESET MODE ACTIVE**")
+            st.markdown(f"<div style='background: linear-gradient(90deg, #28a745, #20c997); color: white; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px;'>🎯 {st.session_state.preset_applied} Strategy Running</div>", unsafe_allow_html=True)
+        else:
+            st.markdown("#### 🛠️ **CUSTOM MODE ACTIVE**")
+            st.markdown("<div style='background: linear-gradient(90deg, #17a2b8, #6610f2); color: white; padding: 10px; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 15px;'>🔧 Manual Filter Configuration</div>", unsafe_allow_html=True)
         
         # Popular preset filters with clear descriptions
         # Set default index based on current preset
@@ -10109,10 +10121,18 @@ def stock_screener_tab():
         elif st.session_state.preset_applied == "Size-based Filtering":
             current_index = 7
             
-        preset_filter = st.selectbox("Choose Preset Strategy", 
+        # Mode Selection with clear labels
+        if st.session_state.preset_applied:
+            mode_label = "🤖 **Switch Strategy or Mode:**"
+        else:
+            mode_label = "🛠️ **Choose Mode or Strategy:**"
+            
+        st.markdown(mode_label)
+        preset_filter = st.selectbox("**Strategy/Mode Selection**", 
             preset_options,
             index=current_index,
-            help="Preset will automatically apply when selected - ready to screen immediately!")
+            help="🤖 PRESET MODE: Auto-applies optimized filters | 🛠️ CUSTOM MODE: Manual control", 
+            label_visibility="collapsed")
         
         # Automatically apply preset when selection changes
         preset_mapping = {
@@ -10131,23 +10151,31 @@ def stock_screener_tab():
             st.session_state.preset_applied = preset_mapping[preset_filter]
             st.rerun()
         
-        # Show what the selected preset does
+        # Show what the selected preset does with enhanced styling
         if preset_filter == "💰 High Dividend Stocks":
-            st.info("**Active:** Dividend yield >0.5%, Payout ratio <95%, Small-cap+ stocks")
+            st.success("🤖 **PRESET ACTIVE:** Dividend yield >0.5%, Payout ratio <95%, Small-cap+ stocks")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "📉 Value Stocks":
-            st.info("**Active:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
+            st.success("🤖 **PRESET ACTIVE:** P/E <20, P/B <5, ROE >5% (undervalued companies)")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "📈 Growth Stocks":
-            st.info("**Active:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
+            st.success("🤖 **PRESET ACTIVE:** Revenue growth >3%, Earnings growth >5%, ROE >8%, Gross margin >15%")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "🏦 Large Cap Dividend":
-            st.info("**Active:** Large cap stocks, Dividend yield >0.2%, Stable financials")
+            st.success("🤖 **PRESET ACTIVE:** Large cap stocks, Dividend yield >0.2%, Stable financials")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "⚡ Small Cap Growth":
-            st.info("**Active:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Volume >10K")
+            st.success("🤖 **PRESET ACTIVE:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Volume >10K")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "📊 Technical Analysis":
-            st.info("**Active:** Price momentum >-10%, Volume >50K, Beta <2.5 - Technical indicators only")
+            st.success("🤖 **PRESET ACTIVE:** Price momentum >-10%, Volume >50K, Beta <2.5 - Technical indicators only")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "📏 Size-based Filtering":
-            st.info("**Active:** Market cap filtering with volume requirements - Size-based criteria only")
+            st.success("🤖 **PRESET ACTIVE:** Market cap filtering with volume requirements - Size-based criteria only")
+            st.warning("⚠️ Manual filter settings are OVERRIDDEN by this preset")
         elif preset_filter == "Custom (Manual Settings)":
-            st.info("**Custom Mode:** Set your own filter criteria in the tabs above")
+            st.info("🛠️ **CUSTOM MODE:** Using your manual filter settings from the tabs above")
+            st.success("✅ All filter tabs are now active and controlling the screen")
         
         # Reset button only
         col_reset = st.columns(1)[0]
@@ -10160,24 +10188,13 @@ def stock_screener_tab():
         
         st.markdown("---")
         
-        # Show current status and run screen button
+        # Enhanced status display
         if st.session_state.preset_applied:
-            if st.session_state.preset_applied == "Value Stocks":
-                st.success("✅ **Value Stocks strategy loaded** - Ready to screen for undervalued companies!")
-            elif st.session_state.preset_applied == "High Dividend":
-                st.success("✅ **High Dividend strategy loaded** - Ready to screen for dividend-paying stocks!")
-            elif st.session_state.preset_applied == "Growth Stocks":
-                st.success("✅ **Growth Stocks strategy loaded** - Ready to screen for growing companies!")
-            elif st.session_state.preset_applied == "Large Cap Dividend":
-                st.success("✅ **Large Cap Dividend strategy loaded** - Ready to screen for stable dividend stocks!")
-            elif st.session_state.preset_applied == "Small Cap Growth":
-                st.success("✅ **Small Cap Growth strategy loaded** - Ready to screen for small growth companies!")
-            elif st.session_state.preset_applied == "Technical Analysis":
-                st.success("✅ **Technical Analysis strategy loaded** - Ready to screen using technical indicators!")
-            elif st.session_state.preset_applied == "Size-based Filtering":
-                st.success("✅ **Size-based Filtering strategy loaded** - Ready to screen by market cap and liquidity!")
+            st.markdown("### 🎯 Ready to Screen!")
+            st.markdown(f"<div style='background: #d4edda; border: 1px solid #c3e6cb; padding: 12px; border-radius: 8px; color: #155724;'><strong>🤖 PRESET MODE:</strong> {st.session_state.preset_applied} strategy is controlling all filters</div>", unsafe_allow_html=True)
         else:
-            st.info("💡 Customize your filters above or select a preset strategy")
+            st.markdown("### 🛠️ Custom Configuration")
+            st.markdown("<div style='background: #d1ecf1; border: 1px solid #bee5eb; padding: 12px; border-radius: 8px; color: #0c5460;'><strong>🛠️ CUSTOM MODE:</strong> Using your manual filter settings</div>", unsafe_allow_html=True)
             
         # Run screen button
         if st.button("🔍 Run Screen", type="primary", help="Execute the stock screen with current filters"):
@@ -10283,7 +10300,7 @@ def stock_screener_tab():
                     'market_cap_min': market_cap_min, 'sectors': sectors
                 }
             
-            # Debug info: Show active filters for BOTH preset and custom mode
+            # Enhanced filter display with clear visual distinction
             active_criteria = []
             
             # Check all filters that are different from liberal defaults
@@ -10316,16 +10333,19 @@ def stock_screener_tab():
             if filters['sectors']:
                 active_criteria.append(f"Sectors: {', '.join(filters['sectors'])}")
             
-            # Show debug info
+            # Enhanced visual filter display
             if st.session_state.preset_applied:
-                st.info(f"🎯 **{st.session_state.preset_applied} Strategy Active** - Using ONLY these filters:")
+                # PRESET MODE - Green theme with robot icon
+                st.markdown(f"<div style='background: linear-gradient(135deg, #28a745, #20c997); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 5px solid #155724;'><h4 style='margin: 0; color: white;'>🤖 PRESET FILTERS ACTIVE</h4><p style='margin: 5px 0 0 0; opacity: 0.9;'><strong>{st.session_state.preset_applied}</strong> strategy is controlling the screening</p></div>", unsafe_allow_html=True)
             else:
-                st.info("🔧 **Custom Mode Active** - Using your selected filters:")
+                # CUSTOM MODE - Blue theme with tool icon
+                st.markdown("<div style='background: linear-gradient(135deg, #17a2b8, #6610f2); color: white; padding: 15px; border-radius: 10px; margin: 10px 0; border-left: 5px solid #0c5460;'><h4 style='margin: 0; color: white;'>🛠️ CUSTOM FILTERS ACTIVE</h4><p style='margin: 5px 0 0 0; opacity: 0.9;'>Using your manual filter tab settings</p></div>", unsafe_allow_html=True)
                 
             if active_criteria:
-                st.markdown("**Active Filters:** " + " • ".join(active_criteria))
+                filters_text = " • ".join(active_criteria)
+                st.markdown(f"**🔍 Active Screening Criteria:** {filters_text}")
             else:
-                st.markdown("**Active Filters:** Basic screening only (no restrictive filters)")
+                st.markdown("**🔍 Active Screening Criteria:** Basic screening only (no restrictive filters)")
                     
             # Run the screening
             results = run_stock_screen(filters)
