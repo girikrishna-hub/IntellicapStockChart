@@ -16,12 +16,6 @@ def check_authentication():
     st.markdown("### 🔐 Access Required")
     st.markdown("Please enter the testing credentials to access the financial analysis platform.")
     
-    # Debug info (remove this after testing)
-    if st.checkbox("Show debug info", help="For troubleshooting"):
-        st.code(f"Expected Username: {TEST_USERNAME}")
-        st.code(f"Expected Password: {TEST_PASSWORD}")
-        st.warning("Remove this debug info before production!")
-    
     with st.form("login_form"):
         col1, col2 = st.columns([1, 2])
         
