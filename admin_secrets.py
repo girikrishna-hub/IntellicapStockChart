@@ -259,6 +259,9 @@ def admin_secrets_tab():
     st.markdown("### 🔐 Admin - API Keys & Secrets Management")
     st.markdown("Configure and manage all API keys and credentials used by the application.")
     
+    # Initialize secrets manager first
+    secrets_manager = SecretsManager()
+    
     # Migration helper
     st.markdown("#### 🔄 Migration Helper")
     col_migrate, col_info = st.columns([1, 2])
@@ -277,8 +280,6 @@ def admin_secrets_tab():
         st.info("💡 **First time?** Click 'Import from Environment' to automatically copy your existing API keys so you don't have to re-enter them.")
     
     st.markdown("---")
-    
-    secrets_manager = SecretsManager()
     
     # Get all secrets
     secrets = secrets_manager.get_all_secrets()
