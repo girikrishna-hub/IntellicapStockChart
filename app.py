@@ -9986,6 +9986,10 @@ def stock_screener_tab():
     
     st.markdown("---")
     
+    # Initialize preset values if not set - default to Value Stocks for immediate use
+    if 'preset_applied' not in st.session_state:
+        st.session_state.preset_applied = "Value Stocks"
+    
     # Screening interface
     col1, col2 = st.columns([2, 1])
     
@@ -10000,10 +10004,6 @@ def stock_screener_tab():
         
         # Create tabs for different filter categories
         filter_tabs = st.tabs(["💰 Valuation", "📈 Growth", "💵 Dividends", "📊 Technical", "🏢 Size"])
-        
-        # Initialize preset values if not set - default to Value Stocks for immediate use
-        if 'preset_applied' not in st.session_state:
-            st.session_state.preset_applied = "Value Stocks"
             
         # Set default values based on any applied preset
         def get_default_value(key, default_val, preset_values=None):
