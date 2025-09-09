@@ -12,12 +12,6 @@ import json
 
 # the newest OpenAI model is "gpt-4o" which was released August 7, 2025.
 # do not change this unless explicitly requested by the user
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
-
-# Gmail SMTP configuration
-GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 
 # Database configuration
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -25,6 +19,46 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 # Database connection helper
 import psycopg2
 from psycopg2.extras import RealDictCursor
+
+# Secrets manager
+class SecretsHelper:
+    """Helper to get user-configured secrets from database"""
+    
+    @staticmethod
+    def get_secret(secret_name):
+        """Get a secret value from user configuration"""
+        try:
+            conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT secret_value FROM user_secrets 
+                WHERE secret_name = %s AND secret_value IS NOT NULL
+            """, (secret_name,))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            return result['secret_value'] if result else None
+            
+        except Exception as e:
+            print(f"Error getting secret {secret_name}: {e}")
+            return None
+    
+    @staticmethod
+    def get_openai_client():
+        """Get configured OpenAI client"""
+        api_key = SecretsHelper.get_secret('OPENAI_API_KEY')
+        if api_key:
+            return openai.OpenAI(api_key=api_key)
+        return None
+    
+    @staticmethod
+    def get_gmail_credentials():
+        """Get Gmail credentials"""
+        email = SecretsHelper.get_secret('GMAIL_EMAIL')
+        password = SecretsHelper.get_secret('GMAIL_APP_PASSWORD')
+        return email, password
 
 class WeeklyEmailGenerator:
     """Generate comprehensive weekly market analysis emails"""
@@ -167,6 +201,11 @@ class WeeklyEmailGenerator:
     def generate_ai_market_insights(self):
         """Generate AI-powered market insights using OpenAI"""
         try:
+            # Get OpenAI client from user configuration
+            openai_client = SecretsHelper.get_openai_client()
+            if not openai_client:
+                return self._get_fallback_insights()
+            
             # Get recent market data for context
             market_context = self._get_market_context()
             
@@ -477,14 +516,17 @@ class WeeklyEmailGenerator:
     def send_email(self, recipient_email, email_html):
         """Send email using Gmail SMTP"""
         try:
-            if not GMAIL_EMAIL or not GMAIL_APP_PASSWORD:
-                return False, "Gmail credentials not configured"
+            # Get Gmail credentials from user configuration
+            gmail_email, gmail_password = SecretsHelper.get_gmail_credentials()
+            
+            if not gmail_email or not gmail_password:
+                return False, "Gmail credentials not configured. Please set them in Admin → API Keys."
             
             # Create message
             msg = MIMEMultipart('alternative')
             market_label = f" - {self.market} Markets" if hasattr(self, 'market') else ""
             msg['Subject'] = f"Weekly Market Analysis{market_label} - {datetime.now().strftime('%B %d, %Y')}"
-            msg['From'] = GMAIL_EMAIL
+            msg['From'] = gmail_email
             msg['To'] = recipient_email
             
             # Add HTML content
@@ -494,11 +536,11 @@ class WeeklyEmailGenerator:
             # Connect to Gmail SMTP server
             server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
-            server.login(GMAIL_EMAIL, GMAIL_APP_PASSWORD)
+            server.login(gmail_email, gmail_password)
             
             # Send email
             text = msg.as_string()
-            server.sendmail(GMAIL_EMAIL, recipient_email, text)
+            server.sendmail(gmail_email, recipient_email, text)
             server.quit()
             
             return True, "Email sent successfully!"
