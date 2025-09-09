@@ -187,7 +187,8 @@ class SecretsManager:
             
             # Check if migration has already been done
             cursor.execute("SELECT COUNT(*) FROM user_secrets WHERE secret_value IS NOT NULL")
-            configured_count = cursor.fetchone()[0]
+            result = cursor.fetchone()
+            configured_count = result[0] if result else 0
             
             # Only migrate if no secrets are configured yet
             if configured_count == 0:
@@ -210,21 +211,71 @@ class SecretsManager:
                                 validation_status = 'migrated'
                             WHERE secret_name = %s
                         """, (secret_value, secret_name))
-                        migrated_count += 1
+                        
+                        # Check if the update actually worked
+                        if cursor.rowcount > 0:
+                            migrated_count += 1
                 
                 if migrated_count > 0:
                     conn.commit()
                     print(f"✅ Migrated {migrated_count} existing API keys to database")
+                else:
+                    print("No API keys found in environment variables to migrate")
+            else:
+                print(f"Migration skipped - {configured_count} secrets already configured")
             
             conn.close()
             
         except Exception as e:
             print(f"Migration error (non-fatal): {e}")
+    
+    def migrate_env_secrets_manually(self):
+        """Manually migrate environment secrets - can be called from UI"""
+        try:
+            env_secrets = {
+                'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY'),
+                'GMAIL_EMAIL': os.environ.get('GMAIL_EMAIL'), 
+                'GMAIL_APP_PASSWORD': os.environ.get('GMAIL_APP_PASSWORD'),
+                'GURUFOCUS_API_KEY': os.environ.get('GURUFOCUS_API_KEY'),
+                'FMP_API_KEY': os.environ.get('FMP_API_KEY')
+            }
+            
+            migrated_count = 0
+            found_count = 0
+            
+            for secret_name, secret_value in env_secrets.items():
+                if secret_value:
+                    found_count += 1
+                    if self.update_secret(secret_name, secret_value):
+                        migrated_count += 1
+            
+            return True, f"Found {found_count} environment variables, migrated {migrated_count} successfully"
+            
+        except Exception as e:
+            return False, f"Migration failed: {str(e)}"
 
 def admin_secrets_tab():
     """Admin interface for managing secrets"""
     st.markdown("### 🔐 Admin - API Keys & Secrets Management")
     st.markdown("Configure and manage all API keys and credentials used by the application.")
+    
+    # Migration helper
+    st.markdown("#### 🔄 Migration Helper")
+    col_migrate, col_info = st.columns([1, 2])
+    
+    with col_migrate:
+        if st.button("📥 Import from Environment", help="Copy your existing API keys from environment variables"):
+            with st.spinner("Importing existing keys..."):
+                success, message = secrets_manager.migrate_env_secrets_manually()
+                if success:
+                    st.success(f"✅ {message}")
+                    st.rerun()
+                else:
+                    st.error(f"❌ {message}")
+    
+    with col_info:
+        st.info("💡 **First time?** Click 'Import from Environment' to automatically copy your existing API keys so you don't have to re-enter them.")
+    
     st.markdown("---")
     
     secrets_manager = SecretsManager()
