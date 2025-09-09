@@ -15,7 +15,8 @@ class SecretsManager:
     """Manage user secrets and API keys"""
     
     def __init__(self):
-        pass
+        # Auto-migrate existing environment variables on first use
+        self._migrate_existing_secrets()
     
     def _get_db_connection(self):
         """Get database connection"""
@@ -177,6 +178,48 @@ class SecretsManager:
             
         except Exception as e:
             print(f"Error updating validation status: {e}")
+    
+    def _migrate_existing_secrets(self):
+        """Migrate existing environment variables to database (one-time)"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            # Check if migration has already been done
+            cursor.execute("SELECT COUNT(*) FROM user_secrets WHERE secret_value IS NOT NULL")
+            configured_count = cursor.fetchone()[0]
+            
+            # Only migrate if no secrets are configured yet
+            if configured_count == 0:
+                env_secrets = {
+                    'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY'),
+                    'GMAIL_EMAIL': os.environ.get('GMAIL_EMAIL'), 
+                    'GMAIL_APP_PASSWORD': os.environ.get('GMAIL_APP_PASSWORD'),
+                    'GURUFOCUS_API_KEY': os.environ.get('GURUFOCUS_API_KEY'),
+                    'FMP_API_KEY': os.environ.get('FMP_API_KEY')
+                }
+                
+                migrated_count = 0
+                for secret_name, secret_value in env_secrets.items():
+                    if secret_value:  # Only migrate if environment variable exists
+                        cursor.execute("""
+                            UPDATE user_secrets 
+                            SET secret_value = %s, 
+                                is_configured = TRUE,
+                                last_updated = CURRENT_TIMESTAMP,
+                                validation_status = 'migrated'
+                            WHERE secret_name = %s
+                        """, (secret_value, secret_name))
+                        migrated_count += 1
+                
+                if migrated_count > 0:
+                    conn.commit()
+                    print(f"✅ Migrated {migrated_count} existing API keys to database")
+            
+            conn.close()
+            
+        except Exception as e:
+            print(f"Migration error (non-fatal): {e}")
 
 def admin_secrets_tab():
     """Admin interface for managing secrets"""
