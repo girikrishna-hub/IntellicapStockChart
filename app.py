@@ -5101,7 +5101,7 @@ def main():
     """, unsafe_allow_html=True)
     
     # Create data source tabs
-    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener = st.tabs(["📊 Fundamental", "🎯 Advanced", "📅 Earnings", "🗓️ Events", "🔍 Screener"])
+    tab_yahoo, tab_guru, tab_earnings, tab_events, tab_screener, tab_email = st.tabs(["📊 Fundamental", "🎯 Advanced", "📅 Earnings", "🗓️ Events", "🔍 Screener", "📧 Weekly Email"])
     
     with tab_yahoo:
         yahoo_finance_tab()
@@ -5117,6 +5117,10 @@ def main():
     
     with tab_screener:
         stock_screener_tab()
+    
+    with tab_email:
+        from weekly_email_system import weekly_email_tab
+        weekly_email_tab()
 
 def generate_comprehensive_pdf_report(symbol, data, ticker_info, ticker_obj, ma_50, ma_200, macd_line, signal_line, histogram, rsi, cmf, support_level, resistance_level, period, market):
     """Generate a comprehensive PDF report with charts and advanced analysis data in 1-2 pages"""
