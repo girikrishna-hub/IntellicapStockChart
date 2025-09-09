@@ -19,13 +19,120 @@ openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 GMAIL_EMAIL = os.environ.get("GMAIL_EMAIL")
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
 
+# Database configuration
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Database connection helper
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
 class WeeklyEmailGenerator:
     """Generate comprehensive weekly market analysis emails"""
     
     def __init__(self, market="US"):
         self.market = market
-        self.week_start = datetime.now()
-        self.week_end = self.week_start + timedelta(days=7)
+        self.week_start = self._get_week_start()
+        self.week_end = self.week_start + timedelta(days=6)
+        self.week_year = f"{self.week_start.year}-W{self.week_start.isocalendar()[1]:02d}"
+    
+    def _get_week_start(self):
+        """Get the Monday of the current week"""
+        today = datetime.now().date()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday)
+        return datetime.combine(week_start, datetime.min.time())
+    
+    def _get_db_connection(self):
+        """Get database connection"""
+        return psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    
+    def check_existing_email(self):
+        """Check if email already exists for this week and market"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, email_html, email_subject, generated_at 
+                FROM weekly_emails 
+                WHERE week_year = %s AND market_type = %s
+            """, (self.week_year, self.market))
+            
+            result = cursor.fetchone()
+            conn.close()
+            
+            return dict(result) if result else None
+            
+        except Exception as e:
+            print(f"Database error checking existing email: {e}")
+            return None
+    
+    def save_email_to_db(self, email_html, email_subject):
+        """Save generated email to database"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            # Mark all previous emails as not current
+            cursor.execute("""
+                UPDATE weekly_emails 
+                SET is_current_week = FALSE 
+                WHERE market_type = %s
+            """, (self.market,))
+            
+            # Insert new email
+            cursor.execute("""
+                INSERT INTO weekly_emails 
+                (week_start, week_end, market_type, email_html, email_subject, week_year, is_current_week)
+                VALUES (%s, %s, %s, %s, %s, %s, TRUE)
+                ON CONFLICT (week_year, market_type) 
+                DO UPDATE SET 
+                    email_html = EXCLUDED.email_html,
+                    email_subject = EXCLUDED.email_subject,
+                    generated_at = CURRENT_TIMESTAMP,
+                    is_current_week = TRUE
+                RETURNING id
+            """, (
+                self.week_start.date(), 
+                self.week_end.date(), 
+                self.market, 
+                email_html, 
+                email_subject, 
+                self.week_year
+            ))
+            
+            email_id = cursor.fetchone()['id']
+            conn.commit()
+            conn.close()
+            
+            return email_id
+            
+        except Exception as e:
+            print(f"Database error saving email: {e}")
+            return None
+    
+    def get_recent_emails(self, limit=5):
+        """Get recent emails from database"""
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, week_year, market_type, email_subject, generated_at
+                FROM weekly_emails 
+                WHERE market_type = %s
+                ORDER BY generated_at DESC 
+                LIMIT %s
+            """, (self.market, limit))
+            
+            results = cursor.fetchall()
+            conn.close()
+            
+            return [dict(row) for row in results]
+            
+        except Exception as e:
+            print(f"Database error getting recent emails: {e}")
+            return []
         
     def generate_week_ahead_section(self):
         """Generate Week Ahead section with earnings and economic events"""
@@ -399,13 +506,21 @@ class WeeklyEmailGenerator:
         except Exception as e:
             return False, f"Failed to send email: {str(e)}"
     
-    def generate_complete_email(self):
-        """Generate the complete weekly email HTML"""
+    def generate_complete_email(self, force_regenerate=False):
+        """Generate or retrieve the complete weekly email HTML"""
         try:
-            # Generate all sections
+            # Check if email already exists for this week
+            if not force_regenerate:
+                existing_email = self.check_existing_email()
+                if existing_email:
+                    return existing_email['email_html'], True  # Return HTML and existing flag
+            
+            # Generate new email content
             week_ahead = self.generate_week_ahead_section()
             ai_insights = self.generate_ai_market_insights()
             action_items = self.generate_action_items()
+            
+            market_title = f"{self.market} " if self.market == "Indian" else ""
             
             # Create complete email template
             email_html = f"""
@@ -413,17 +528,19 @@ class WeeklyEmailGenerator:
             <html>
             <head>
                 <meta charset="utf-8">
-                <title>Weekly Market Analysis</title>
+                <title>Weekly {market_title}Market Analysis</title>
                 <style>
                     body {{ font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }}
                     .header {{ background: #2c3e50; color: white; padding: 20px; text-align: center; border-radius: 8px; }}
                     .footer {{ background: #ecf0f1; padding: 15px; text-align: center; margin-top: 30px; border-radius: 8px; }}
+                    .week-badge {{ background: #3498db; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; }}
                 </style>
             </head>
             <body>
                 <div class="header">
-                    <h1>📊 Weekly Market Analysis</h1>
-                    <p>Week of {datetime.now().strftime('%B %d, %Y')}</p>
+                    <h1>📊 Weekly {market_title}Market Analysis</h1>
+                    <p>Week of {self.week_start.strftime('%B %d, %Y')}</p>
+                    <span class="week-badge">{self.week_year}</span>
                 </div>
                 
                 {week_ahead}
@@ -435,15 +552,25 @@ class WeeklyEmailGenerator:
                     <p style="font-size: 12px; color: #7f8c8d;">
                         This analysis is for informational purposes only and does not constitute financial advice.
                     </p>
+                    <p style="font-size: 10px; color: #95a5a6;">
+                        Generated: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}
+                    </p>
                 </div>
             </body>
             </html>
             """
             
-            return email_html
+            # Save to database
+            market_label = f" - {self.market} Markets" if self.market else ""
+            email_subject = f"Weekly Market Analysis{market_label} - {self.week_start.strftime('%B %d, %Y')}"
+            
+            email_id = self.save_email_to_db(email_html, email_subject)
+            
+            return email_html, False  # Return HTML and new flag
             
         except Exception as e:
-            return f"<html><body><h1>Error generating email: {str(e)}</h1></body></html>"
+            error_html = f"<html><body><h1>Error generating email: {str(e)}</h1></body></html>"
+            return error_html, False
 
 def weekly_email_tab():
     """Weekly Email tab interface"""
@@ -468,12 +595,29 @@ def weekly_email_tab():
     with col1:
         st.markdown("#### 📋 Email Content Preview")
         
-        if st.button("🚀 Generate Weekly Email", type="primary"):
-            with st.spinner(f"Generating your weekly {selected_market.lower()} market analysis..."):
-                email_generator = WeeklyEmailGenerator(market=selected_market)
-                
+        # Email generation controls
+        col_gen1, col_gen2 = st.columns([2, 1])
+        with col_gen1:
+            generate_btn = st.button("🚀 Generate Weekly Email", type="primary")
+        with col_gen2:
+            force_regenerate = st.checkbox("🔄 Force Regenerate", help="Generate new content even if this week's email already exists")
+        
+        if generate_btn:
+            email_generator = WeeklyEmailGenerator(market=selected_market)
+            
+            # Check current week info
+            st.info(f"📅 Current week: {email_generator.week_year} ({email_generator.week_start.strftime('%B %d')} - {email_generator.week_end.strftime('%B %d, %Y')})")
+            
+            with st.spinner(f"Preparing your weekly {selected_market.lower()} market analysis..."):
                 # Generate email content
-                email_html = email_generator.generate_complete_email()
+                email_html, was_existing = email_generator.generate_complete_email(force_regenerate=force_regenerate)
+                
+                # Display status
+                if was_existing and not force_regenerate:
+                    st.success(f"✅ Retrieved existing weekly {selected_market} market email for {email_generator.week_year}")
+                    st.info("💡 This email was previously generated this week. Use 'Force Regenerate' to create new content.")
+                else:
+                    st.success(f"✅ Weekly {selected_market} market email generated and saved to database!")
                 
                 # Display preview
                 st.markdown("#### 📧 Email Preview")
@@ -482,8 +626,7 @@ def weekly_email_tab():
                 # Store in session state for sending
                 st.session_state.generated_email = email_html
                 st.session_state.email_market = selected_market
-                
-                st.success(f"✅ Weekly {selected_market} market email generated successfully!")
+                st.session_state.email_week = email_generator.week_year
     
     with col2:
         st.markdown("#### ⚙️ Email Settings")
@@ -534,12 +677,51 @@ def weekly_email_tab():
                 st.warning("⚠️ Please generate email content first and enter your email address")
         
         st.markdown("---")
-        st.markdown("#### 🔄 Automation Options")
+        st.markdown("#### 📚 Email History")
+        
+        # Show recent emails for selected market
+        email_generator = WeeklyEmailGenerator(market=selected_market)
+        recent_emails = email_generator.get_recent_emails()
+        
+        if recent_emails:
+            st.markdown("**Recent Weekly Emails:**")
+            for email in recent_emails:
+                with st.expander(f"📧 {email['email_subject']} ({email['generated_at'].strftime('%b %d, %Y')})"):
+                    col_email1, col_email2 = st.columns([2, 1])
+                    with col_email1:
+                        st.markdown(f"**Week:** {email['week_year']}")
+                        st.markdown(f"**Market:** {email['market_type']}")
+                        st.markdown(f"**Generated:** {email['generated_at'].strftime('%Y-%m-%d %H:%M UTC')}")
+                    with col_email2:
+                        if st.button(f"📄 View", key=f"view_{email['id']}"):
+                            # Load this email for viewing
+                            conn = email_generator._get_db_connection()
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT email_html FROM weekly_emails WHERE id = %s", (email['id'],))
+                            result = cursor.fetchone()
+                            conn.close()
+                            
+                            if result:
+                                st.session_state.generated_email = result['email_html']
+                                st.session_state.email_market = email['market_type']
+                                st.rerun()
+        else:
+            st.info("No previous emails found for this market.")
+        
+        st.markdown("---")
+        st.markdown("#### 🔄 Database-Driven System")
         st.info("""
-        **Coming Soon:**
-        - Weekly auto-delivery
-        - Custom timing
-        - Subscription management
+        **Current Features:**
+        - ✅ Weekly emails stored in PostgreSQL database
+        - ✅ Prevents duplicate generation for same week
+        - ✅ Automatic Monday-Sunday week calculation
+        - ✅ Separate storage for US and Indian markets
+        - ✅ Email history and retrieval
+        
+        **Scheduling Logic:**
+        - Emails generated per calendar week (2025-W37, etc.)
+        - Force regenerate available for content updates
+        - Database ensures consistency across sessions
         """)
 
 if __name__ == "__main__":
