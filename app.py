@@ -10087,7 +10087,9 @@ def stock_screener_tab():
             "📉 Value Stocks", 
             "📈 Growth Stocks",
             "🏦 Large Cap Dividend",
-            "⚡ Small Cap Growth"
+            "⚡ Small Cap Growth",
+            "📊 Technical Analysis",
+            "📏 Size-based Filtering"
         ]
         
         # Find current preset index
@@ -10102,6 +10104,10 @@ def stock_screener_tab():
             current_index = 4
         elif st.session_state.preset_applied == "Small Cap Growth":
             current_index = 5
+        elif st.session_state.preset_applied == "Technical Analysis":
+            current_index = 6
+        elif st.session_state.preset_applied == "Size-based Filtering":
+            current_index = 7
             
         preset_filter = st.selectbox("Choose Preset Strategy", 
             preset_options,
@@ -10115,6 +10121,8 @@ def stock_screener_tab():
             "📈 Growth Stocks": "Growth Stocks",
             "🏦 Large Cap Dividend": "Large Cap Dividend",
             "⚡ Small Cap Growth": "Small Cap Growth",
+            "📊 Technical Analysis": "Technical Analysis",
+            "📏 Size-based Filtering": "Size-based Filtering",
             "Custom (Manual Settings)": None
         }
         
@@ -10134,6 +10142,10 @@ def stock_screener_tab():
             st.info("**Active:** Large cap stocks, Dividend yield >0.2%, Stable financials")
         elif preset_filter == "⚡ Small Cap Growth":
             st.info("**Active:** Small cap stocks, Growth metrics >5-8%, ROE >10%, Volume >10K")
+        elif preset_filter == "📊 Technical Analysis":
+            st.info("**Active:** Price momentum >-10%, Volume >50K, Beta <2.5 - Technical indicators only")
+        elif preset_filter == "📏 Size-based Filtering":
+            st.info("**Active:** Market cap filtering with volume requirements - Size-based criteria only")
         elif preset_filter == "Custom (Manual Settings)":
             st.info("**Custom Mode:** Set your own filter criteria in the tabs above")
         
@@ -10160,6 +10172,10 @@ def stock_screener_tab():
                 st.success("✅ **Large Cap Dividend strategy loaded** - Ready to screen for stable dividend stocks!")
             elif st.session_state.preset_applied == "Small Cap Growth":
                 st.success("✅ **Small Cap Growth strategy loaded** - Ready to screen for small growth companies!")
+            elif st.session_state.preset_applied == "Technical Analysis":
+                st.success("✅ **Technical Analysis strategy loaded** - Ready to screen using technical indicators!")
+            elif st.session_state.preset_applied == "Size-based Filtering":
+                st.success("✅ **Size-based Filtering strategy loaded** - Ready to screen by market cap and liquidity!")
         else:
             st.info("💡 Customize your filters above or select a preset strategy")
             
@@ -10234,6 +10250,21 @@ def stock_screener_tab():
                         'gross_margin_min': 18.0,
                         'market_cap_min': 1,  # Small cap
                         'volume_avg_min': 10000
+                    })
+                    
+                elif st.session_state.preset_applied == "Technical Analysis":
+                    # ONLY technical filters
+                    filters.update({
+                        'price_change_1m_min': -10.0,  # Not too negative momentum
+                        'volume_avg_min': 50000,  # Decent liquidity
+                        'beta_max': 2.5  # Not too volatile
+                    })
+                    
+                elif st.session_state.preset_applied == "Size-based Filtering":
+                    # ONLY size/market cap filters
+                    filters.update({
+                        'market_cap_min': 2,  # Mid cap+
+                        'volume_avg_min': 200000  # Good liquidity for larger stocks
                     })
                     
             else:
