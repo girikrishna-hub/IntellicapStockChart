@@ -18,7 +18,8 @@ openai_client = openai.OpenAI(api_key=OPENAI_API_KEY)
 class WeeklyEmailGenerator:
     """Generate comprehensive weekly market analysis emails"""
     
-    def __init__(self):
+    def __init__(self, market="US"):
+        self.market = market
         self.week_start = datetime.now()
         self.week_end = self.week_start + timedelta(days=7)
         
@@ -58,20 +59,37 @@ class WeeklyEmailGenerator:
             # Get recent market data for context
             market_context = self._get_market_context()
             
-            prompt = f"""
-            As a financial market analyst, provide a comprehensive weekly market analysis based on this data:
-            
-            {market_context}
-            
-            Please provide insights on:
-            1. Overall market sentiment and trends
-            2. Key sectors to watch
-            3. Risk factors for the coming week
-            4. Technical analysis observations
-            5. Investment themes and opportunities
-            
-            Keep the analysis professional but accessible, around 200-300 words.
-            """
+            if self.market == "Indian":
+                prompt = f"""
+                As a financial market analyst specializing in Indian markets, provide a comprehensive weekly analysis based on this data:
+                
+                {market_context}
+                
+                Please provide insights specifically for Indian markets on:
+                1. NSE/BSE sentiment and Nifty/Sensex trends
+                2. Key Indian sectors to watch (IT, Banking, Pharma, Auto, etc.)
+                3. Risk factors including global cues, FII flows, and domestic policy
+                4. Technical analysis of major Indian indices
+                5. Investment themes relevant to Indian investors
+                6. Impact of monsoon, inflation, and RBI policy on markets
+                
+                Keep the analysis professional but accessible, around 200-300 words.
+                """
+            else:
+                prompt = f"""
+                As a financial market analyst, provide a comprehensive weekly market analysis based on this data:
+                
+                {market_context}
+                
+                Please provide insights on:
+                1. Overall market sentiment and trends
+                2. Key sectors to watch
+                3. Risk factors for the coming week
+                4. Technical analysis observations
+                5. Investment themes and opportunities
+                
+                Keep the analysis professional but accessible, around 200-300 words.
+                """
             
             response = openai_client.chat.completions.create(
                 model="gpt-4o",
@@ -201,8 +219,13 @@ class WeeklyEmailGenerator:
     def _get_upcoming_earnings(self):
         """Get upcoming earnings for major stocks"""
         try:
-            # Sample major stocks - can be expanded
-            major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA']
+            if self.market == "Indian":
+                # Major Indian stocks
+                major_stocks = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS', 'BHARTIARTL.NS', 'ITC.NS']
+            else:
+                # US stocks
+                major_stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NVDA']
+            
             earnings_list = []
             
             for symbol in major_stocks[:5]:  # Limit to prevent API overload
@@ -214,15 +237,22 @@ class WeeklyEmailGenerator:
                         earnings_date = calendar.index[0] if len(calendar.index) > 0 else None
                         if earnings_date:
                             date_str = earnings_date.strftime("%A, %B %d")
-                            earnings_list.append(f"<li><strong>{symbol}</strong> - {date_str}</li>")
+                            display_symbol = symbol.replace('.NS', '') if self.market == "Indian" else symbol
+                            earnings_list.append(f"<li><strong>{display_symbol}</strong> - {date_str}</li>")
                 except:
                     continue
             
             if not earnings_list:
-                earnings_list = [
-                    "<li>No major earnings scheduled this week</li>",
-                    "<li>Check individual stock calendars for specific dates</li>"
-                ]
+                if self.market == "Indian":
+                    earnings_list = [
+                        "<li>No major Indian earnings scheduled this week</li>",
+                        "<li>Check NSE/BSE calendars for specific dates</li>"
+                    ]
+                else:
+                    earnings_list = [
+                        "<li>No major earnings scheduled this week</li>",
+                        "<li>Check individual stock calendars for specific dates</li>"
+                    ]
             
             return "".join(earnings_list)
             
@@ -231,21 +261,37 @@ class WeeklyEmailGenerator:
     
     def _get_economic_events(self):
         """Get key economic events for the week"""
-        # Simplified economic calendar - can be enhanced with real API
-        events = [
-            "<li><strong>Federal Reserve</strong> - Monitor for policy updates</li>",
-            "<li><strong>Employment Data</strong> - Weekly jobless claims (Thursday)</li>",
-            "<li><strong>Inflation Indicators</strong> - CPI/PPI releases if scheduled</li>",
-            "<li><strong>International Markets</strong> - Central bank meetings and data</li>",
-            "<li><strong>Sector Rotation</strong> - Watch for institutional flows</li>"
-        ]
+        if self.market == "Indian":
+            events = [
+                "<li><strong>Reserve Bank of India (RBI)</strong> - Monitor for policy updates and rates</li>",
+                "<li><strong>GDP Growth Data</strong> - Quarterly GDP and industrial production</li>",
+                "<li><strong>Inflation Data</strong> - CPI and WPI releases from MOSPI</li>",
+                "<li><strong>FII/DII Flows</strong> - Foreign and domestic institutional investments</li>",
+                "<li><strong>Monsoon Updates</strong> - Weather patterns affecting agriculture sector</li>",
+                "<li><strong>GST Collections</strong> - Monthly tax collection data</li>"
+            ]
+        else:
+            events = [
+                "<li><strong>Federal Reserve</strong> - Monitor for policy updates</li>",
+                "<li><strong>Employment Data</strong> - Weekly jobless claims (Thursday)</li>",
+                "<li><strong>Inflation Indicators</strong> - CPI/PPI releases if scheduled</li>",
+                "<li><strong>International Markets</strong> - Central bank meetings and data</li>",
+                "<li><strong>Sector Rotation</strong> - Watch for institutional flows</li>"
+            ]
         return "".join(events)
     
     def _get_market_context(self):
         """Get current market data for AI analysis"""
         try:
-            # Get major index data
-            indices = ['^GSPC', '^IXIC', '^DJI']  # S&P 500, NASDAQ, Dow
+            if self.market == "Indian":
+                # Indian market indices
+                indices = ['^NSEI', '^BSESN', '^NSEBANK']  # Nifty 50, Sensex, Bank Nifty
+                index_names = {'^NSEI': 'Nifty 50', '^BSESN': 'Sensex', '^NSEBANK': 'Bank Nifty'}
+            else:
+                # US market indices
+                indices = ['^GSPC', '^IXIC', '^DJI']  # S&P 500, NASDAQ, Dow
+                index_names = {'^GSPC': 'S&P 500', '^IXIC': 'NASDAQ', '^DJI': 'Dow Jones'}
+            
             market_data = {}
             
             for index in indices:
@@ -260,13 +306,23 @@ class WeeklyEmailGenerator:
                         'change_pct': change_pct
                     }
             
-            context = f"""
-            Market Data Summary:
-            S&P 500: {market_data.get('^GSPC', {}).get('change_pct', 0):.2f}% change
-            NASDAQ: {market_data.get('^IXIC', {}).get('change_pct', 0):.2f}% change
-            Dow Jones: {market_data.get('^DJI', {}).get('change_pct', 0):.2f}% change
-            Analysis Date: {datetime.now().strftime('%Y-%m-%d')}
-            """
+            if self.market == "Indian":
+                context = f"""
+                Indian Market Data Summary:
+                Nifty 50: {market_data.get('^NSEI', {}).get('change_pct', 0):.2f}% change
+                Sensex: {market_data.get('^BSESN', {}).get('change_pct', 0):.2f}% change
+                Bank Nifty: {market_data.get('^NSEBANK', {}).get('change_pct', 0):.2f}% change
+                Analysis Date: {datetime.now().strftime('%Y-%m-%d')}
+                Market: Indian Stock Exchanges (NSE/BSE)
+                """
+            else:
+                context = f"""
+                Market Data Summary:
+                S&P 500: {market_data.get('^GSPC', {}).get('change_pct', 0):.2f}% change
+                NASDAQ: {market_data.get('^IXIC', {}).get('change_pct', 0):.2f}% change
+                Dow Jones: {market_data.get('^DJI', {}).get('change_pct', 0):.2f}% change
+                Analysis Date: {datetime.now().strftime('%Y-%m-%d')}
+                """
             
             return context
             
@@ -276,8 +332,13 @@ class WeeklyEmailGenerator:
     def _get_action_items_data(self):
         """Get data for generating action items"""
         try:
-            # Get some sample market data for recommendations
-            sample_stocks = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA']
+            if self.market == "Indian":
+                # Major Indian stocks
+                sample_stocks = ['RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS']
+            else:
+                # US stocks
+                sample_stocks = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'NVDA']
+            
             stock_data = []
             
             for symbol in sample_stocks:
@@ -291,11 +352,13 @@ class WeeklyEmailGenerator:
                         month_ago_price = hist['Close'].iloc[0]
                         month_change = ((current_price - month_ago_price) / month_ago_price) * 100
                         
-                        stock_data.append(f"{symbol}: {month_change:.1f}% monthly change")
+                        display_symbol = symbol.replace('.NS', '') if self.market == "Indian" else symbol
+                        stock_data.append(f"{display_symbol}: {month_change:.1f}% monthly change")
                 except:
                     continue
             
-            return "Stock Performance Summary: " + ", ".join(stock_data)
+            market_label = "Indian Stock Performance Summary" if self.market == "Indian" else "Stock Performance Summary"
+            return f"{market_label}: " + ", ".join(stock_data)
             
         except Exception as e:
             return f"Error getting action items data: {str(e)}"
@@ -352,6 +415,17 @@ def weekly_email_tab():
     st.markdown("Generate and preview your weekly market analysis email with AI insights and actionable recommendations.")
     st.markdown("---")
     
+    # Market selection
+    col_market, col_spacer = st.columns([2, 3])
+    with col_market:
+        market_choice = st.radio(
+            "🌍 Choose Market:",
+            ["🇺🇸 US Markets", "🇮🇳 Indian Markets"],
+            help="Select which market to focus the weekly analysis on"
+        )
+    
+    selected_market = "Indian" if market_choice == "🇮🇳 Indian Markets" else "US"
+    
     # Email generator interface
     col1, col2 = st.columns([2, 1])
     
@@ -359,8 +433,8 @@ def weekly_email_tab():
         st.markdown("#### 📋 Email Content Preview")
         
         if st.button("🚀 Generate Weekly Email", type="primary"):
-            with st.spinner("Generating your weekly market analysis..."):
-                email_generator = WeeklyEmailGenerator()
+            with st.spinner(f"Generating your weekly {selected_market.lower()} market analysis..."):
+                email_generator = WeeklyEmailGenerator(market=selected_market)
                 
                 # Generate email content
                 email_html = email_generator.generate_complete_email()
@@ -371,8 +445,9 @@ def weekly_email_tab():
                 
                 # Store in session state for sending
                 st.session_state.generated_email = email_html
+                st.session_state.email_market = selected_market
                 
-                st.success("✅ Weekly email generated successfully!")
+                st.success(f"✅ Weekly {selected_market} market email generated successfully!")
     
     with col2:
         st.markdown("#### ⚙️ Email Settings")
@@ -398,8 +473,10 @@ def weekly_email_tab():
         # Send email functionality (placeholder)
         if st.button("📤 Send Email"):
             if user_email and 'generated_email' in st.session_state:
+                market_type = st.session_state.get('email_market', 'US')
                 st.info("📧 Email sending functionality will be implemented with SMTP integration")
-                st.markdown("**Email would be sent to:** " + user_email)
+                st.markdown(f"**Email would be sent to:** {user_email}")
+                st.markdown(f"**Market Focus:** {market_type} Markets")
             else:
                 st.warning("⚠️ Please generate email content first and enter your email address")
         
