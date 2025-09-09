@@ -10283,47 +10283,49 @@ def stock_screener_tab():
                     'market_cap_min': market_cap_min, 'sectors': sectors
                 }
             
-            # Debug info: Show category-specific active filters
+            # Debug info: Show active filters for BOTH preset and custom mode
+            active_criteria = []
+            
+            # Check all filters that are different from liberal defaults
+            if filters['pe_min'] > 0: active_criteria.append(f"P/E ≥{filters['pe_min']}")
+            if filters['pe_max'] < 50: active_criteria.append(f"P/E ≤{filters['pe_max']}")
+            if filters['pb_min'] > 0: active_criteria.append(f"P/B ≥{filters['pb_min']}")
+            if filters['pb_max'] < 10: active_criteria.append(f"P/B ≤{filters['pb_max']}")
+            if filters['roe_min'] > 0: active_criteria.append(f"ROE ≥{filters['roe_min']}%")
+            if filters['roe_max'] < 100: active_criteria.append(f"ROE ≤{filters['roe_max']}%")
+            if filters['div_yield_min'] > 0: active_criteria.append(f"Dividend yield ≥{filters['div_yield_min']}%")
+            if filters['div_yield_max'] < 20: active_criteria.append(f"Dividend yield ≤{filters['div_yield_max']}%")
+            if filters['payout_ratio_max'] < 100: active_criteria.append(f"Payout ratio ≤{filters['payout_ratio_max']}%")
+            if filters['rev_growth_min'] > 0: active_criteria.append(f"Revenue growth ≥{filters['rev_growth_min']}%")
+            if filters['earnings_growth_min'] > 0: active_criteria.append(f"Earnings growth ≥{filters['earnings_growth_min']}%")
+            if filters['roe_growth_min'] > 0: active_criteria.append(f"Growth ROE ≥{filters['roe_growth_min']}%")
+            if filters['gross_margin_min'] > 0: active_criteria.append(f"Gross margin ≥{filters['gross_margin_min']}%")
+            if filters['profit_margin_min'] > 0: active_criteria.append(f"Profit margin ≥{filters['profit_margin_min']}%")
+            if filters['price_change_1m_min'] > -50: active_criteria.append(f"1M price change ≥{filters['price_change_1m_min']}%")
+            if filters['price_change_1m_max'] < 100: active_criteria.append(f"1M price change ≤{filters['price_change_1m_max']}%")
+            if filters['volume_avg_min'] > 100000: active_criteria.append(f"Volume ≥{filters['volume_avg_min']:,.0f}")
+            if filters['beta_max'] < 3: active_criteria.append(f"Beta ≤{filters['beta_max']}")
+            
+            # Market cap and sector filters
+            if isinstance(filters['market_cap_min'], str) and filters['market_cap_min'] != "Any":
+                active_criteria.append(f"Market cap: {filters['market_cap_min']}")
+            elif isinstance(filters['market_cap_min'], int) and filters['market_cap_min'] > 0:
+                cap_names = ["Any", "Micro", "Small", "Mid", "Large", "Mega"]
+                active_criteria.append(f"Market cap: {cap_names[min(filters['market_cap_min'], 5)]}+ cap")
+                
+            if filters['sectors']:
+                active_criteria.append(f"Sectors: {', '.join(filters['sectors'])}")
+            
+            # Show debug info
             if st.session_state.preset_applied:
                 st.info(f"🎯 **{st.session_state.preset_applied} Strategy Active** - Using ONLY these filters:")
-                active_criteria = []
+            else:
+                st.info("🔧 **Custom Mode Active** - Using your selected filters:")
                 
-                # Show only the filters that differ from defaults
-                for key, value in filters.items():
-                    default_val = default_filters[key]
-                    if value != default_val:
-                        if key == 'div_yield_min' and value > 0:
-                            active_criteria.append(f"Dividend yield ≥{value}%")
-                        elif key == 'div_yield_max' and value < 20:
-                            active_criteria.append(f"Dividend yield ≤{value}%")
-                        elif key == 'payout_ratio_max' and value < 100:
-                            active_criteria.append(f"Payout ratio ≤{value}%")
-                        elif key == 'pe_max' and value < 50:
-                            active_criteria.append(f"P/E ratio ≤{value}")
-                        elif key == 'pb_max' and value < 10:
-                            active_criteria.append(f"P/B ratio ≤{value}")
-                        elif key == 'roe_min' and value > 0:
-                            active_criteria.append(f"ROE ≥{value}%")
-                        elif key == 'rev_growth_min' and value > 0:
-                            active_criteria.append(f"Revenue growth ≥{value}%")
-                        elif key == 'earnings_growth_min' and value > 0:
-                            active_criteria.append(f"Earnings growth ≥{value}%")
-                        elif key == 'roe_growth_min' and value > 0:
-                            active_criteria.append(f"ROE ≥{value}%")
-                        elif key == 'gross_margin_min' and value > 0:
-                            active_criteria.append(f"Gross margin ≥{value}%")
-                        elif key == 'market_cap_min' and value > 0:
-                            cap_names = ["Any", "Micro", "Small", "Mid", "Large", "Mega"]
-                            active_criteria.append(f"Market cap: {cap_names[min(value, 5)]}+ cap")
-                        elif key == 'volume_avg_min' and value > 100000:
-                            active_criteria.append(f"Volume ≥{value:,.0f}")
-                        elif key == 'beta_max' and value < 3:
-                            active_criteria.append(f"Beta ≤{value}")
-                            
-                if active_criteria:
-                    st.markdown("**Active Filters:** " + " • ".join(active_criteria))
-                else:
-                    st.markdown("**Active Filters:** Basic screening only (no restrictive filters)")
+            if active_criteria:
+                st.markdown("**Active Filters:** " + " • ".join(active_criteria))
+            else:
+                st.markdown("**Active Filters:** Basic screening only (no restrictive filters)")
                     
             # Run the screening
             results = run_stock_screen(filters)
